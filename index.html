@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voxel Clicker — Marius</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23F60887'/><text y='68' font-size='60' x='20'>🧊</text></svg>" />
+</head>
+<body>
+  <!-- Header & Controls -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🧊</span>
+      <h1>Voxel <span class="pink-text">Clicker</span></h1>
+    </div>
+    <div class="header-controls">
+      <button id="music-toggle" class="control-btn" title="Activer / Couper la musique de fond">
+        <span class="icon">🔇</span>
+        <span>Musique #F60887</span>
+      </button>
+      <button id="sfx-toggle" class="control-btn" title="Activer / Couper les bruitages">
+        <span class="icon">🔊</span>
+        <span>Bruitages</span>
+      </button>
+      <button id="reset-btn" class="control-btn danger" title="Réinitialiser la partie">
+        <span>🔄 Réinitialiser</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="app-container">
+    <!-- Clicker section -->
+    <section class="clicker-section">
+      <div class="stats-card">
+        <div class="score-label">Voxels collectés</div>
+        <div class="score-display">
+          <span id="voxels-count" class="score-value">0</span>
+          <span class="score-unit">VOX</span>
+        </div>
+        <div class="secondary-stats">
+          <div class="stat-pill">Par seconde : <span id="vps-count">0</span>/s</div>
+          <div class="stat-pill">Par clic : <span id="vpc-count">1</span></div>
+        </div>
+      </div>
+
+      <!-- 3D Voxel Cube Target -->
+      <div id="main-voxel" class="voxel-cube-wrapper" title="Clique pour miner des voxels !">
+        <div class="voxel-cube">
+          <div class="cube-face front"></div>
+          <div class="cube-face top"></div>
+          <div class="cube-face right"></div>
+        </div>
+      </div>
+
+      <p class="click-hint">Clique sur le cube voxel pour générer des ressources</p>
+    </section>
+
+    <!-- Upgrades / Shop section -->
+    <aside class="shop-section">
+      <div class="shop-header">
+        <h2>Améliorations</h2>
+        <span class="shop-badge">Boutique</span>
+      </div>
+      <div id="upgrades-list" class="upgrades-list">
+        <!-- Rendered dynamically by TypeScript -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- Container for floating +1 click animations -->
+  <div id="particles-container"></div>
+
+  <footer>
+    <p>Voxel Lab #01 &bull; Réalisé par Marius &bull; Thème Rose <span style="color: #F60887; font-weight: bold;">#F60887</span></p>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

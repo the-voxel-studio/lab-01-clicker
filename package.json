@@ -1,0 +1,23 @@
+{
+  "name": "voxel-clicker-marius",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "clicker",
+    "incremental",
+    "voxel",
+    "typescript"
+  ],
+  "author": "Marius",
+  "license": "MIT",
+  "description": "Voxel Clicker game built with TypeScript and Vite",
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^6.4.4"
+  }
+}
