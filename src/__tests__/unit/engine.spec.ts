@@ -1,0 +1,209 @@
+/**
+ * Core Headless Simulation Engine & Auditor Test Suite.
+ * Validates delta-time tick loop, economic dynamics, audits, and defeat conditions.
+ *
+ * @module __tests__/unit/engine.spec
+ */
+
+import { describe, it, expect } from 'vitest'
+import {
+  tick,
+  evaluateDeadlineAudit,
+} from '@/core/engine'
+import { createInitialGameState } from '@/core/state'
+import { dispatch } from '@/core/commands'
+
+describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
+  it('advances simulation delta-time and calculates exact economic yields', () => {
+    const state = createInitialGameState()
+    state.units.scribe = 10 // 10 * 0.5 = 5.0 AP/s gross
+
+    const tickRes = tick(state, 1.0)
+    expect(tickRes.dt).toBe(1.0)
+    expect(state.tickIndex).toBe(1)
+    expect(state.totalElapsedSeconds).toBe(1.0)
+
+    // Gross AP includes Scribes (5.0 AP/s) + base poll tax (100 serfs * 0.02 * (25/25) = 2.0 AP/s) = 7.0 AP/s
+    expect(tickRes.grossApGenerated).toBeCloseTo(7.0, 1)
+    expect(state.ap).toBeGreaterThan(50)
+  })
+
+  it('triggers mid-deadline interim warning at 50 seconds without phase interruption', () => {
+    const state = createInitialGameState()
+    state.deadlineTimeSeconds = 49.5
+
+    const tick1 = tick(state, 1.0) // Crosses 50.5s
+    expect(state.interimWarningShown).toBe(true)
+    expect(tick1.interimWarningTriggered).toBe(true)
+    expect(state.phase).toBe('ACTIVE_CYCLE') // No phase interruption!
+
+    const tick2 = tick(state, 1.0)
+    expect(tick2.interimWarningTriggered).toBe(false)
+  })
+
+  it('concludes deadline at 100 seconds and transitions to AUDIT_ASSESSMENT', () => {
+    const state = createInitialGameState()
+    state.deadlineTimeSeconds = 99.5
+
+    const tickRes = tick(state, 1.0)
+    expect(tickRes.deadlineCompleted).toBe(true)
+    expect(state.phase).toBe('AUDIT_ASSESSMENT')
+  })
+
+  it('evaluates Two-Out-Of-Three rule and Royal Pardon grace rule', () => {
+    const state = createInitialGameState()
+    expect(state.strikes).toBe(0)
+    expect(state.provinces).toBe(3)
+
+    // D1 quota failure: Strike 1 -> Royal Censure
+    const audit1 = evaluateDeadlineAudit(state)
+    expect(audit1.success).toBe(false)
+    expect(audit1.royalPardonIssued).toBe(true)
+    expect(state.strikes).toBe(1)
+    expect(state.provinces).toBe(2)
+    expect(state.isGameOver).toBe(false)
+
+    // Strike 2 -> Execution
+    const audit2 = evaluateDeadlineAudit(state)
+    expect(audit2.success).toBe(false)
+    expect(state.strikes).toBe(2)
+    expect(state.isGameOver).toBe(true)
+    expect(state.defeatReason).toBe('quota_failure')
+    expect(state.phase).toBe('RUN_DEFEAT')
+  })
+
+  it('enforces the hard province floor of 1 during Royal Censure', () => {
+    const state = createInitialGameState()
+    state.provinces = 1 // Already at minimum floor
+
+    evaluateDeadlineAudit(state)
+    expect(state.strikes).toBe(1)
+    expect(state.provinces).toBe(1) // Cannot reduce below 1
+  })
+
+  it('activates demographic overcrowding bleed when population exceeds housing capacity', () => {
+    const state = createInitialGameState()
+    // Housing capacity = 750 (3 provinces)
+    state.totalPopulation = 800 // 50 over capacity
+    state.freeSerfs = 800
+
+    // Overcrowding bleed rate = 2.5 pop/s, unrest rate = 0.15/s
+    tick(state, 2.0)
+
+    expect(state.totalPopulation).toBeCloseTo(800 - 2.5 * 2.0, 1)
+    expect(state.unrest).toBeCloseTo(10 + 0.15 * 2.0, 1)
+  })
+
+  it('applies unrest stage penalties during simulation tick', () => {
+    const state = createInitialGameState()
+
+    // 1. Fiscal boycott (unrest = 60 >= 50): -20% tax revenue
+    state.unrest = 60
+    const tickBoycott = tick(state, 1.0)
+    expect(tickBoycott.crisisStage).toBe('fiscal_boycott')
+
+    // 2. Strife & Desertion (unrest = 80 >= 75): population growth frozen to 0
+    state.unrest = 80
+    const initialPop = state.totalPopulation
+    tick(state, 1.0)
+    expect(state.totalPopulation).toBe(initialPop)
+
+    // 3. Urban Rebellion (unrest = 95 >= 90): Scribe AP output halved
+    state.unrest = 95
+    state.units.scribe = 10
+    const tickRebellion = tick(state, 1.0)
+    expect(tickRebellion.crisisStage).toBe('urban_rebellion')
+
+    // 4. Total Revolution (unrest = 100): Realm collapse
+    state.unrest = 100
+    tick(state, 1.0)
+    expect(state.isGameOver).toBe(true)
+    expect(state.defeatReason).toBe('revolution')
+    expect(state.phase).toBe('RUN_DEFEAT')
+  })
+
+  it('handles bankruptcy countdown and Lombard Bailout offer', () => {
+    const state = createInitialGameState()
+    state.ap = 0
+    state.units.soldier = 50 // High upkeep creates negative net AP
+
+    // Tick into negative treasury
+    tick(state, 9.0) // 30 - 9 = 21s left
+    expect(state.phase).toBe('ACTIVE_CYCLE')
+
+    tick(state, 2.0) // Crosses 19s -> triggers LOMBARD_OFFER
+    expect(state.phase).toBe('LOMBARD_OFFER')
+
+    // Accept loan -> +2000 AP, -1 province, resumes ACTIVE_CYCLE
+    const acceptRes = dispatch(state, { type: 'ACCEPT_LOMBARD_LOAN' })
+    expect(acceptRes.success).toBe(true)
+    expect(state.ap).toBeGreaterThan(1800)
+    expect(state.provinces).toBe(2)
+    expect(state.phase).toBe('ACTIVE_CYCLE')
+  })
+
+  it('triggers bankruptcy defeat if countdown expires without bailout', () => {
+    const state = createInitialGameState()
+    state.ap = 0
+    state.units.soldier = 50
+    state.lombardBailoutAvailable = false // Already used
+
+    tick(state, 31.0) // Depletes full 30s grace timer
+    expect(state.isGameOver).toBe(true)
+    expect(state.defeatReason).toBe('bankruptcy')
+    expect(state.phase).toBe('RUN_DEFEAT')
+  })
+
+  it('manages Royal Patent unlocking and Tier II unit recruitment requirements', () => {
+    const state = createInitialGameState()
+    state.ap = 2000
+
+    // Try buying Clerk before patent unlock -> rejected
+    const buyLocked = dispatch(state, { type: 'BUY_UNIT', unitId: 'clerk', count: 1 })
+    expect(buyLocked.success).toBe(false)
+    expect(buyLocked.error).toContain('Tier II patent is locked')
+
+    // Unlock patent prerequisite checks:
+    // 1. Must reach Deadline 4
+    const earlyUnlock = dispatch(state, { type: 'UNLOCK_PATENT', order: 'admin' })
+    expect(earlyUnlock.success).toBe(false)
+    expect(earlyUnlock.error).toContain('Institutional Maturity prerequisite not met')
+
+    // Set deadline = 4, but < 12 Tier I units
+    state.deadline = 4
+    state.units.scribe = 5
+    const fewUnitsUnlock = dispatch(state, { type: 'UNLOCK_PATENT', order: 'admin' })
+    expect(fewUnitsUnlock.success).toBe(false)
+    expect(fewUnitsUnlock.error).toContain('Order Mastery prerequisite not met')
+
+    // Satisfy all prerequisites (Deadline 4, 12 Scribes, 600 AP fee)
+    state.units.scribe = 12
+    const validUnlock = dispatch(state, { type: 'UNLOCK_PATENT', order: 'admin' })
+    expect(validUnlock.success).toBe(true)
+    expect(state.unlockedPatents.admin).toBe(true)
+
+    // Now buying Clerk succeeds!
+    const buyClerk = dispatch(state, { type: 'BUY_UNIT', unitId: 'clerk', count: 1 })
+    expect(buyClerk.success).toBe(true)
+    expect(state.units.clerk).toBe(1)
+  })
+
+  it('executes emergency edicts accurately', () => {
+    const state = createInitialGameState()
+
+    // 1. Forced Tithe
+    const titheRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'forced_tithe' })
+    expect(titheRes.success).toBe(true)
+    expect(state.unrest).toBe(45) // 10 + 35
+
+    // 2. Church Seizure (+500 AP)
+    const churchRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'church_seizure' })
+    expect(churchRes.success).toBe(true)
+    expect(state.ap).toBeGreaterThan(500)
+
+    // 3. Grand Festival (-20 Unrest)
+    const festivalRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'grand_festival' })
+    expect(festivalRes.success).toBe(true)
+    expect(state.unrest).toBeLessThan(45)
+  })
+})

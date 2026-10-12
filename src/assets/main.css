@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'MedievalSharp';
+  src: url('@assets/fonts/medieval-sharp/MedievalSharp-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'IMFellEnglish';
+  src: url('@assets/fonts/im-fell-english/IMFellEnglish-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'IMFellEnglish';
+  src: url('@assets/fonts/im-fell-english/IMFellEnglish-Italic.woff') format('woff');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@theme {
+  --font-medieval: 'MedievalSharp', serif;
+  --font-serif-book: 'IMFellEnglish', Georgia, serif;
+
+  --color-parchment-50: #fbf9f4;
+  --color-parchment-100: #f5f0e6;
+  --color-parchment-200: #e9dec9;
+  --color-parchment-300: #d8c4a1;
+  --color-parchment-400: #c4a779;
+  --color-parchment-500: #b5905d;
+  --color-parchment-600: #a1784d;
+  --color-parchment-700: #825d3f;
+  --color-parchment-800: #6b4d37;
+  --color-parchment-900: #584030;
+  --color-fief-bg: #120d09;
+  --color-fief-dark: #18120d;
+  --color-fief-card: #201711;
+  --color-fief-card-elevated: #281d15;
+  --color-fief-border: #3d2b1f;
+  --color-fief-border-gold: #694f26;
+  --color-fief-border-light: #523b2a;
+  --color-fief-text: #eedfcb;
+  --color-fief-text-muted: #9e856e;
+  --color-fief-text-dim: #705b4a;
+
+  --color-wax-red: #9e1d1d;
+  --color-wax-red-dark: #6e1010;
+  --color-wax-red-light: #c42929;
+
+  --color-royal-gold: #d69e2e;
+  --color-royal-gold-dark: #996e1a;
+  --color-royal-gold-light: #f0c35d;
+
+  --color-ink-black: #0c0805;
+  --color-iron-grey: #6b7280;
+  --color-peasant-green: #3ea834;
+  --color-heraldic-blue: #3b82f6;
+  --color-clergy-purple: #9b4de0;
+  --color-voxel-pink: #f60887;
+  --color-voxel-pink-light: #ff33a1;
+  --color-voxel-pink-dark: #b80061;
+}
