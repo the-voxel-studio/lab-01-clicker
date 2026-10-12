@@ -1,0 +1,56 @@
+# ==============================================================================
+# Git Ignore - Voxel Lab #01 : Clicker Game
+# ==============================================================================
+
+# Systèmes d'exploitation (OS)
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Éditeurs de code & IDE
+.idea/
+*.sublime-workspace
+*.sublime-project
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Dépendances & Paquets (au cas d'outils frontend/serveur)
+node_modules/
+jspm_packages/
+.pnp
+.pnp.js
+
+# Logs & Journaux d'erreurs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Fichiers d'environnement & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Fichiers temporaires & Caches
+tmp/
+temp/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Caches d'outils locaux & IA
+.gemini/

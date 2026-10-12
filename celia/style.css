@@ -1,0 +1,40 @@
+/* ==========================================================================
+   Table Clicker Puzzle - Styles de Base (Phase 1)
+   ========================================================================== */
+
+:root {
+  /* Palette Visuelle & Contraintes */
+  --color-primary: #F60887;          /* Rose Flashy obligatoire */
+  --color-primary-hover: #ff2e9c;
+  --color-primary-glow: rgba(246, 8, 135, 0.35);
+
+  --bg-main: #12141a;               /* Tapis de découpe / table sombre */
+  --bg-panel: #1b1f2a;              /* Fond des panneaux */
+  --bg-card: #242938;               /* Fond des cartes d'améliorations */
+  --border-color: #31384c;
+
+  --text-main: #f0f2f5;
+  --text-muted: #8b94a5;
+
+  /* Typographie & Rayons */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* Réinitialisation de base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  user-select: none; /* Évite la sélection intempestive lors des clics rapides */
+  -webkit-user-select: none;
+}
