@@ -1,147 +1,93 @@
 # Journal de Conception & Réalisation du Core Engine (`docs/making/`)
 
-Ce document consigne de manière exhaustive l'ensemble des travaux réalisés sur le moteur Core (`src/core/`), les données de balance (`src/data/`), et la suite de tests et simulations (`src/__tests__/`) de **The Grand Audit (Lord Clicker)**, ainsi que les motivations architecturales et de game design sous-jacentes.
+Ce document consigne les travaux réalisés lors de la première passe d'implémentation du moteur Core (`src/core/`), des données de balance (`src/data/`), et du socle de tests (`src/__tests__/`) de **The Grand Audit (Lord Clicker)**, ainsi que le diagnostic d'audit ayant conduit au [Plan de Remédiation Technique (`docs/plan/README.md`)](../plan/README.md).
 
 ---
 
 ## 1. Contexte Initial & Problématique
 
-Lors de l'audit initial confrontant le code source existant aux spécifications de référence (`docs/GUIDE.md`, `docs/GAME_RULES.md`, `docs/PLAN.md`), plusieurs dérives critiques ont été constatées :
+Lors de l'audit initial confrontant le prototype existant aux spécifications de référence (`docs/GUIDE.md`, `docs/GAME_RULES.md`, `docs/PLAN.md`), plusieurs manques structurels avaient été constatés :
 
-1. **Systèmes clés manquants** :
-   - Absence d'un générateur pseudo-aléatoire déterministe (`prng.ts`). Le code recourait potentiellement à `Math.random()`, brisant la reproductibilité et l'invariance temporelle des parties.
-   - Absence d'un moteur de combat tactique asymétrique (`battle.ts`) pourtant spécifié pour les raids et menaces de la Couronne.
-   - Absence d'un journal de replay déterministe (`replay.ts`) capable de rejouer des parties quel que soit le pas de simulation ($dt$).
-   - Absence d'un pipeline de migrations de sauvegarde versionné et strictement typé (`migrations.ts`).
-2. **Anomalies et divergences de règles de jeu (ANOM-01 à ANOM-15)** :
-   - Modificateurs universels non branchés sur certaines statistiques vitales (population, capacité de logement, puissance militaire).
+1. **Modules clés absents** :
+   - Absence d'un générateur pseudo-aléatoire déterministe (`prng.ts`).
+   - Absence d'un module de résolution de combat asymétrique (`battle.ts`).
+   - Absence d'un journal de replay (`replay.ts`) et d'une fonction de hachage d'état.
+   - Absence d'un module d'export/import Base64 et de migrations typées (`migrations.ts`).
+2. **Divergences dans le moteur économique (`engine.ts` & `commands.ts`)** :
+   - Modificateurs universels non branchés sur plusieurs statistiques dérivées.
    - Omission de la pénalité de boycott fiscal de 20% à partir de 50 d'Agitation (*Unrest*).
-   - Incohérence dans la gestion de la paperasse et des serfs partagés entre collecteurs d'impôts et fermiers généraux.
-   - Simulation continuant à accumuler des ressources hors de la phase de cycle actif (`ACTIVE_CYCLE`).
-3. **Dédoublement et dérive du code de balance** :
-   - `src/data/balance.ts` contenait des réimplémentations manuelles de formules mathématiques déjà définies dans `src/core/formulas.ts`, créant un risque majeur de désynchronisation.
-4. **Lacunes de la suite de tests** :
-   - Tests unitaires dispersés, incomplets ou redondants.
-   - Absence des simulations automatisées des 3 archétypes de bots exigées par `docs/PLAN.md` (Gate D/E) pour prouver mathématiquement la viabilité de l'équilibrage.
+   - Risque de surexploitation des serfs entre collecteurs d'impôts (`collector`) et fermiers généraux (`farmer_general`).
+   - Simulation continuant d'accumuler des ressources hors de la phase `ACTIVE_CYCLE`.
+3. **Dédoublement de formules dans `src/data/balance.ts`** :
+   - `src/data/balance.ts` dupliquait certaines formules de `src/core/formulas.ts`.
 
 ---
 
-## 2. Synthèse des Travaux Réalisés ("Ce qui a été fait")
+## 2. Synthèse des Travaux Réalisés en Première Passe ("Ce qui est effectivement en place")
 
-### 2.1. Nouveaux Moteurs Core (`src/core/`)
+### 2.1. Modules Core Créés (`src/core/`)
 
-| Fichier | Rôle & Fonctionnalités Implémentées |
-|---|---|
-| [`src/core/prng.ts`](../../src/core/prng.ts) | Générateur Mulberry32 32-bit déterministe. Fournit `next()`, `range(min, max)`, `int(min, max)`, `roll(chance)`, et sérialisation/restauration complète de l'état interne pour les sauvegardes et replays. |
-| [`src/core/battle.ts`](../../src/core/battle.ts) | Moteur de combat asymétrique à engagement unique. Gère la friction offensive (-10%), le bonus de fortification défensive (+20%), la règle de victoire sur le fil (*razor-thin rule* de 5% rétrogradant le palier de butin), la mortalité des éclaireurs (`scout`) lors des reconnaissances, et la génération des menaces. |
-| [`src/core/replay.ts`](../../src/core/replay.ts) | Journal de replay déterministe horodaté par seconde entière (`secondIndex`). Indépendant du pas de temps de tick $dt$. Implémente la vérification d'intégrité par hachage d'état (`getStateHash()`). |
-| [`src/core/migrations.ts`](../../src/core/migrations.ts) | Pipeline de migration ascendante de sauvegarde (`v0` $\to$ `v1`), strictement typé sans aucun `any`. Export et import en Base64 avec préfixe canonique `GRA-v1:` et validation de structure. |
+| Fichier | Fonctionnalités Implémentées | Limites Identifiées à Corriger ([`docs/plan/README.md`](../plan/README.md)) |
+|---|---|---|
+| [`src/core/prng.ts`](../../src/core/prng.ts) | Générateur Mulberry32 32-bit déterministe (`next()`, `nextBetween(min, max)`, `nextInt(min, max)`, `getState()`, `setState()`). | `prngState` non stocké dans `GameState` (instances éphémères `new PRNG(...)` créées à la volée) ; `this.state += 0x6d2b79f5` non tronqué sur 32 bits (`>>> 0`). |
+| [`src/core/battle.ts`](../../src/core/battle.ts) | Formule asymétrique (friction offensive -10%, fortification +20%), règle *razor-thin* ($1.00 \le R \le 1.05$ sans gain de province), variété de butin, mortalité d'éclaireur (`performScoutReroll`). | Pertes appliquées uniquement aux `soldier` (épargnant les `man_at_arms` et officiers) ; absence de `currentTarget` (brouillard de guerre, faux registres, embuscades non branchés) ; tribut non bloquant si AP insuffisant. |
+| [`src/core/replay.ts`](../../src/core/replay.ts) | Structure `ReplayJournal` horodatée par `timeSeconds` et hachage FNV-1a `getStateHash()`. | Boucle infinie dès qu'une partie franchit $t = 100\text{s}$ (`AUDIT_ASSESSMENT`) ou `LOMBARD_OFFER` car `totalElapsedSeconds` se fige hors `ACTIVE_CYCLE` ; hachage partiel ignorant les unités, serfs et modificateurs. |
+| [`src/core/migrations.ts`](../../src/core/migrations.ts) | Export/import Base64 avec préfixe `GRA-v1:` et garde de type `isSerializedSavePayload` sans `any`. | Registre `MIGRATIONS` vide (`v1` initiale) ; absence de rejet des versions futures (`schemaVersion > CURRENT_SCHEMA_VERSION`) et validation superficielle des sous-propriétés de `state`. |
 
-### 2.2. Corrections & Améliorations du Moteur Existant
+### 2.2. Corrections & Fondations du Moteur (`engine.ts`, `commands.ts`, `modifiers.ts`, `formulas.ts`)
 
-- **Composition universelle des statistiques** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
-  L'ensemble des statistiques dérivées (`apPerSecond`, `demographicGrowth`, `housingCapacity`, `militaryPower`) passe désormais par le pipeline unifié `composeStat` et son cache par tick (`TickStatCache`).
-- **Pénalité de Boycott Fiscal** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
-  Application stricte du multiplicateur de 0.8 sur la collecte d'impôts lorsque `state.unrest >= 50`.
-- **Inertie bureaucratique génératrice d'Unrest** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
-  Calcul continu de la friction $Size / (Size + 220)$ et impact progressif sur l'Unrest par tick.
-- **Gel de la simulation hors du cycle actif** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
-  Le moteur bloque la progression du temps et la production passive en dehors de `RunPhase.ACTIVE_CYCLE` (notamment lors des dilemmes, du pardon royal ou des audits).
-- **Bassin partagé de serfs libres** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
-  Les collecteurs (`collector`) et fermiers généraux (`farmer_general`) se partagent désormais une même réserve de serfs libres (`freeSerfs`), interdisant toute surexploitation d'une population inexistante.
-- **Privilège du Seigneur & Tamponnage** ([`src/core/commands.ts`](../../src/core/commands.ts)) :  
-  Implémentation de l'action `STAMP_DOCUMENT` avec réduction de 50% de la paperasse et calcul critique basé sur le PRNG déterministe.
-- **Commandes additionnelles** ([`src/core/commands.ts`](../../src/core/commands.ts)) :  
-  Ajout et sécurisation des commandes `UNLOCK_PATENT` et `TICK`.
-- **Assainissement de la source unique de vérité** ([`src/data/balance.ts`](../../src/data/balance.ts)) :  
-  Suppression des doublons mathématiques ; `balance.ts` réexporte directement les fonctions pures de [`formulas.ts`](../../src/core/formulas.ts) et [`modifiers.ts`](../../src/core/modifiers.ts).
+- **Pipeline de composition `composeStat`** ([`src/core/modifiers.ts`](../../src/core/modifiers.ts)) :  
+  Implémentation de l'ordre `add` $\to$ `addPct` $\to$ `mul` $\to$ `set` et des résolveurs dynamiques typés par `ResolverKey`. La classe `TickStatCache` est définie mais reste à raccorder dans `engine.ts`.
+- **Pénalité de Boycott Fiscal & Bassin partagé de serfs** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
+  Application du multiplicateur $0.8$ sur l'impôt de capitation lorsque `state.unrest >= 50`, et partage strict du bassin `freeSerfs` entre `farmer_general` et `collector`.
+- **Gel de la simulation hors `ACTIVE_CYCLE`** ([`src/core/engine.ts`](../../src/core/engine.ts)) :  
+  `tick()` retourne immédiatement si `state.phase !== 'ACTIVE_CYCLE'`, mettant notamment en pause le compte à rebours de faillite pendant `LOMBARD_OFFER`.
+- **Commandes & Permissions de Phase** ([`src/core/phases.ts`](../../src/core/phases.ts), [`src/core/commands.ts`](../../src/core/commands.ts)) :  
+  Table `ALLOWED_COMMANDS_BY_PHASE` et vérification `assertCommandAllowed(state.phase, command)` avant exécution.
 
-### 2.3. Architecture et Refonte Complète de la Suite de Tests
-
-La suite de tests a été réorganisée sous `src/__tests__/unit/` et `src/__tests__/simulation/` conformément à `docs/PLAN.md` :
+### 2.3. Organisation de la Suite de Tests (`src/__tests__/`)
 
 ```
 src/__tests__/
-├── App.spec.ts                  # Montage des composants racine Vue
+├── App.spec.ts                  # Montage du composant racine Vue
 ├── simulation/
-│   ├── botRunner.ts             # Moteur de simulation automatisé des archétypes
-│   └── archetypeBots.spec.ts    # Tests Monte-Carlo des gates d'équilibrage
+│   ├── botRunner.ts             # Exécuteur de simulation headless
+│   └── archetypeBots.spec.ts    # Tests des 3 bots (échantillon initial réduit)
 └── unit/
     ├── balance.spec.ts          # Constantes, 24 unités, biomes, menaces
-    ├── battle.spec.ts           # Combat asymétrique, friction, loot, scouts
+    ├── battle.spec.ts           # Combat asymétrique, friction, butin, éclaireurs
     ├── engine.spec.ts           # Boucle de tick, règle 2-sur-3, faillite, pardon
     ├── formulas.spec.ts         # Mathématiques pures (coûts, Buy Max, impôts)
-    ├── migrations.spec.ts       # Pipeline de migrations typées, Base64 GRA-v1:
-    ├── modifiers.spec.ts        # Pipeline add -> addPct -> mul -> set, cache
-    ├── phases.spec.ts           # FSM des 6 phases, permissions de commandes
-    └── replay.spec.ts           # Journal déterministe, invariance dt = 0.05 vs 1.0s
+    ├── migrations.spec.ts       # Export/import Base64 GRA-v1:
+    ├── modifiers.spec.ts        # Pipeline add -> addPct -> mul -> set, TickStatCache
+    ├── phases.spec.ts           # Transitions inter-deadlines et permissions
+    └── replay.spec.ts           # Reproductibilité sur 1 deadline (< 100s)
 ```
 
-### 2.4. Simulations et Équilibrage Fin des Quotas (Scripts & Bots)
+---
 
-- Mise en place du script [`scripts/generate-balance-report.ts`](../../scripts/generate-balance-report.ts) pour modéliser et générer les quotas théoriques dans [`src/data/balance.generated.ts`](../../src/data/balance.generated.ts).
-- Implémentation dans [`botRunner.ts`](../../src/__tests__/simulation/botRunner.ts) des 3 archétypes de jeu :
-  - **Random Noise Bot** : actions aléatoires sans stratégie.
-  - **Greedy ROI Bot** : heuristique humaine basée sur le retour sur investissement immédiat et le respect des quotas.
-  - **Archetype Expert Bot** : planification long-terme privilégiant l'expansion coloniale, le déblocage des brevets technologiques Tier 2 (Hommes d'armes, Fermiers généraux, Barons) et la minimisation de la paperasse.
+## 3. Enseignements de l'Audit Croisé (Documentation vs Code)
+
+L'audit approfondi du commit `f1d74fd` a révélé pourquoi plusieurs validations semblaient passer alors que le moteur présentait encore des écarts critiques par rapport à `GAME_RULES.md` et `PLAN.md` :
+
+1. **Biais artificiel dans le calibrage du Greedy Bot (`seed % 2`)** :
+   - Dans `botRunner.ts`, le plafond de Barons achetés par le Greedy Bot dépendait de la parité de la graine (`const maxBarons = state.seed % 2 === 0 ? 5 : 4`). Comme 4 Barons plafonnaient la population sous le quota de Deadline 10 (2 152 < 2 200) et 5 Barons au-dessus (2 242 > 2 200), le taux de victoire de ~50% reflétait uniquement la proportion de graines paires et non un véritable calcul de ROI ni un solveur dichotomique du coefficient $c$.
+2. **Exploits sur les Édits d'Urgence & le Tribut** :
+   - Les édits (`forced_tithe`, `church_seizure`, `grand_festival`) pouvaient être exécutés en boucle dans le même tick sans cooldown ni limite, gonflant artificiellement le quota d'AP.
+   - Choisir de payer le tribut (`SELECT_THREAT_RESPONSE: 'tribute'`) sans avoir les AP requis retournait `success: false` mais faisait quand même avancer la phase hors de `THREAT_HERALD`, annulant gratuitement la menace.
+3. **Invariant Démographique & Mécaniques Incomplètes** :
+   - L'équation $\text{TotalPopulation} = \text{FreeSerfs} + \sum \text{Units}$ pouvait être rompue lors des saignées de surpopulation, des effondrements défensifs, de la levée en masse et de `grant_units`.
+   - Plusieurs règles de `GAME_RULES.md` (désertion à 75–89% d'Unrest, séparation `unrest_generation` / `unrest_pacification`, purge de `expiresAt`, défaite immédiate en cas d'échec à Deadline 10, commande `DISBAND_UNIT`, effets secondaires des unités Tier I/II, raids surprises D3+, catalogues des 30 lois et 20 dilemmes) restaient à implémenter.
 
 ---
 
-## 3. Justifications & Rationale ("Pourquoi cela a été fait")
+## 4. État Actuel & Prochaine Étape
 
-### 3.1. Déterminisme Strict vs `Math.random()`
-*Pourquoi ?*  
-Dans un jeu de gestion incrémentale complexe doté de replays, d'audits royaux à haute tension et de simulations d'équilibrage Monte-Carlo, toute source de non-déterminisme est fatale :
-- Les bugs rapportés par les joueurs ne peuvent être reproduits si les tirages aléatoires diffèrent.
-- Le journal de replay (`replay.ts`) deviendrait caduc sans PRNG synchronisé.
-- L'utilisation de Mulberry32 garantit une distribution uniforme, un coût CPU infime et une sérialisation triviale (un seul entier 32-bit `state`).
+| Vérification Technique | État |
+|---|:---:|
+| **Type Checking (`vue-tsc --build`)** | ✅ 0 erreur |
+| **Linting (`oxlint` + `eslint`)** | ✅ 0 avertissement, 0 erreur |
+| **Tests Unitaires actuels (`npm run test:unit`)** | ✅ 56/56 |
+| **Statut global de la Phase V1 (Gates A à E)** | 🔄 **En cours — Remédiation requise avant gel V1** |
 
-### 3.2. Architecture Headless Pure (Zéro dépendance DOM/Vue dans `src/core/`)
-*Pourquoi ?*  
-Séparer hermétiquement la logique de simulation (`src/core/`) de l'interface graphique :
-- Permet d'exécuter des milliers de parties simulées en quelques secondes dans Node/Vitest sans instancier de DOM virtuel ou de composants Vue.
-- Prémunit l'application contre les régressions : l'interface n'est qu'une vue projective de l'état `GameState`.
-- Garantit une portabilité maximale et un respect scrupuleux de `docs/VUE_BEST_PRACTICES.md`.
-
-### 3.3. Découvertes d'Équilibrage lors du Calibrage des Bots
-
-L'implémentation des bots a mis en lumière trois phénomènes mathématiques critiques :
-
-1. **Le piège de la réserve coloniale (Starvation économique)** :
-   - *Constat initial* : Les bots bloquaient leurs investissements en attendant d'atteindre le coût de colonisation (1 500 à 6 000 AP). En conséquence, ils n'achetaient plus d'unités de production économique intermédiaires (Fermiers généraux, Barons, Notables), ce qui étouffait leur croissance d'AP.
-   - *Correction* : Les unités économiques Tier 2 ont été exemptées de la réserve coloniale stricte, permettant aux bots de réinvestir leur flux de trésorerie dans l'économie pour financer les colonies sans stagner.
-2. **Le piège du coût géométrique militaire ($1.07^n$ vs $1.05^n$)** :
-   - *Constat initial* : Tenter de satisfaire les quotas militaires de Deadline 4+ avec de simples Soldats Tier 1 devenait exponentiellement prohibitif (plus de 5 700 AP pour 42 soldats).
-   - *Correction* : Les brevets militaires (700 AP) et les Hommes d'armes Tier 2 (+7.0 puissance pour 150 AP) sont désormais prioritaires dès D4, ramenant le coût des 42 points de puissance militaire à ~1 000 AP.
-3. **Calibrage de la baseline humaine (Greedy Bot)** :
-   - *Constat initial* : À la Deadline 10, le passage nécessite 2 quotas sur 3 (42 000 AP, 2 200 Habitants, 230 Militaire). Avec 4 Barons, la capacité de logement maximale est strictement bornée à 2 152 personnes (0% de victoire). Avec 5 Barons, elle grimpe à 2 242 (100% de victoire).
-   - *Correction* : L'introduction d'une variance d'achat basée sur la graine (`state.seed % 2 === 0 ? 5 : 4`) reproduit fidèlement l'hésitation d'un joueur humain moyen et stabilise le taux de victoire du Greedy Bot à ~50%, exactement au centre de la fenêtre ciblée $[35\%, 65\%]$.
-
----
-
-## 4. Résultats & Indicateurs de Validation
-
-### 4.1. Vérifications Automatisées
-- **Type Checking (`vue-tsc --build`)** : **0 erreur**.
-- **Linting (`oxlint` + `eslint`)** : **0 avertissement, 0 erreur**.
-- **Tests Unitaires (`npm run test:unit`)** : **56/56 tests réussis (100%)**.
-- **Simulations d'Équilibrage (`npm run test:sim`)** : **5/5 tests réussis (100%)**.
-
-### 4.2. Validation des Gates d'Équilibrage (`PLAN.md`)
-
-| Gate / Critère | Seuil Exigé | Résultat Obtenu | Verdict |
-|---|:---:|:---:|:---:|
-| **Random Noise Bot** | Win rate $< 5\%$ | **0%** | **CONFORME** |
-| **Greedy ROI Bot** | Win rate $[35\%, 65\%]$ | **50%** | **CONFORME** |
-| **Archetype Expert Bot** | Win rate $> 65\%$ | **80%** | **CONFORME** |
-| **Dominance Test** | $< 60\%$ des dépenses après D3 | **Max ~50%** | **CONFORME** |
-| **Test de Sensibilité** | $\le 3$ deadlines de variance à $\pm 10\%$ | **Variance $\le 1$** | **CONFORME** |
-
----
-
-## 5. Perspectives : Transition vers la Phase V2
-
-Avec un moteur Core fermé, mathématiquement éprouvé et couvert par des tests exhaustifs, le projet peut entamer sereinement la **Phase V2 (Interface Utilisateur & Expérience Joueur)** :
-- Conception du layout responsive en 3 panneaux (*Bureaucratie*, *Domaine*, *Armée*).
-- Câblage du store Pinia sur le moteur `engine.ts` et le journal `replay.ts`.
-- Intégration des composants graphiques (tampon royal interactif, jauges d'agitation, écrans d'audits royaux et alertes de faillite).
+L'intégralité des correctifs requis sur le moteur Core, les données Gate D et la suite de simulation est planifiée et spécifiée dans [`docs/plan/README.md`](../plan/README.md) et répercutée dans [`docs/PLAN.md`](../PLAN.md). Le développement de l'interface V2 reste strictement bloqué tant que l'ensemble de ces tâches n'est pas validé.

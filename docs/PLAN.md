@@ -172,97 +172,116 @@ PHASE V2: PLAYABILITY & PRESENTATION
 
 ### Phase V1: Headless Engine Core & Systems (`src/core/`)
 
+> [!WARNING]
+> **Audit Remediation Notice:** Tasks previously marked `[x]` that contained integration gaps, unimplemented secondary rules, or test shortcuts have been reopened as `[ ]` below with explicit `[x]` (done) vs `[ ]` (to fix) sub-checklists. See [`docs/plan/README.md`](./plan/README.md) for the step-by-step technical remediation specification.
+
 #### Gate A: Core Economy, 24 Units & Minimal Run Validation
-- [x] **Task 1.1: Master Balance Single Source of Truth (`src/data/balance.ts` & `src/data/balance.generated.ts`) [V1]**
-  - Centralize all constants, dual-tier geometric scaling ratios ($1.07$ / $1.05$), logistic growth $r_0 = 0.005$, base housing $250$/province, colonisation cost ($1500 \times 2^k$), continuous collector yields (`freeSerfs / 100` without floor), biome multipliers ($\times 1.5, \times 0.8$), dynamic threat formulas, and universal modifier contracts.
-  - Fully tested in `src/__tests__/balance.spec.ts`.
-- [x] **Task 1.2: 24 Units Catalog (`src/data/balance.ts` - `UNITS_DATA`) [V1]**
-  - Implement complete 24 units definitions (8 People, 8 Administration, 8 Military across Tier I & Tier II) directly in Gate A.
-  - Consolidated into master single source of truth `UNITS_DATA`.
-- [x] **Task 1.3: Core Mathematical Models & Ergonomic Clicker (`src/core/formulas.ts`) [V1]**
-  - Implement deterministic **Token Bucket clicker** (12 tokens/sec refilled via injected tick delta-time).
-  - Implement dual-tier geometric cost scaling & bulk purchasing sums (1x, 10x, 50x, 100x restricted to Peasants & Scribes, Buy Max).
-  - Implement proportional logistic growth: $\text{Growth/s} = r \times \text{Pop} \times (1 - \text{Pop}/\text{Max}) \times \text{FiscalFactor}$ with $r_0 = 0.005$.
-  - Implement Civil Colonisation cost: $1500 \times 2^k\text{ AP}$.
-  - Implement continuous non-quadratic collector yield: $\text{Rate} \times \min(n, \text{FreeSerfs}/100)$.
-  - Implement bureaucratic paperwork inertia formula with $S=220$.
-- [x] **Task 1.4: Universal Modifier Engine (`src/core/modifiers.ts`) [V1]**
-  - Implement `composeStat(baseValue, modifiers, state)` supporting `add`, `addPct`, `mul`, `set`.
-  - Strongly type `resolverKey` as a literal union `ResolverKey` (`'law:isolationism' | 'law:provincial_tithe' | ...`).
-  - Resolvers inspect raw state only (`state.provinces`, `state.unrest`, etc.) and are strictly forbidden from calling `getStat` to avoid recursion cycles.
-  - Cache stat evaluations per tick index via `TickStatCache` to eliminate redundant recalculation during high-frequency calls.
-  - Implement `Effect` evaluator supporting `stat_modifier`, `instant_resource` (including `archive_points`), `grant_units`, and `rule_flag`.
-- [x] **Task 1.5: Minimal Run Core Engine (`src/core/state.ts`, `src/core/commands.ts`, `src/core/engine.ts`) [V1]**
-  - Initial state factory (50 AP, 100 Pop, 3 Provinces = 750 Cap, 25% Tax, 10 Unrest).
-  - Unconstrained economic command dispatcher (`BUY_UNIT`, `SET_TAX_RATE`, `STAMP_DOCUMENT`, `COLONISE_PROVINCE`, `TICK`).
-  - Simulation tick integration: tax promulgation delay (8s), unrest growth model, and 2-out-of-3 deadline quota audit.
+- [ ] **Task 1.1: Master Balance Single Source of Truth (`src/data/balance.ts` & `src/data/balance.generated.ts`) [V1]**
+  - [x] Centralize base constants, dual-tier geometric scaling ratios ($1.07$ / $1.05$), logistic growth $r_0 = 0.005$, base housing $250$/province, colonisation cost ($1500 \times 2^k$), continuous collector yields (`freeSerfs / 100`), biome multipliers, and dynamic threat helpers.
+  - [ ] Replace `'unrest_growth'` in `StatKey` with dual `'unrest_generation' | 'unrest_pacification'` to prevent sign inversion on multiplicative modifiers (`GAME_RULES.md §6.5`).
+  - [ ] Add `DISBAND_UNIT` command contract and allow it in `ACTIVE_CYCLE` and `AWAIT_RESUME`.
+  - [ ] Eliminate the circular import between `src/data/balance.ts` and `src/core/{formulas,modifiers}.ts` by moving engine types (`Command`, `RunPhase`, `Effect`, `Modifier`) to `src/core/types.ts`.
+  - [ ] Tested in `src/__tests__/unit/balance.spec.ts` (including strict quota monotonicity across Deadlines 1–10).
+- [ ] **Task 1.2: 24 Units Catalog & Secondary Role Mechanics (`src/data/balance.ts` - `UNITS_DATA`) [V1]**
+  - [x] Declare all 24 unit definitions (8 People, 8 Administration, 8 Military across Tier I & Tier II) in `UNITS_DATA`.
+  - [ ] Wire all secondary unit mechanics specified in `GAME_RULES.md §4`:
+    - `prelate`: $-20\%$ tax unrest generation per Prelate (capped at $-80\%$).
+    - `audit_chamber`: $+10\text{s}$ per unit to bankruptcy grace countdown ceiling.
+    - `captain`: $-5\%$ combat casualty rate per Captain (down to minimum floor).
+    - `sergeant`: $+2\%$ campaign battle loot value per Sergeant.
+    - `guild`: $+1\%$ AP from campaign plunder per Guild.
+    - `man_at_arms`: $+0.5$ flat passive defense per Man-at-Arms in defensive battles.
+    - `scout` & `spymaster`: $-12$ and $-30$ percentage points to enemy power fog-of-war uncertainty margin $M$ (floor $\pm 5\%$), plus `spymaster >= 1` revealing `isFalseLedger` and `isAmbush`.
+- [ ] **Task 1.3: Core Mathematical Models & Ergonomic Clicker (`src/core/formulas.ts`) [V1]**
+  - [x] Implement deterministic **Token Bucket clicker** (12 tokens/sec refilled via injected tick delta-time).
+  - [x] Implement dual-tier geometric cost scaling, logistic growth, civil colonisation cost ($1500 \times 2^k$), continuous collector yield, and paperwork inertia ($S=220$).
+  - [ ] Fix `calculateMaxAffordableUnits` to `Math.floor(freeSerfs)` and `Math.floor(orderHeadroom)` so Buy Max never returns fractional unit counts when `freeSerfs` is non-integer.
+  - [ ] Implement proportional overcrowding unrest formula from `GAME_RULES.md §14.3`: $+0.10\text{ Unrest/s}$ per 50 excess inhabitants, capped at $+1.0\text{ Unrest/s}$.
+  - [ ] Implement bulk purchase milestone validation helper (`GAME_RULES.md §5.1`: $10\times$ at D3 or $\ge 250$ Pop, $50\times$ at D6 or $\ge 1,000$ Pop, $100\times$ at D8 restricted strictly to `peasant` and `scribe`).
+- [ ] **Task 1.4: Universal Modifier Engine (`src/core/modifiers.ts`) [V1]**
+  - [x] Implement `composeStat(statKey, baseValue, modifiers, rawState)` supporting `add`, `addPct`, `mul`, `set` and strongly typed `ResolverKey`.
+  - [ ] Remove legacy untyped dual-signature overload from `composeStat` (always require `statKey: StatKey`).
+  - [ ] Purge expired temporary modifiers (`mod.expiresAt !== undefined && mod.expiresAt <= state.totalElapsedSeconds`) at the start of every `tick()`.
+  - [ ] Instantiate and wire `TickStatCache` into `engine.ts` / stat queries.
+  - [ ] Fix `applyEffect` for `grant_units` (and `instant_resource: 'population'`) so the §3.1 Population Balance Equation (`totalPopulation === freeSerfs + sum(units)`) is strictly preserved.
+- [ ] **Task 1.5: Minimal Run Core Engine (`src/core/state.ts`, `src/core/commands.ts`, `src/core/engine.ts`) [V1]**
+  - [x] Initial state factory (50 AP, 100 Pop, 3 Provinces = 750 Cap, 25% Tax, 10 Unrest) and basic tick loop.
+  - [ ] Enforce the §3.1 **Population Balance Equation** (`totalPopulation === freeSerfs + sum(units)`) across overcrowding bleed, defensive collapse, levy en masse, and unit grants via a shared demographic mutation helper.
+  - [ ] Wire dual `unrest_generation` and `unrest_pacification` composition in `tick()`.
+  - [ ] Implement military desertion during `strife_desertion` (75–89% Unrest: 1 `soldier` every 15s, or 1 `man_at_arms` every 30s if 0 `soldier` remain, using persisted `desertionTimer` in `GameState`).
+  - [ ] Extract shared `calculateGrossApRate(state)`, `calculateNetPaperwork(state)`, and `calculateMaxPopulation(state)` helpers so `STAMP_DOCUMENT`, `BUY_UNIT`, and `tick()` evaluate identical composed stats.
+  - [ ] Fix `SET_TAX_RATE`: validate `Number.isFinite(rate)`, apply **downward** tax adjustments (`targetRate <= currentRate`) **immediately** (0s delay), and apply the 8s promulgation delay only to **upward** adjustments (`GAME_RULES.md §14.2`).
+  - [ ] Validate all command inputs: reject `dt <= 0` or `!Number.isFinite(dt)` in `TICK`, reject non-integer `count` in `BUY_UNIT`, remove exploitable `isCritical` override from `STAMP_DOCUMENT` (use persisted `prngState`), and return `{ success: false }` on unhandled commands.
+  - [ ] Fix `evaluateDeadlineAudit`: failing **Deadline 10** causes immediate defeat (`quota_failure`) even with 0 strikes; Royal Censure fine applies only to positive AP ($0.50 \times \max(0, \text{ap})$).
+  - [ ] Compute `interimWarningOnTrack: boolean` at $t = 50\text{s}$ using the 2-out-of-3 projection formula (`GAME_RULES.md §1.3`).
+  - [ ] Enforce all **Emergency Edict safeguards** (`GAME_RULES.md §11`): max 1 edict per deadline, $+50\%$ escalating penalty per prior use, zero AP quota credit, 20s pop growth freeze on `forced_tithe`, max 2 uses per run & $\max(300, 25 \times \text{Gross AP/s})$ & `unrest_pacification` $\times 0.5$ + 10 Unrest on `church_seizure`, and $\max(100, 0.20 \times \text{ap}, 30 \times \text{Gross AP/s})$ cost check on `grand_festival`.
+  - [ ] Implement `DISBAND_UNIT` command (`GAME_RULES.md §14.1`: return to `freeSerfs`, $50\%$ base cost severance, $+2$ Unrest per unpaid unit if AP insufficient, $+15$ Unrest mutiny spike if $>10\%$ military disbanded within 10s).
+  - [ ] Fix `RESTART_RUN` to reset all state properties (`clickTokens`, `prngState`, threat fields, timers, counters), make `runId` deterministic from `seed`, and preserve `dt` overflow across the 100s deadline boundary.
 - [ ] **Task 1.6: Early Economic Validation (Greedy ROI Bot v0 & Provisional $c$ Solver) (`scripts/generate-balance-report.ts`) [V1]**
-  - Implement stripped-down v0 Greedy ROI Bot evaluating economic purchases alone without laws or dilemmas.
-  - Run bisection solver on provisional coefficient $c$ over 200 fixed seeds.
-  - **Gate A Exit Criteria:** Quotas generated in `src/data/balance.generated.ts`, v0 greedy bot achieves 35%–65% win rate on economy alone, and curve displays smooth progression with no cliffs between deadlines.
+  - [ ] Implement genuine Greedy ROI Bot evaluating marginal payback across AP, Population, and Military without the `state.seed % 2` parity shortcut.
+  - [ ] Run bisection solver on coefficient $c$ over 200 fixed seeds and generate `src/data/balance.generated.ts`.
 
 #### Gate B: Complete Run Loop, State Machine & Determinism
-- [ ] **Task 1.7: Deterministic PRNG (`src/core/prng.ts`) [V1]**
-  - Implement Mulberry32 algorithm with seed initialization and serializable state.
-- [x] **Task 1.8: RunPhase State Machine & Command Permissions (`src/core/phases.ts`) [V1]**
-  - Implement complete `RunPhase` covering the 6 inter-deadline steps (`AUDIT_ASSESSMENT`, `COUNCIL_DILEMMA`, `COUNCIL_LAWS`, `THREAT_HERALD`, `EXPEDITION`, `AWAIT_RESUME`), active cycle (`ACTIVE_CYCLE`), and crisis states (`SURPRISE_RAID`, `LOMBARD_OFFER`, `COMBAT_RESOLUTION`, `RUN_VICTORY`, `RUN_DEFEAT`).
-  - `LOMBARD_OFFER` pauses the 30-second bankruptcy countdown.
-  - Implement `ALLOWED_COMMANDS_BY_PHASE` and `assertCommandAllowed(phase, command)`.
-  - Mid-deadline interim warning represented as an in-run state flag (`interimWarningShown: boolean` at $t=50\text{s}$) rather than a blocking phase.
-  - Fully tested in `src/__tests__/phases.spec.ts`.
-- [x] **Task 1.9: Constrained Command Dispatch API (`src/core/commands.ts`) [V1]**
-  - Enforce phase permissions via `assertCommandAllowed(state.phase, command)`.
+- [ ] **Task 1.7: Deterministic PRNG (`src/core/prng.ts` & `src/core/state.ts`) [V1]**
+  - [x] Implement Mulberry32 algorithm with `next()`, `nextBetween()`, `nextInt()`, `getState()`, `setState()`.
+  - [ ] Ensure `this.state = (this.state + 0x6d2b79f5) >>> 0` stays unsigned 32-bit in `prng.ts`.
+  - [ ] Persist `prngState: number` in `GameState` and route all random rolls (`STAMP_DOCUMENT`, `battle.ts`, `RECON_PATROL`, `SURPRISE_RAID`, law drafts, dilemmas) through `state.prngState`.
+- [ ] **Task 1.8: RunPhase State Machine & Command Permissions (`src/core/phases.ts`) [V1]**
+  - [x] Implement `RunPhase` union, inter-deadline progression (`getNextInterDeadlinePhase`), and `assertCommandAllowed(phase, command)` tested in `src/__tests__/unit/phases.spec.ts`.
+  - [ ] Add `DISBAND_UNIT` to `ACTIVE_CYCLE` and `AWAIT_RESUME` in `ALLOWED_COMMANDS_BY_PHASE`.
+  - [ ] Wire `SURPRISE_RAID` transitions from `tick()` and clean up or wire `COMBAT_RESOLUTION`.
+- [ ] **Task 1.9: Constrained Command Dispatch API (`src/core/commands.ts`) [V1]**
+  - [x] Enforce phase permissions via `assertCommandAllowed(state.phase, command)`.
+  - [ ] Fix `SELECT_THREAT_RESPONSE`: if `'tribute'` fails (`state.ap < tributeAp`), do **not** advance `state.phase` out of `THREAT_HERALD` (`GAME_RULES.md §8.2`).
+  - [ ] Allow up to 2 voluntary campaigns in `EXPEDITION` (`campaignsLaunchedThisDeadline < 2`) before transitioning to `AWAIT_RESUME`.
+  - [ ] Guard `RESUME_GOVERNANCE` so `deadline` never exceeds 10.
 - [ ] **Task 1.10: Versioned Save State & Typed Migrations (`src/core/migrations.ts`) [V1]**
-  - Sequential migrations pipeline `migrations: Record<number, (old: unknown) => unknown>` with runtime validation and **zero `any`**.
-  - Base64 clipboard export/import with integrity prefix `GRA-v1:`.
-- [ ] **Task 1.11: Replay Journal & Step-Size Invariance Test (`src/__tests__/unit/replay.spec.ts`) [V1]**
-  - Implement replay journal `{ seed: number, entries: Array<{ timeSeconds: number, command: Command }> }` indexed by game seconds (not tick count).
-  - Determinism test: asserting identical journal and step size produces identical final state hash (`getStateHash(state)`).
-  - Step-size invariance test: replaying identical journal at $\Delta t = 0.05\text{s}$, $0.5\text{s}$, and $1.0\text{s}$ yields AP output delta $< 1-2\%$ and identical win/loss outcome on $\ge 99\%$ of runs.
+  - [x] Base64 clipboard export/import with integrity prefix `GRA-v1:` and zero `any`.
+  - [ ] Reject future save schemas (`schemaVersion > CURRENT_SCHEMA_VERSION`) and validate core `GameState` properties against `NaN` / malformed types.
+  - [ ] Bump `CURRENT_SCHEMA_VERSION` to `2` and implement sequential migration `1 -> 2` populating all new `GameState` fields from `v1-save.json`, verified in `src/__tests__/unit/migrations.spec.ts`.
+- [ ] **Task 1.11: Replay Journal & Step-Size Invariance Test (`src/core/replay.ts` & `src/__tests__/unit/replay.spec.ts`) [V1]**
+  - [ ] Redesign `ReplayJournal` execution so commands dispatched during paused inter-deadline/crisis phases (`AUDIT_ASSESSMENT`, `COUNCIL_DILEMMA`, `COUNCIL_LAWS`, `THREAT_HERALD`, `EXPEDITION`, `AWAIT_RESUME`, `LOMBARD_OFFER`, `SURPRISE_RAID`) execute deterministically without causing an infinite loop when `totalElapsedSeconds` is frozen.
+  - [ ] Expand `getStateHash(state)` to hash `freeSerfs`, `taxRate`, `units`, `activeLaws`, `activeModifiers`, `phase`, and `prngState`.
+  - [ ] Validate determinism and step-size invariance ($\Delta t = 0.05\text{s}$, $0.5\text{s}$, $1.0\text{s}$) across 20 complete multi-deadline run journals.
 
 #### Gate C: Asymmetric Combat & Dynamic Threats
 - [ ] **Task 1.12: Generalized Asymmetric Combat Engine (`src/core/battle.ts`) [V1]**
-  - Asymmetric formula: Attacker siege friction (-10%) vs Defender fortification bonus (+20% + Border Stronghold defense).
-  - Offensive campaigns with $\pm 20\%$ loot variance and diverse loot types (AP, Free Serfs, Soldiers, Mixed).
-  - Enforce the **Razor-Thin Victory Rule** ($1.00 \le R \le 1.05$): **no province awarded** due to exhausted vanguard.
-  - Defensive battle resolution: Repelled salvage vs Defensive Collapse (1 Province lost, 100% army killed, 15-25% pop lost, 30-50% AP looted).
-  - Enforce province floor rule: Fines and bailouts enforce a hard minimum floor of 1 province.
-  - Spontaneous surprise raids triggered by player state ($> 2,000$ AP, low army, high unrest $> 60\%$), transitioning into `SURPRISE_RAID`.
-  - Overcrowding Demographic Bleed when living population exceeds capacity after province loss ($250 \times (\text{Provinces} - 1)$).
-  - Dynamic threat calculation: Power = $0.8 \times \text{MilitaryQuota}$, Tribute = $0.2 \times \text{ApQuota}$ evaluated dynamically via `getThreatPower()` and `getThreatTributeAp()`.
+  - [x] Asymmetric formula (-10% attacker friction vs +20% defender fortification), Razor-Thin Victory rule ($1.00 \le R \le 1.05 \to$ no province), diverse loot types, and province floor rule (= 1).
+  - [ ] Unify all military power evaluations across `engine.ts`, `commands.ts`, and `battle.ts` via `calculateMilitaryPower(state)`.
+  - [ ] Distribute combat casualties proportionally across `soldier` and `man_at_arms` (with `captain` $-5\%$ mitigation) in offensive and defensive battles; annihilate 100% of all military units on Defensive Collapse while preserving the §3.1 Population Balance Equation.
+  - [ ] Implement prospective `currentTarget` state with Fog of War uncertainty band $M$, `isFalseLedger` (15%), `isAmbush` (10%), Spymaster detection, and `RECON_PATROL` target rerolling via `state.prngState`.
+  - [ ] Trigger `SURPRISE_RAID` in `tick()` following `GAME_RULES.md §8.3` (D3+, every 10s, 2% base chance, $\times 2$ if AP $> 2000$, $+2\%$ if Mil $< 50\%$ quota, $+2\%$ if Unrest $> 60$, max 1/deadline, 60s cooldown, power $= 0.50 \times \text{MilitaryQuota}$).
+  - [ ] Credit `stronghold` biome ($+12$ flat defense) and `man_at_arms` ($+0.5$ flat defense) in `calculateDefenderPower`.
 
 #### Gate D: Complete Narrative Content, Laws & Events
 - [ ] **Task 2.1: 30 Laws Catalog (`src/data/laws.ts`) [V1]**
-  - 10 Chancellor laws (Administration), 10 Prelate laws (The People), 10 Marshal laws (The Military).
-  - Pure `Modifier` payloads with typed `resolverKey` for dynamic conditions (e.g. `law:isolationism`). Zero serialized functions.
+  - [ ] Implement 10 Chancellor laws, 10 Prelate laws, and 10 Marshal laws (`GAME_RULES.md §10`) with pure `Effect` / `Modifier` payloads and typed `ResolverKey` entries.
+  - [ ] Wire deterministic 3-card law draft (1 per order) on entering `COUNCIL_LAWS` and validate `ENACT_LAW` against the current draft and active law slot cap (5, or 6 with archive perk).
 - [ ] **Task 2.2: 20 Steward Dilemmas (`src/data/dilemmas.ts`) [V1]**
-  - 20 narrative dilemmas with dynamic state triggers and multi-choice payloads.
-- [ ] **Task 2.3: Threats, Reactive Factions & Province Biomes (`src/data/`) [V1]**
-  - `threats.ts`: 8 Crown threat narratives and 6 reactive factions.
-  - `biomes.ts`: 4 province biomes (Farmlands, Trade Hub, Stronghold, Wilderness).
-  - `edicts.ts`: 3 emergency edicts (Forced Tithe, Church Seizure, Grand Festival).
-  - `archives.ts`: 8 persistent meta-progression perks.
-  - `feats.ts`: 8 royal achievements.
+  - [ ] Implement 20 narrative dilemmas (`GAME_RULES.md §9`) with state trigger predicates and multi-choice `Effect[]` outcomes, wired into `COUNCIL_DILEMMA` and `RESOLVE_DILEMMA`.
+- [ ] **Task 2.3: Threats, Reactive Factions, Province Biomes, Archives, Feats & Scoring (`src/data/`) [V1]**
+  - [ ] `threats.ts`: 8 Crown threat definitions (D3–D10) and 6 reactive factions (`GAME_RULES.md §7.5` & `§8.1`).
+  - [ ] `biomes.ts`: Track `provinceBiomes: BiomeId[]` in `GameState` (starting with `['farmlands', 'farmlands', 'wilderness']` or balanced default, assigning biomes on colonisation/conquest, and applying Farmlands $\times 1.5$ cap & $+0.001 r$, Trade Hub $+15\%$ tax efficiency, Stronghold $+12$ defense, Wilderness $-5\%$ paperwork & $\times 0.8$ cap).
+  - [ ] `edicts.ts`, `archives.ts` (8 perks), `feats.ts` (8 achievements), and run score / dynastic title calculator (`GAME_RULES.md §13`).
 
 #### Gate E: Full Simulation, Final Calibration & Engine Freeze
 - [ ] **Task 3.1: High-Speed Headless Bot Runner (`src/__tests__/simulation/botRunner.ts`) [V1]**
-  - Optimized simulation runner: in-place state mutation (no tick-by-tick cloning), bot decisions executed every 1 second of game time, parallelized execution with Node `worker_threads`.
-  - Decoupled from `npm run test:unit` via dedicated script `npm run test:sim`.
+  - [x] Fast in-place simulation loop decoupled via `npm run test:sim`.
+  - [ ] Support `balanceOverrides` parameter injection for true sensitivity testing, track post-Deadline 3 (`t > 300s`) unit expenditures, and remove debug `console.log` statements.
 - [ ] **Task 3.2: Three-Tier Bot Implementations [V1]**
-  - **Random Noise Bot:** Arbitrary purchases. Assert win rate **< 5%**.
-  - **Greedy ROI Bot (Baseline Human):** Payback period prioritization with multi-metric utility score (AP, Pop, Military). Assert win rate **35% – 65%**.
-  - **Archetype Expert Bots:** Specialized Bureaucrat and Conqueror bots. Assert win rate **> 65%**.
+  - [ ] **Random Noise Bot:** Arbitrary purchases, laws, and dilemma choices. Assert win rate **< 5%** over 100 seeds.
+  - [ ] **Greedy ROI Bot (Baseline Human):** Remove `state.seed % 2 === 0 ? 5 : 4` hack; implement genuine marginal ROI payback scoring across AP, Pop, and Military with PRNG noise. Assert win rate **35% – 65%** over 100 seeds.
+  - [ ] **Archetype Expert Bots:** Specialized Bureaucrat (civil colonisation + admin synergies) and Conqueror (military campaigns + plunder) bots enacting synergistic laws and launching calculated expeditions. Assert win rate **> 65%** over 100 seeds.
 - [ ] **Task 3.3: Quota Derivation & Balance Report Script (`scripts/generate-balance-report.ts`) [V1]**
-  - Automated script calibrating coefficient $c$ across **200 fixed seeds** (same seeds across bisection iterations for deterministic convergence), then validating on 1,000 runs.
-  - Writes calibrated quotas into `src/data/balance.generated.ts` with "do not edit" banner.
-  - A unit test verifies that regenerating against existing calibration yields an identical file.
-  - Generates sensitivity report across $\pm 10\%$ parameter variations.
+  - [ ] Implement algorithmic bisection solver calibrating $c$ across **200 fixed seeds** on the Greedy ROI Bot, validating on 1,000 runs, and writing `src/data/balance.generated.ts`.
+  - [ ] Add unit test verifying strict quota monotonicity and file non-regression.
 - [ ] **Task 3.4: Dominance Test Suite per Archetype (`src/__tests__/simulation/archetypeBots.spec.ts`) [V1]**
-  - Asserts all units are purchased across 1,000 runs and no single unit exceeds 60% of total expenditure within a given archetype build **after Deadline 3**.
-- [ ] **Task 3.5: CLI REPL Tool (`scripts/repl.ts`) [V1]**
-  - Interactive terminal REPL to play, test, and debug runs headlessly via CLI commands.
+  - [ ] Assert across 100+ runs (combining Bureaucrat and Conqueror archetypes) that every unit in `UNITS_DATA` is purchased $> 0$ times and no single unit exceeds 60% of expenditure **after Deadline 3 ($t > 300\text{s}$)**.
+- [ ] **Task 3.5: True Sensitivity Analysis ($\pm 10\%$) & CLI REPL Tool (`scripts/repl.ts`) [V1]**
+  - [ ] Perturb $r_0$, cost ratios ($1.07/1.05$), and poll tax rate by $\pm 10\%$ across 50+ seeds per profile in `archetypeBots.spec.ts` and assert win rates remain bounded without catastrophic collapse.
+  - [ ] Implement interactive terminal REPL (`scripts/repl.ts`) to inspect and play headless runs via CLI.
 - [ ] **Task 3.6: Engine Validation Gate E Freeze [V1]**
-  - Validate all tests pass, freeze engine interfaces, and sign off for UI implementation.
+  - [ ] Validate all unit tests, invariant checks, replay step-size invariance, and 100-seed bot simulations pass with 0 warnings/errors before unlocking Phase V2 UI work.
 
 ---
 
