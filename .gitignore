@@ -54,3 +54,6 @@ temp/
 
 # Caches d'outils locaux & IA
 .gemini/
+
+# Personal documentation folder (private notes, plans, personal docs)
+celia/Documents/

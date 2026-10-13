@@ -19,16 +19,32 @@ Ce fichier définit les directives obligatoires que tout agent IA (Antigravity /
   - Lorsque l'utilisateur demande une phase, l'agent doit :
     1. **Bien expliquer tout ce qu'il fait** de façon claire, pédagogique et structurée.
     2. **Faire le travail à la place de l'utilisateur** en créant et modifiant directement les fichiers dans le dossier `celia/`.
+    3. **Bilan Systématique & Traçabilité des Reports (Obligatoire)** :
+       - À la fin de chaque phase terminée, consigner formellement dans `celia/Documents/02_Plan_d_Action_de_Developpement.md` :
+         - Le **bilan exhaustif** de ce qui a été réalisé et validé selon la grille QA.
+         - Le **report précis** de tous les éléments techniques, graphiques ou fonctionnels vers les phases ultérieures concernées (en enrichissant directement les sections des phases cibles dans le document).
+         - Présenter ce bilan et ces reports de manière claire à l'utilisateur dans la réponse de fin de phase.
 
 ---
 
-## 3. Règle Absolue sur Git
+## 3. Règle Absolue sur Git & Messages de Commit
 - **INTERDICTION FORMELLE** d'effectuer un `git commit` ou un `git push` sans l'autorisation explicite préalable de l'utilisateur.
 - Laisser les fichiers modifiés / non indexés dans l'espace de travail jusqu'à ce que l'utilisateur donne son feu vert pour versionner.
+- **Messages de Commit en Anglais Obligatoires** : Tous les messages de commit doivent impérativement être rédigés en anglais (format conventionnel recommandé : `feat: ...`, `style: ...`, `fix: ...`).
 
 ---
 
-## 4. Bonnes Pratiques Techniques
+## 4. Règle de Langue : Tout en Anglais dans les Fichiers (All in English)
+- **Anglais Obligatoire dans les Fichiers** :
+  - L'ensemble des fichiers du projet (`index.html`, `style.css`, `script.js`, etc.) doit être rédigé en anglais :
+    - Textes et labels de l'interface utilisateur (UI).
+    - Attributs HTML et textes d'accessibilité (`aria-label`, titres, placeholders).
+    - Commentaires de code et noms de variables/fonctions.
+    - Messages de logs et notifications du jeu.
+
+---
+
+## 5. Bonnes Pratiques Techniques
 
 ### A. HTML (`index.html`)
 - Utiliser la sémantique HTML5 (`<header>`, `<main>`, `<section>`, `<aside>`, `<footer>`) au lieu d'enchaîner des `<div>` neutres.
@@ -45,11 +61,11 @@ Ce fichier définit les directives obligatoires que tout agent IA (Antigravity /
 - Disposition responsive en 2 colonnes (Flexbox / CSS Grid).
 - Propriété `user-select: none;` et `touch-action: manipulation;` pour éviter les sélections involontaires ou les zooms intempestifs lors des clics rapides.
 
-### C. JavaScript (`script.js`) & Architecture MVC
-- **Pattern MVC Obligatoire** :
-  - **Modèle (Model)** : L'objet `gameState` et la logique de calcul pure (formules de coûts, bonus).
-  - **Vue (View)** : Le HTML et la fonction de rendu réactif `updateUI()`.
-  - **Contrôleur (Controller)** : Les gestionnaires d'événements et la boucle passive qui reçoivent les actions, mutent le Modèle et rafraîchissent la Vue.
+### C. JavaScript (`script.js`) & Architecture eMVC
+- **Pattern eMVC Obligatoire & Anti-God Controller** :
+  - **Modèle (Model)** : L'objet `gameState`, catalogues de données statiques (upgrades, trophées) et logique de calcul pure (formules de coûts, bonus).
+  - **Vue (View)** : Squelette HTML allégé via `<template>` et sous-vues spécialisées assurant le rendu réactif (`updateUI()`).
+  - **Contrôleurs Modulaires (Anti-God Controller)** : Découpage strict en contrôleurs dédiés (`PuzzleController`, `ShopController`, `StatsController`, `SettingsController`) avec délégation d'événements (`Event Delegation`). Bannir tout contrôleur monolithique géant.
 - **Zéro Erreur Console** : Toujours vérifier l'existence des éléments dans le DOM avant manipulation ou ajout d'écouteurs d'événements.
 - **État Unique (`gameState`)** : Centraliser l'ensemble des données (ressources, puzzle, statistiques, améliorations, options) dans un seul objet JS.
 - **Rendu Réactif** : Séparer strictement la modification des données (`gameState`) et la mise à jour de l'affichage via une fonction dédiée (`updateUI()`).
