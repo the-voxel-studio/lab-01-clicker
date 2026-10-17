@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Table Clicker Puzzle - Complete Stylesheet (Phase 3)
+   Clicker Puzzle - Complete Stylesheet (Phase 3)
    Author: Celia
    Theme: Dark "Cutting Mat" Workshop & Flashy Pink (#F60887)
    ========================================================================== */
@@ -12,26 +12,27 @@
   --color-primary: #F60887;
   --color-primary-hover: #ff2e9c;
   --color-primary-dark: #b80061;
-  --color-primary-glow: rgba(246, 8, 135, 0.45);
   --color-primary-subtle: rgba(246, 8, 135, 0.12);
 
   /* Dark Workshop / Cutting Mat Shades */
-  --bg-app: #0f1117;
-  --bg-mat: #151821;
+  --bg-app: #f4ece1;            /* Fond de page beige/bois très clair */
+  --bg-mat: #b8860b;            /* Table en bois ambré */
   --bg-mat-grid: rgba(255, 255, 255, 0.04);
-  --bg-panel: #1a1e29;
-  --bg-card: #222736;
-  --bg-card-hover: #293042;
+  --bg-panel: #e2d2be;          /* Panneaux en bois clair */
+  --bg-card: #ecdcc9;           /* Cartes couleur bois naturel */
+  --bg-cell-empty: rgba(0, 0, 0, 0.15); /* Creux sur la table */
+  --bg-card-hover: #f5e8d7;
+  --bg-cell-filled: #d2b48c;    /* Pièce de puzzle en bois clair */
   --bg-elevated: #2d3448;
 
   /* Borders & Dividers */
-  --border-subtle: #2d3446;
-  --border-card: #384157;
+  --border-subtle: #4a2c11;
+  --border-card: #3a220d;
   --border-focus: #F60887;
 
   /* Typography & Text */
-  --text-main: #f3f5f9;
-  --text-muted: #949eb2;
+  --text-main: #2b1810;
+  --text-muted: #5c3a21;
   --text-dimmed: #636c80;
   --text-accent: #F60887;
 
@@ -118,7 +119,7 @@ button:focus-visible {
 
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: 7fr 3fr;
   gap: 2rem;
   flex: 1;
   margin-top: 1.25rem;
@@ -333,14 +334,14 @@ progress#puzzle-progress-bar::-webkit-progress-bar {
 progress#puzzle-progress-bar::-webkit-progress-value {
   background: linear-gradient(90deg, #ff5eb4, var(--color-primary));
   border-radius: var(--radius-xl);
-  box-shadow: 0 0 10px var(--color-primary-glow);
+  box-shadow: 4px 4px 0px #3a220d;
   transition: width 0.25s ease;
 }
 
 progress#puzzle-progress-bar::-moz-progress-bar {
   background: linear-gradient(90deg, #ff5eb4, var(--color-primary));
   border-radius: var(--radius-xl);
-  box-shadow: 0 0 10px var(--color-primary-glow);
+  box-shadow: 4px 4px 0px #3a220d;
 }
 
 /* Cutting Mat & Grid Section */
@@ -378,7 +379,6 @@ progress#puzzle-progress-bar::-moz-progress-bar {
     linear-gradient(var(--bg-mat-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--bg-mat-grid) 1px, transparent 1px);
   background-size: 24px 24px;
-  border: 2px dashed rgba(246, 8, 135, 0.25);
   border-radius: var(--radius-md);
   padding: 1.5rem;
   display: flex;
@@ -402,7 +402,7 @@ progress#puzzle-progress-bar::-moz-progress-bar {
 
 /* Puzzle Cell */
 .puzzle-cell {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-cell-empty);
   border: 2px dashed rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
   display: flex;
@@ -416,7 +416,7 @@ progress#puzzle-progress-bar::-moz-progress-bar {
 .puzzle-cell.filled {
   background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary));
   border: 2px solid #ffffff;
-  box-shadow: 0 0 15px var(--color-primary-glow), inset 0 0 8px rgba(255, 255, 255, 0.3);
+  box-shadow: 4px 4px 0px #3a220d , inset 0 0 8px rgba(255, 255, 255, 0.3);
   animation: cellPlacedPop 0.35s var(--transition-bounce);
 }
 
@@ -460,7 +460,7 @@ progress#puzzle-progress-bar::-moz-progress-bar {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  box-shadow: 0 8px 24px var(--color-primary-glow), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: #3a220d, 0 2px 6px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
   position: relative;
@@ -469,13 +469,17 @@ progress#puzzle-progress-bar::-moz-progress-bar {
 
 .btn-assemble:hover:not(:disabled) {
   filter: brightness(1.08);
-  box-shadow: 0 10px 28px rgba(246, 8, 135, 0.65), 0 4px 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 10px #3a220d;
   transform: translateY(-2px);
 }
 
 .btn-assemble:active:not(:disabled) {
   transform: translateY(2px) scale(0.98);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
+  box-shadow: 0 4px 10px #3a220d;
+}
+
+.btn-assemble:active {
+  transform: scale(0.95); /* Effet d'écrasement au clic */
 }
 
 .btn-assemble:disabled {
@@ -505,7 +509,7 @@ progress#puzzle-progress-bar::-moz-progress-bar {
   height: 100%;
   background: var(--color-primary);
   border-radius: var(--radius-xl);
-  box-shadow: 0 0 8px var(--color-primary-glow);
+  box-shadow: 0 0 8px #3a220d;
   transition: width 0.05s linear;
 }
 
@@ -603,9 +607,9 @@ progress#puzzle-progress-bar::-moz-progress-bar {
 .tab-btn.active {
   background: var(--bg-panel);
   border-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--text-muted);
   font-weight: 700;
-  box-shadow: 0 4px 12px var(--color-primary-glow);
+  box-shadow: 0 4px 10px #3a220d;
 }
 
 .tab-btn.active::after {
@@ -759,18 +763,22 @@ progress#puzzle-progress-bar::-moz-progress-bar {
   font-weight: 700;
   font-size: 0.85rem;
   border-radius: var(--radius-sm);
-  box-shadow: 0 2px 8px var(--color-primary-glow);
+  box-shadow: 4px 4px 0px #3a220d;
   transition: all var(--transition-fast);
 }
 
 .btn-buy-upgrade:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(246, 8, 135, 0.6);
+  box-shadow: 4px 4px 0px #3a220d;
   transform: translateY(-1px);
 }
 
 .btn-buy-upgrade:active:not(:disabled) {
   transform: translateY(1px);
+}
+
+.btn-buy-upgrade:active {
+  transform: scale(0.95); /* Effet d'écrasement au clic */
 }
 
 .btn-buy-upgrade:disabled {
@@ -936,7 +944,7 @@ progress#puzzle-progress-bar::-moz-progress-bar {
   background: var(--bg-panel);
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg), 0 0 15px var(--color-primary-glow);
+  box-shadow: var(--shadow-lg), 4px 4px 0px #3a220d;
   color: #ffffff;
   font-weight: 600;
   font-size: 0.9rem;
@@ -1144,6 +1152,7 @@ progress#puzzle-progress-bar::-moz-progress-bar {
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.85rem 1rem;
+    
   }
 
   .header-actions {

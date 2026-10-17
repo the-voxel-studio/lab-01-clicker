@@ -43,6 +43,6 @@ const gameState = {
 
 // 2. Initialisation sécurisée une fois le DOM chargé (Zéro Erreur Console)
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Table Clicker Puzzle initialisé avec succès !');
+  console.log('Clicker Puzzle initialisé avec succès !');
   // Le code d'initialisation de l'interface sera rattaché ici
 });
