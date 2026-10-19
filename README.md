@@ -47,3 +47,9 @@ Development takes place directly on the organization's repository, organized by 
 ## License
 
 This project is licensed under the **MIT License**. See the `LICENSE` file for details.
+
+-------------------------
+
+## Infos concernant cette branche :
+
+ng serve pour lancer
