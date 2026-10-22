@@ -1,6 +1,6 @@
 # Journal de Conception & Réalisation du Core Engine (`docs/making/`)
 
-Ce document consigne les travaux réalisés lors de la première passe d'implémentation du moteur Core (`src/core/`), des données de balance (`src/data/`), et du socle de tests (`src/__tests__/`) de **The Grand Audit (Lord Clicker)**, ainsi que le diagnostic d'audit ayant conduit au [Plan de Remédiation Technique (`docs/plan/README.md`)](../plan/README.md).
+Ce document consigne les travaux réalisés lors de la première passe d'implémentation du moteur Core (`src/core/`), des données de balance (`src/data/`), et du socle de tests (`src/__tests__/`) de **The Grand Audit (Lord Clicker)**, ainsi que le diagnostic d'audit ayant conduit au Plan de Remédiation Technique (archivé hors du dépôt).
 
 ---
 
@@ -27,7 +27,7 @@ Lors de l'audit initial confrontant le prototype existant aux spécifications de
 
 ### 2.1. Modules Core Créés (`src/core/`)
 
-| Fichier | Fonctionnalités Implémentées | Limites Identifiées à Corriger ([`docs/plan/README.md`](../plan/README.md)) |
+| Fichier | Fonctionnalités Implémentées | Limites Identifiées à Corriger |
 |---|---|---|
 | [`src/core/prng.ts`](../../src/core/prng.ts) | Générateur Mulberry32 32-bit déterministe (`next()`, `nextBetween(min, max)`, `nextInt(min, max)`, `getState()`, `setState()`). | `prngState` non stocké dans `GameState` (instances éphémères `new PRNG(...)` créées à la volée) ; `this.state += 0x6d2b79f5` non tronqué sur 32 bits (`>>> 0`). |
 | [`src/core/battle.ts`](../../src/core/battle.ts) | Formule asymétrique (friction offensive -10%, fortification +20%), règle *razor-thin* ($1.00 \le R \le 1.05$ sans gain de province), variété de butin, mortalité d'éclaireur (`performScoutReroll`). | Pertes appliquées uniquement aux `soldier` (épargnant les `man_at_arms` et officiers) ; absence de `currentTarget` (brouillard de guerre, faux registres, embuscades non branchés) ; tribut non bloquant si AP insuffisant. |
@@ -90,7 +90,7 @@ L'audit approfondi du commit `f1d74fd` a révélé pourquoi plusieurs validation
 | **Tests Unitaires actuels (`npm run test:unit`)** | ✅ 156/156 |
 | **Statut global de la Phase V1 (Gates A à E)** | 🔄 **En cours — Remédiation requise avant gel V1** |
 
-L'intégralité des correctifs requis sur le moteur Core, les données Gate D et la suite de simulation est planifiée et spécifiée dans [`docs/plan/README.md`](../plan/README.md) et répercutée dans [`docs/PLAN.md`](../PLAN.md). Le développement de l'interface V2 reste strictement bloqué tant que l'ensemble de ces tâches n'est pas validé.
+L'intégralité des correctifs requis sur le moteur Core, les données Gate D et la suite de simulation est planifiée et spécifiée dans le plan de remédiation (archivé hors du dépôt) et répercutée dans [`docs/PLAN.md`](../PLAN.md). Le développement de l'interface V2 reste strictement bloqué tant que l'ensemble de ces tâches n'est pas validé.
 
 ---
 

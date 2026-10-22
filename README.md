@@ -22,7 +22,7 @@ All project specifications, architecture guidelines, and engineering roadmaps ar
 | Document | Description |
 | :--- | :--- |
 | **[Master Technical & Game Design Guide](./docs/GUIDE.md)** | **Definitive master guide:** All 30 laws, 20 steward dilemmas, threats catalog, enemy factions & reactive traits, complete mathematical formulas, and audio architecture. |
-| **[Implementation Roadmap & Plan](./docs/PLAN.md)** | **Implementation plan:** Phased task checklist from pure TS engine (`src/core/`), data catalogs, headless bot simulation test suite, Pinia stores, and Vue components. |
+| **[Implementation Roadmap & Plan](./docs/PLAN.md)** | **Product roadmap:** Phases and validation gates from pure TS engine (`src/core/`), data catalogs, headless bot simulation test suite, Pinia stores, and Vue components. |
 | **[Game Systems & Rules](./docs/GAME_RULES.md)** | Unit tiers, dual-tier scaling ($1.07 / 1.05$), logistic demographic growth, civil colonisation, non-quadratic collectors, and tactical battles. |
 | **[Vue.js Best Practices & Standards](./docs/VUE_BEST_PRACTICES.md)** | Architecture patterns, performance guidelines, TSDoc standards, error handling, and component separation rules. |
 | **[Audio Engine Best Practices](./docs/AUDIO_BEST_PRACTICES.md)** | Web Audio API architecture, autoplay unlocking, polyphony control, voice stealing, and asset weight optimization. |

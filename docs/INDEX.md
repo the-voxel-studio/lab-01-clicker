@@ -30,6 +30,3 @@ This directory contains technical guides, system design specifications, balance 
 8. **[Making-of: Core Engine Overhaul & Calibration](./making/README.md)**
    * **Engineering & Architecture Journal:** Detailed post-mortem and rationale of the Core engine overhaul, newly implemented systems (PRNG, battle, replay, migrations), bug resolutions (ANOM-01 to ANOM-15), full test matrix, and 3-tier bot simulation balance calibration.
 
-9. **[Technical Remediation Plan & QA Roadmap](./plan/README.md)**
-   * **Engineering Action Plan:** Systematic roadmap addressing residual core engine integration gaps, modifier lifecycles, battle casualties, and statistical test suite calibration before V1 engine freeze.
-

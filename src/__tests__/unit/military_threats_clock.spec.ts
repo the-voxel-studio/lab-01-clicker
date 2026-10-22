@@ -1,6 +1,6 @@
 /**
  * Task 1.6 Verification Suite: Military, Threats, Clock Bounding & Governance Transitions.
- * Validates the 11 acceptance criteria specified in docs/plan/README.md Task 1.6.
+ * Validates the 11 acceptance criteria of legacy remediation Task 1.6.
  *
  * @module __tests__/unit/military_threats_clock.spec
  */
