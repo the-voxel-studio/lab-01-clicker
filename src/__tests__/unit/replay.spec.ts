@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import {
-  executeReplay,
-  getStateHash,
-  type ReplayJournal,
-} from '@/core/replay'
+import { executeReplay, getStateHash, type ReplayJournal } from '@/core/replay'
 import { PRNG } from '@/core/prng'
 import { createInitialGameState } from '@/core/state'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
@@ -100,7 +96,10 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
 
         // Inter-deadline 1 sequence (at t = 100.0)
         { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
-        { timeSeconds: 100.0, command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 } },
+        {
+          timeSeconds: 100.0,
+          command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 },
+        },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 100.0, command: { type: 'RESUME_GOVERNANCE' } },
@@ -111,7 +110,10 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
 
         // Inter-deadline 2 sequence (at t = 200.0)
         { timeSeconds: 200.0, command: { type: 'SUBMIT_AUDIT' } },
-        { timeSeconds: 200.0, command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 } },
+        {
+          timeSeconds: 200.0,
+          command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 },
+        },
         { timeSeconds: 200.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 200.0, command: { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' } },
         { timeSeconds: 200.0, command: { type: 'SKIP_EXPEDITION' } },
@@ -125,7 +127,7 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
 
     const replayConfig = {
       ...DEFAULT_ENGINE_CONFIG,
-      quotas: DEFAULT_ENGINE_CONFIG.quotas.map(q => ({
+      quotas: DEFAULT_ENGINE_CONFIG.quotas.map((q) => ({
         ...q,
         apRate: 1,
         pop: 50,
@@ -145,9 +147,7 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
   it('terminates cleanly without infinite loop when game is paused and journal has no unblocking entries', () => {
     const stalledJournal: ReplayJournal = {
       seed: 42,
-      entries: [
-        { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
-      ],
+      entries: [{ timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } }],
     }
 
     const finalState = executeReplay(stalledJournal, 0.05, 200)
@@ -158,7 +158,7 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
   it('preserves step-size invariance across multiple deadlines with reliquat re-injection', () => {
     const replayConfig = {
       ...DEFAULT_ENGINE_CONFIG,
-      quotas: DEFAULT_ENGINE_CONFIG.quotas.map(q => ({
+      quotas: DEFAULT_ENGINE_CONFIG.quotas.map((q) => ({
         ...q,
         apRate: 1,
         pop: 50,
@@ -172,7 +172,10 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
         { timeSeconds: 0.0, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 2 } },
         { timeSeconds: 20.0, command: { type: 'BUY_UNIT', unitId: 'peasant', count: 2 } },
         { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
-        { timeSeconds: 100.0, command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 } },
+        {
+          timeSeconds: 100.0,
+          command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 },
+        },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 100.0, command: { type: 'RESUME_GOVERNANCE' } },
@@ -194,16 +197,14 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
   it('accepts custom EngineConfig to alter replay mechanics', () => {
     const journal: ReplayJournal = {
       seed: 42,
-      entries: [
-        { timeSeconds: 1.0, command: { type: 'STAMP_DOCUMENT' } },
-      ],
+      entries: [{ timeSeconds: 1.0, command: { type: 'STAMP_DOCUMENT' } }],
     }
 
     const customConfig = {
       ...DEFAULT_ENGINE_CONFIG,
       balance: {
         ...DEFAULT_ENGINE_CONFIG.balance,
-        TAX_POLL_RATE: 0.20,
+        TAX_POLL_RATE: 0.2,
       },
     }
 

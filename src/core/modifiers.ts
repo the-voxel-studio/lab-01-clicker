@@ -6,14 +6,7 @@
  * @module core/modifiers
  */
 
-import type {
-  UnitId,
-  StatKey,
-  ResolverKey,
-  Modifier,
-  Effect,
-  GameState,
-} from './types'
+import type { UnitId, StatKey, ResolverKey, Modifier, Effect, GameState } from './types'
 import { addUnrest, applyPopulationLoss } from './mutations'
 
 /**
@@ -42,7 +35,7 @@ export interface DynamicResolverResult {
 /** Pure dynamic modifier resolver function signature. */
 export type DynamicModifierResolver = (
   state: Readonly<RawEvaluationState>,
-  mod: Readonly<Modifier>
+  mod: Readonly<Modifier>,
 ) => DynamicResolverResult | number
 
 /**
@@ -118,7 +111,7 @@ export function composeStat(
   statKey: StatKey,
   baseValue: number,
   modifiers: readonly Modifier[],
-  rawState?: RawEvaluationState
+  rawState?: RawEvaluationState,
 ): number {
   let addSum = 0
   let addPctSum = 0
@@ -198,7 +191,7 @@ export class TickStatCache {
     statKey: string,
     currentTick: number,
     computeFn: () => number,
-    stateRef?: unknown
+    stateRef?: unknown,
   ): number {
     if (this.tickIndex !== currentTick || (stateRef !== undefined && this.stateRef !== stateRef)) {
       this.cache.clear()

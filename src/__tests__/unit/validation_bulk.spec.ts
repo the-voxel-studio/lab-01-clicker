@@ -7,10 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
-import {
-  getMaxBulkSize,
-  calculateMaxAffordableUnits,
-} from '@/core/formulas'
+import { getMaxBulkSize, calculateMaxAffordableUnits } from '@/core/formulas'
 import { ALLOWED_COMMANDS_BY_PHASE } from '@/core/phases'
 import type { Command } from '@/core/types'
 import {
@@ -73,10 +70,7 @@ describe('Task 1.5: Strict Validation, Bulk Purchasing & Engine Helper Harmoniza
       const allowed = ALLOWED_COMMANDS_BY_PHASE.ACTIVE_CYCLE as unknown as string[]
       allowed.push('MOCK_UNHANDLED_COMMAND')
       try {
-        const res = dispatch(
-          state,
-          { type: 'MOCK_UNHANDLED_COMMAND' } as unknown as Command
-        )
+        const res = dispatch(state, { type: 'MOCK_UNHANDLED_COMMAND' } as unknown as Command)
         expect(res.success).toBe(false)
         expect(res.error).toContain('Unsupported command')
       } finally {
@@ -198,7 +192,7 @@ describe('Task 1.5: Strict Validation, Bulk Purchasing & Engine Helper Harmoniza
               state.ap,
               state.freeSerfs,
               orderHeadroom,
-              maxBulk
+              maxBulk,
             )
 
             const res =
@@ -212,7 +206,7 @@ describe('Task 1.5: Strict Validation, Bulk Purchasing & Engine Helper Harmoniza
 
             expect(
               res.success,
-              `BUY_UNIT failed for ${affordable}x ${unitId} with budget ${budget}`
+              `BUY_UNIT failed for ${affordable}x ${unitId} with budget ${budget}`,
             ).toBe(true)
           }
         }
@@ -232,7 +226,7 @@ describe('Task 1.5: Strict Validation, Bulk Purchasing & Engine Helper Harmoniza
         source: 'law:test',
         stat: 'housing_capacity',
         op: 'addPct',
-        value: 0.20,
+        value: 0.2,
       })
       tickStatCache.clear()
       expect(calculateMaxPopulation(stateWithMod)).toBe(900)

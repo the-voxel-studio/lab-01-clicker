@@ -131,7 +131,7 @@ describe('Task 2.1: Secondary Effects of Units (GAME_RULES §4)', () => {
       const loot5 = resolveCampaignLoot('population', 0, 1.0, prng2, state5)
 
       expect(loot5.population).toBeGreaterThan(loot0.population)
-      expect(loot5.population).toBe(Math.round(loot0.population * 1.10))
+      expect(loot5.population).toBe(Math.round(loot0.population * 1.1))
     })
 
     it('increases AP loot by 1% per guild in addition to sergeant bonus', () => {
@@ -149,7 +149,7 @@ describe('Task 2.1: Secondary Effects of Units (GAME_RULES §4)', () => {
       const loot0 = resolveCampaignLoot('ap', 1000, 1.0, prng1, state0)
       const loot10 = resolveCampaignLoot('ap', 1000, 1.0, prng2, state10)
 
-      expect(loot10.ap).toBe(Math.round(loot0.ap * 1.10))
+      expect(loot10.ap).toBe(Math.round(loot0.ap * 1.1))
     })
   })
 
@@ -203,7 +203,7 @@ describe('Task 2.1: Secondary Effects of Units (GAME_RULES §4)', () => {
         prngTest.next() // loot
         prngTest.nextBetween(0.85, 1.25) // power
         const falseLedger = prngTest.next() < 0.15
-        const ambush = prngTest.next() < 0.10
+        const ambush = prngTest.next() < 0.1
         if (falseLedger || ambush) {
           foundSeed = s
           break

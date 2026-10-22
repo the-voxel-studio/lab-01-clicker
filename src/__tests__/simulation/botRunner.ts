@@ -5,13 +5,7 @@
  * @module __tests__/simulation/botRunner
  */
 
-import {
-  BALANCE,
-  UNITS_DATA,
-  DEADLINE_QUOTAS,
-  type UnitId,
-  type UnitOrder,
-} from '@/data/balance'
+import { BALANCE, UNITS_DATA, DEADLINE_QUOTAS, type UnitId, type UnitOrder } from '@/data/balance'
 import type { GameState, Command, DefeatReason } from '@/core/types'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
@@ -46,7 +40,7 @@ export type BotStrategy = (state: Readonly<GameState>, prng: PRNG) => Command[]
 export function runSimulation(
   strategy: BotStrategy,
   seed: number,
-  maxDeadlines: number = 10
+  maxDeadlines: number = 10,
 ): BotRunResult {
   const prng = new PRNG(seed)
   const state = createInitialGameState({ seed })
@@ -80,7 +74,7 @@ export function runSimulation(
       const tributeCost = state.currentThreatTributeAp
       const milPower = calculateMilitaryPower(state)
 
-      if (milPower >= threatPower * 1.30) {
+      if (milPower >= threatPower * 1.3) {
         dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'defense' })
       } else if (state.ap >= tributeCost) {
         dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
@@ -155,14 +149,18 @@ function canRecruitUnit(
   state: Readonly<GameState>,
   unitId: UnitId,
   count: number = 1,
-  reserveAp: number = 0
+  reserveAp: number = 0,
 ): boolean {
   const def = UNITS_DATA[unitId]
   if (!def) return false
   if (def.tier === 2 && !state.unlockedPatents[def.order]) return false
   if (state.freeSerfs < count) return false
 
-  const maxPop = calculateHousingCapacity(state.provinces, state.units.notable ?? 0, state.units.baron ?? 0)
+  const maxPop = calculateHousingCapacity(
+    state.provinces,
+    state.units.notable ?? 0,
+    state.units.baron ?? 0,
+  )
   const orderCaps = calculateOrderCaps(maxPop)
   const currentOrderCount = Object.entries(state.units).reduce((sum, [id, qty]) => {
     return UNITS_DATA[id as UnitId]?.order === def.order ? sum + (qty ?? 0) : sum
@@ -239,16 +237,24 @@ export function greedyRoiBotStrategy(state: Readonly<GameState>, _prng: PRNG): C
       commands.push({ type: 'BUY_UNIT', unitId: 'soldier', count: 1 })
       return commands
     }
-    if ((state.units.collector ?? 0) < 3 && state.freeSerfs > 100 && canRecruitUnit(state, 'collector', 1, 0)) {
+    if (
+      (state.units.collector ?? 0) < 3 &&
+      state.freeSerfs > 100 &&
+      canRecruitUnit(state, 'collector', 1, 0)
+    ) {
       commands.push({ type: 'BUY_UNIT', unitId: 'collector', count: 1 })
       return commands
     }
   }
 
   // Strategic capital saving targets (Patents & Colonisation)
-  const maxPop = calculateHousingCapacity(state.provinces, state.units.notable ?? 0, state.units.baron ?? 0)
+  const maxPop = calculateHousingCapacity(
+    state.provinces,
+    state.units.notable ?? 0,
+    state.units.baron ?? 0,
+  )
   const colCost = 1500 * Math.pow(2, state.colonisedProvincesCount)
-  const needsColony = state.totalPopulation > maxPop * 0.70 && state.provinces < 6
+  const needsColony = state.totalPopulation > maxPop * 0.7 && state.provinces < 6
 
   // Proactive Patent Unlocking (Priority: Admin -> Military -> People)
   if (state.deadline >= 4) {
@@ -276,9 +282,17 @@ export function greedyRoiBotStrategy(state: Readonly<GameState>, _prng: PRNG): C
   }
 
   // High-Yield Economic Engine: Clerks first to establish cash-flow
-  const patentReserve = !state.unlockedPatents.military ? BALANCE.PATENT_COSTS.military : (!state.unlockedPatents.people ? BALANCE.PATENT_COSTS.people : 0)
+  const patentReserve = !state.unlockedPatents.military
+    ? BALANCE.PATENT_COSTS.military
+    : !state.unlockedPatents.people
+      ? BALANCE.PATENT_COSTS.people
+      : 0
 
-  if (state.unlockedPatents.admin && (state.units.clerk ?? 0) < 28 && canRecruitUnit(state, 'clerk', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.admin &&
+    (state.units.clerk ?? 0) < 28 &&
+    canRecruitUnit(state, 'clerk', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'clerk', count: 1 })
     return commands
   }
@@ -305,34 +319,59 @@ export function greedyRoiBotStrategy(state: Readonly<GameState>, _prng: PRNG): C
 
   // Barons & Notables to expand housing headroom
   const maxBarons = state.seed % 2 === 0 ? 5 : 4
-  if (state.unlockedPatents.people && (state.units.baron ?? 0) < maxBarons && canRecruitUnit(state, 'baron', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.people &&
+    (state.units.baron ?? 0) < maxBarons &&
+    canRecruitUnit(state, 'baron', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'baron', count: 1 })
     return commands
   }
 
-  if (state.totalPopulation > maxPop * 0.65 && (state.units.notable ?? 0) < 13 && canRecruitUnit(state, 'notable', 1, patentReserve)) {
+  if (
+    state.totalPopulation > maxPop * 0.65 &&
+    (state.units.notable ?? 0) < 13 &&
+    canRecruitUnit(state, 'notable', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'notable', count: 1 })
     return commands
   }
 
-  if (state.unlockedPatents.people && (state.units.farmer ?? 0) < 12 && canRecruitUnit(state, 'farmer', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.people &&
+    (state.units.farmer ?? 0) < 12 &&
+    canRecruitUnit(state, 'farmer', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'farmer', count: 1 })
     return commands
   }
 
   // Tier II Admin Multipliers & Collectors
-  if (state.unlockedPatents.admin && (state.units.provincial_steward ?? 0) < 3 && canRecruitUnit(state, 'provincial_steward', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.admin &&
+    (state.units.provincial_steward ?? 0) < 3 &&
+    canRecruitUnit(state, 'provincial_steward', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'provincial_steward', count: 1 })
     return commands
   }
 
-  if (state.unlockedPatents.admin && state.freeSerfs > 200 && (state.units.farmer_general ?? 0) < 3 && canRecruitUnit(state, 'farmer_general', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.admin &&
+    state.freeSerfs > 200 &&
+    (state.units.farmer_general ?? 0) < 3 &&
+    canRecruitUnit(state, 'farmer_general', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'farmer_general', count: 1 })
     return commands
   }
 
   // Tier I Support
-  if ((state.units.collector ?? 0) < 5 && state.freeSerfs > 150 && canRecruitUnit(state, 'collector', 1, patentReserve)) {
+  if (
+    (state.units.collector ?? 0) < 5 &&
+    state.freeSerfs > 150 &&
+    canRecruitUnit(state, 'collector', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'collector', count: 1 })
     return commands
   }
@@ -395,7 +434,11 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
       commands.push({ type: 'BUY_UNIT', unitId: 'soldier', count: 1 })
       return commands
     }
-    if ((state.units.collector ?? 0) < 4 && state.freeSerfs > 100 && canRecruitUnit(state, 'collector', 1, 0)) {
+    if (
+      (state.units.collector ?? 0) < 4 &&
+      state.freeSerfs > 100 &&
+      canRecruitUnit(state, 'collector', 1, 0)
+    ) {
       commands.push({ type: 'BUY_UNIT', unitId: 'collector', count: 1 })
       return commands
     }
@@ -406,9 +449,13 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
   }
 
   // Strategic capital saving targets (Patents & Colonisation)
-  const maxPop = calculateHousingCapacity(state.provinces, state.units.notable ?? 0, state.units.baron ?? 0)
+  const maxPop = calculateHousingCapacity(
+    state.provinces,
+    state.units.notable ?? 0,
+    state.units.baron ?? 0,
+  )
   const colCost = 1500 * Math.pow(2, state.colonisedProvincesCount)
-  const needsColony = state.totalPopulation > maxPop * 0.70 && state.provinces < 8
+  const needsColony = state.totalPopulation > maxPop * 0.7 && state.provinces < 8
 
   // Calculate dynamic savingsGoal
   let savingsGoal = 0
@@ -450,8 +497,16 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
   }
 
   // High-Yield Economic Engine: Clerks
-  const patentReserve = !state.unlockedPatents.military ? BALANCE.PATENT_COSTS.military : (!state.unlockedPatents.people ? BALANCE.PATENT_COSTS.people : 0)
-  if (state.unlockedPatents.admin && (state.units.clerk ?? 0) < 35 && canRecruitUnit(state, 'clerk', 1, patentReserve)) {
+  const patentReserve = !state.unlockedPatents.military
+    ? BALANCE.PATENT_COSTS.military
+    : !state.unlockedPatents.people
+      ? BALANCE.PATENT_COSTS.people
+      : 0
+  if (
+    state.unlockedPatents.admin &&
+    (state.units.clerk ?? 0) < 35 &&
+    canRecruitUnit(state, 'clerk', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'clerk', count: 1 })
     return commands
   }
@@ -459,7 +514,7 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
   // Military quota pacing:
   const quota = DEADLINE_QUOTAS.find((q) => q.deadline === state.deadline) ?? DEADLINE_QUOTAS[0]!
   const milPower = calculateMilitaryPower(state as GameState)
-  const needsMilitary = milPower < quota.military * 1.10
+  const needsMilitary = milPower < quota.military * 1.1
 
   if (needsMilitary) {
     if (state.unlockedPatents.military && canRecruitUnit(state, 'man_at_arms', 1, 0)) {
@@ -477,23 +532,38 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
   }
 
   // Military upkeep mitigators
-  if ((state.units.quartermaster ?? 0) < 3 && canRecruitUnit(state, 'quartermaster', 1, patentReserve)) {
+  if (
+    (state.units.quartermaster ?? 0) < 3 &&
+    canRecruitUnit(state, 'quartermaster', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'quartermaster', count: 1 })
     return commands
   }
 
   // Housing & Demographic Multipliers (Barons, Notables, Farmers, Peasants)
-  if (state.unlockedPatents.people && (state.units.baron ?? 0) < 10 && canRecruitUnit(state, 'baron', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.people &&
+    (state.units.baron ?? 0) < 10 &&
+    canRecruitUnit(state, 'baron', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'baron', count: 1 })
     return commands
   }
 
-  if (state.totalPopulation > maxPop * 0.65 && (state.units.notable ?? 0) < 14 && canRecruitUnit(state, 'notable', 1, patentReserve)) {
+  if (
+    state.totalPopulation > maxPop * 0.65 &&
+    (state.units.notable ?? 0) < 14 &&
+    canRecruitUnit(state, 'notable', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'notable', count: 1 })
     return commands
   }
 
-  if (state.unlockedPatents.people && (state.units.farmer ?? 0) < 15 && canRecruitUnit(state, 'farmer', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.people &&
+    (state.units.farmer ?? 0) < 15 &&
+    canRecruitUnit(state, 'farmer', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'farmer', count: 1 })
     return commands
   }
@@ -505,19 +575,32 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
 
   // Tier II Multipliers & Reducers
   // Provincial Stewards (+9% scribe & clerk bonus)
-  if (state.unlockedPatents.admin && (state.units.provincial_steward ?? 0) < 6 && canRecruitUnit(state, 'provincial_steward', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.admin &&
+    (state.units.provincial_steward ?? 0) < 6 &&
+    canRecruitUnit(state, 'provincial_steward', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'provincial_steward', count: 1 })
     return commands
   }
 
   // Farmers-General (+4.5 AP/s per 100 serfs)
-  if (state.unlockedPatents.admin && state.freeSerfs > 200 && (state.units.farmer_general ?? 0) < 8 && canRecruitUnit(state, 'farmer_general', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.admin &&
+    state.freeSerfs > 200 &&
+    (state.units.farmer_general ?? 0) < 8 &&
+    canRecruitUnit(state, 'farmer_general', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'farmer_general', count: 1 })
     return commands
   }
 
   // Audit Chambers (-6.5% paperwork)
-  if (state.unlockedPatents.admin && (state.units.audit_chamber ?? 0) < 4 && canRecruitUnit(state, 'audit_chamber', 1, patentReserve)) {
+  if (
+    state.unlockedPatents.admin &&
+    (state.units.audit_chamber ?? 0) < 4 &&
+    canRecruitUnit(state, 'audit_chamber', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'audit_chamber', count: 1 })
     return commands
   }
@@ -541,13 +624,21 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
   }
 
   // Collectors (+0.8 AP/s per 100 serfs)
-  if ((state.units.collector ?? 0) < 6 && state.freeSerfs > 150 && canRecruitUnit(state, 'collector', 1, patentReserve)) {
+  if (
+    (state.units.collector ?? 0) < 6 &&
+    state.freeSerfs > 150 &&
+    canRecruitUnit(state, 'collector', 1, patentReserve)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'collector', count: 1 })
     return commands
   }
 
   // Extra military reinforcement if surplus AP exists
-  if (state.unlockedPatents.military && milPower < quota.military * 1.30 && canRecruitUnit(state, 'man_at_arms', 1, savingsGoal)) {
+  if (
+    state.unlockedPatents.military &&
+    milPower < quota.military * 1.3 &&
+    canRecruitUnit(state, 'man_at_arms', 1, savingsGoal)
+  ) {
     commands.push({ type: 'BUY_UNIT', unitId: 'man_at_arms', count: 1 })
     return commands
   }

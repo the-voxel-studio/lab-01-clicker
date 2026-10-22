@@ -160,9 +160,12 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     },
     activeLaws: [...(overrides.activeLaws ?? baseState.activeLaws)],
     currentLawDraft: [...(overrides.currentLawDraft ?? baseState.currentLawDraft)],
-    currentTarget: overrides.currentTarget !== undefined
-      ? (overrides.currentTarget ? { ...overrides.currentTarget } : null)
-      : baseState.currentTarget,
+    currentTarget:
+      overrides.currentTarget !== undefined
+        ? overrides.currentTarget
+          ? { ...overrides.currentTarget }
+          : null
+        : baseState.currentTarget,
     disbandedMilitaryHistory: [
       ...(overrides.disbandedMilitaryHistory ?? baseState.disbandedMilitaryHistory),
     ],

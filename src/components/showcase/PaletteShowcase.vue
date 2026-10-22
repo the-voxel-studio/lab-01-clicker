@@ -2,7 +2,11 @@
 import GameIcon from '@/components/common/GameIcon.vue'
 
 const darkFeudalTones = [
-  { name: 'Feudal Void', hex: '#120d09', desc: 'Main domain viewport canvas (weathered black oak)' },
+  {
+    name: 'Feudal Void',
+    hex: '#120d09',
+    desc: 'Main domain viewport canvas (weathered black oak)',
+  },
   { name: 'Fief Dark', hex: '#18120d', desc: 'Panels & containers background' },
   { name: 'Fief Card', hex: '#201711', desc: 'Unit cards & modal sheet backgrounds' },
   { name: 'Leather Border', hex: '#3d2b1f', desc: 'Subtle parchment borders & dividers' },
@@ -10,13 +14,48 @@ const darkFeudalTones = [
 ]
 
 const contrastAccents = [
-  { name: 'Royal Gold', hex: '#d69e2e', class: 'bg-royal-gold text-ink-black', desc: 'AP, treasury, victories, royal crowns' },
-  { name: 'Wax Red', hex: '#9e1d1d', class: 'bg-wax-red text-white', desc: 'Production seal, active deadlines, threats' },
-  { name: 'Voxel Pink', hex: '#f60887', class: 'bg-voxel-pink text-white', desc: 'Voxel Lab pilot constraint: imperial insignia & decree seal' },
-  { name: 'Parchment Text', hex: '#eedfcb', class: 'bg-fief-text text-ink-black', desc: 'High-legibility primary typography' },
-  { name: 'Peasant Green', hex: '#3ea834', class: 'bg-peasant-green text-white', desc: 'Demographic growth & harvests' },
-  { name: 'Iron Grey', hex: '#6b7280', class: 'bg-iron-grey text-white', desc: 'Military forces & fortified keeps' },
-  { name: 'Church Purple', hex: '#9b4de0', class: 'bg-clergy-purple text-white', desc: 'Clergy & spiritual pacification' },
+  {
+    name: 'Royal Gold',
+    hex: '#d69e2e',
+    class: 'bg-royal-gold text-ink-black',
+    desc: 'AP, treasury, victories, royal crowns',
+  },
+  {
+    name: 'Wax Red',
+    hex: '#9e1d1d',
+    class: 'bg-wax-red text-white',
+    desc: 'Production seal, active deadlines, threats',
+  },
+  {
+    name: 'Voxel Pink',
+    hex: '#f60887',
+    class: 'bg-voxel-pink text-white',
+    desc: 'Voxel Lab pilot constraint: imperial insignia & decree seal',
+  },
+  {
+    name: 'Parchment Text',
+    hex: '#eedfcb',
+    class: 'bg-fief-text text-ink-black',
+    desc: 'High-legibility primary typography',
+  },
+  {
+    name: 'Peasant Green',
+    hex: '#3ea834',
+    class: 'bg-peasant-green text-white',
+    desc: 'Demographic growth & harvests',
+  },
+  {
+    name: 'Iron Grey',
+    hex: '#6b7280',
+    class: 'bg-iron-grey text-white',
+    desc: 'Military forces & fortified keeps',
+  },
+  {
+    name: 'Church Purple',
+    hex: '#9b4de0',
+    class: 'bg-clergy-purple text-white',
+    desc: 'Clergy & spiritual pacification',
+  },
 ]
 </script>
 
@@ -78,14 +117,18 @@ const contrastAccents = [
     <div class="bg-fief-card border border-fief-border rounded-lg p-3 space-y-2">
       <h3 class="font-medieval text-xs text-fief-text">WOFF Medieval Typographies</h3>
       <div class="p-2.5 bg-fief-dark border border-fief-border rounded space-y-1">
-        <div class="font-medieval text-sm text-royal-gold">MedievalSharp (Titles & Royal Seals)</div>
+        <div class="font-medieval text-sm text-royal-gold">
+          MedievalSharp (Titles & Royal Seals)
+        </div>
         <p class="font-medieval text-xs text-fief-text-muted leading-tight">
           "The Crown Audit brooks no negligence nor deceit."
         </p>
       </div>
 
       <div class="p-2.5 bg-fief-dark border border-fief-border rounded space-y-1">
-        <div class="font-serif-book text-sm italic text-royal-gold">IM Fell English (Ledgers & Chronicles)</div>
+        <div class="font-serif-book text-sm italic text-royal-gold">
+          IM Fell English (Ledgers & Chronicles)
+        </div>
         <p class="font-serif-book text-xs italic text-fief-text leading-tight">
           "The scribe dipped his quill in dark ink over the harvest ledger..."
         </p>

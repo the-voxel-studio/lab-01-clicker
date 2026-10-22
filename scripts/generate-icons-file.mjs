@@ -44,7 +44,7 @@ const iconEntries = icons
     sourcePath: '${item.sourcePath}',
     svg: ${item.key}Svg,
     innerHtml: extractInnerHtml(${item.key}Svg),
-  },`
+  },`,
   )
   .join('\n')
 

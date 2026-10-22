@@ -77,23 +77,50 @@ const units = ref({
 })
 
 // Dynamic Order Totals & Caps
-const peopleTotal = computed(() =>
-  units.value.peasants + units.value.farmers + units.value.artisans + units.value.guilds +
-  units.value.clergy + units.value.prelates + units.value.notables + units.value.lords
+const peopleTotal = computed(
+  () =>
+    units.value.peasants +
+    units.value.farmers +
+    units.value.artisans +
+    units.value.guilds +
+    units.value.clergy +
+    units.value.prelates +
+    units.value.notables +
+    units.value.lords,
 )
-const peopleCap = computed(() => Math.floor(120 * (1 + units.value.notables * 0.01 + units.value.lords * 0.05)))
+const peopleCap = computed(() =>
+  Math.floor(120 * (1 + units.value.notables * 0.01 + units.value.lords * 0.05)),
+)
 
-const adminTotal = computed(() =>
-  units.value.scribes + units.value.clerks + units.value.supervisors + units.value.provincialStewards +
-  units.value.archivists + units.value.auditChamber + units.value.taxCollectors + units.value.generalFarmers
+const adminTotal = computed(
+  () =>
+    units.value.scribes +
+    units.value.clerks +
+    units.value.supervisors +
+    units.value.provincialStewards +
+    units.value.archivists +
+    units.value.auditChamber +
+    units.value.taxCollectors +
+    units.value.generalFarmers,
 )
-const adminCap = computed(() => Math.floor(80 * (1 + units.value.notables * 0.01 + units.value.lords * 0.05)))
+const adminCap = computed(() =>
+  Math.floor(80 * (1 + units.value.notables * 0.01 + units.value.lords * 0.05)),
+)
 
-const militaryTotal = computed(() =>
-  units.value.soldiers + units.value.menAtArms + units.value.officers + units.value.captains +
-  units.value.militaryIntendants + units.value.quartermasters + units.value.scouts + units.value.spies
+const militaryTotal = computed(
+  () =>
+    units.value.soldiers +
+    units.value.menAtArms +
+    units.value.officers +
+    units.value.captains +
+    units.value.militaryIntendants +
+    units.value.quartermasters +
+    units.value.scouts +
+    units.value.spies,
 )
-const militaryCap = computed(() => Math.floor(70 * (1 + units.value.notables * 0.01 + units.value.lords * 0.05)))
+const militaryCap = computed(() =>
+  Math.floor(70 * (1 + units.value.notables * 0.01 + units.value.lords * 0.05)),
+)
 
 // Economic calculations
 const popGrowthRate = computed(() => {
@@ -108,7 +135,8 @@ const topPopContributor = computed(() => {
     return {
       name: 'Farmers (Tier II)',
       rate: farmersGrowth.value,
-      percent: popGrowthRate.value > 0 ? Math.round((farmersGrowth.value / popGrowthRate.value) * 100) : 0,
+      percent:
+        popGrowthRate.value > 0 ? Math.round((farmersGrowth.value / popGrowthRate.value) * 100) : 0,
       efficiency: '+0.12 pop/s each',
       comparison: '6× more efficient per slot than Peasants',
       icon: 'roleFarmer' as GameIconKey,
@@ -117,7 +145,10 @@ const topPopContributor = computed(() => {
     return {
       name: 'Peasants (Tier I)',
       rate: peasantsGrowth.value,
-      percent: popGrowthRate.value > 0 ? Math.round((peasantsGrowth.value / popGrowthRate.value) * 100) : 0,
+      percent:
+        popGrowthRate.value > 0
+          ? Math.round((peasantsGrowth.value / popGrowthRate.value) * 100)
+          : 0,
       efficiency: '+0.02 pop/s each',
       comparison: 'Low 20 AP recruit cost, zero upkeep',
       icon: 'rolePeasant' as GameIconKey,
@@ -126,17 +157,39 @@ const topPopContributor = computed(() => {
 })
 
 // Military Upkeep & Logistics Intel
-const militaryDiscountFactor = computed(() => Math.max(0.4, 1 - (units.value.militaryIntendants * 0.015 + units.value.quartermasters * 0.08)))
+const militaryDiscountFactor = computed(() =>
+  Math.max(0.4, 1 - (units.value.militaryIntendants * 0.015 + units.value.quartermasters * 0.08)),
+)
 const militaryDiscountPercent = computed(() => Math.round((1 - militaryDiscountFactor.value) * 100))
 
-const menAtArmsUpkeep = computed(() => Number((units.value.menAtArms * 1.5 * militaryDiscountFactor.value).toFixed(1)))
-const captainsUpkeep = computed(() => Number((units.value.captains * 2.0 * militaryDiscountFactor.value).toFixed(1)))
-const spiesUpkeep = computed(() => Number((units.value.spies * 1.0 * militaryDiscountFactor.value).toFixed(1)))
-const totalMilitaryUpkeep = computed(() => Number(((units.value.menAtArms * 1.5 + units.value.captains * 2.0 + units.value.spies * 1.0) * militaryDiscountFactor.value).toFixed(1)))
+const menAtArmsUpkeep = computed(() =>
+  Number((units.value.menAtArms * 1.5 * militaryDiscountFactor.value).toFixed(1)),
+)
+const captainsUpkeep = computed(() =>
+  Number((units.value.captains * 2.0 * militaryDiscountFactor.value).toFixed(1)),
+)
+const spiesUpkeep = computed(() =>
+  Number((units.value.spies * 1.0 * militaryDiscountFactor.value).toFixed(1)),
+)
+const totalMilitaryUpkeep = computed(() =>
+  Number(
+    (
+      (units.value.menAtArms * 1.5 + units.value.captains * 2.0 + units.value.spies * 1.0) *
+      militaryDiscountFactor.value
+    ).toFixed(1),
+  ),
+)
 
 const civilUpkeepTotal = computed(() => {
-  const civil = units.value.farmers * 0.1 + units.value.guilds * 0.3 + units.value.prelates * 0.2 + units.value.lords * 0.8 +
-                units.value.clerks * 0.5 + units.value.provincialStewards * 1.0 + units.value.auditChamber * 0.6 + units.value.generalFarmers * 1.2
+  const civil =
+    units.value.farmers * 0.1 +
+    units.value.guilds * 0.3 +
+    units.value.prelates * 0.2 +
+    units.value.lords * 0.8 +
+    units.value.clerks * 0.5 +
+    units.value.provincialStewards * 1.0 +
+    units.value.auditChamber * 0.6 +
+    units.value.generalFarmers * 1.2
   return Number(civil.toFixed(1))
 })
 
@@ -157,36 +210,122 @@ interface MilitaryDrainItem {
 
 const heaviestMilitaryDrain = computed<MilitaryDrainItem>(() => {
   const drains: MilitaryDrainItem[] = [
-    { name: 'Men-at-Arms', unitCost: 1.5, count: units.value.menAtArms, total: menAtArmsUpkeep.value, icon: 'roleManAtArms', desc: 'Heavy infantry rations & pay' },
-    { name: 'Captains', unitCost: 2.0, count: units.value.captains, total: captainsUpkeep.value, icon: 'roleCaptain', desc: 'Command salaries & retinue' },
-    { name: 'Spies', unitCost: 1.0, count: units.value.spies, total: spiesUpkeep.value, icon: 'roleSpy', desc: 'Informant network logistics' },
+    {
+      name: 'Men-at-Arms',
+      unitCost: 1.5,
+      count: units.value.menAtArms,
+      total: menAtArmsUpkeep.value,
+      icon: 'roleManAtArms',
+      desc: 'Heavy infantry rations & pay',
+    },
+    {
+      name: 'Captains',
+      unitCost: 2.0,
+      count: units.value.captains,
+      total: captainsUpkeep.value,
+      icon: 'roleCaptain',
+      desc: 'Command salaries & retinue',
+    },
+    {
+      name: 'Spies',
+      unitCost: 1.0,
+      count: units.value.spies,
+      total: spiesUpkeep.value,
+      icon: 'roleSpy',
+      desc: 'Informant network logistics',
+    },
   ]
   drains.sort((a, b) => b.total - a.total)
-  return drains[0] ?? { name: 'None', unitCost: 0, count: 0, total: 0, icon: 'shield', desc: 'No military upkeep' }
+  return (
+    drains[0] ?? {
+      name: 'None',
+      unitCost: 0,
+      count: 0,
+      total: 0,
+      icon: 'shield',
+      desc: 'No military upkeep',
+    }
+  )
 })
 
-const scribeOutput = computed(() => Number((units.value.scribes * 0.5 + units.value.clerks * 4.0).toFixed(1)))
-const supervisorBonusPercent = computed(() => Math.round((units.value.supervisors * 0.02 + units.value.provincialStewards * 0.10) * 100))
-const dragReductionPercent = computed(() => Number((units.value.archivists * 1.5 + units.value.auditChamber * 8.0).toFixed(1)))
-const directTaxOutput = computed(() => Number(((units.value.taxCollectors * 0.8 + units.value.generalFarmers * 4.5) * (currentPop.value / 100)).toFixed(1)))
+const scribeOutput = computed(() =>
+  Number((units.value.scribes * 0.5 + units.value.clerks * 4.0).toFixed(1)),
+)
+const supervisorBonusPercent = computed(() =>
+  Math.round((units.value.supervisors * 0.02 + units.value.provincialStewards * 0.1) * 100),
+)
+const dragReductionPercent = computed(() =>
+  Number((units.value.archivists * 1.5 + units.value.auditChamber * 8.0).toFixed(1)),
+)
+const directTaxOutput = computed(() =>
+  Number(
+    (
+      (units.value.taxCollectors * 0.8 + units.value.generalFarmers * 4.5) *
+      (currentPop.value / 100)
+    ).toFixed(1),
+  ),
+)
 
-const scribesIncome = computed(() => Number((units.value.scribes * 0.5 * (1 + units.value.supervisors * 0.02 + units.value.provincialStewards * 0.10)).toFixed(1)))
-const clerksIncome = computed(() => Number((units.value.clerks * 4.0 * (1 + units.value.supervisors * 0.02 + units.value.provincialStewards * 0.10)).toFixed(1)))
+const scribesIncome = computed(() =>
+  Number(
+    (
+      units.value.scribes *
+      0.5 *
+      (1 + units.value.supervisors * 0.02 + units.value.provincialStewards * 0.1)
+    ).toFixed(1),
+  ),
+)
+const clerksIncome = computed(() =>
+  Number(
+    (
+      units.value.clerks *
+      4.0 *
+      (1 + units.value.supervisors * 0.02 + units.value.provincialStewards * 0.1)
+    ).toFixed(1),
+  ),
+)
 const taxIncome = computed(() => {
   const taxMultiplier = 1 + units.value.artisans * 0.005 + units.value.guilds * 0.025
-  const directTax = (units.value.taxCollectors * 0.8 + units.value.generalFarmers * 4.5) * (currentPop.value / 100)
+  const directTax =
+    (units.value.taxCollectors * 0.8 + units.value.generalFarmers * 4.5) * (currentPop.value / 100)
   const popTax = currentPop.value * (taxRate.value / 100) * 0.02 * taxMultiplier
   return Number((popTax + directTax).toFixed(1))
 })
 
 const topApContributor = computed(() => {
   const sources = [
-    { name: 'Clerks (Tier II)', amount: clerksIncome.value, icon: 'roleClerk' as GameIconKey, rate: '+4.0 AP/s base', note: '8× more productive than Scribes' },
-    { name: 'Crown Taxes', amount: taxIncome.value, icon: 'taxRate' as GameIconKey, rate: `${taxRate.value}% tax rate`, note: 'Scales with population' },
-    { name: 'Scribes (Tier I)', amount: scribesIncome.value, icon: 'roleScribe' as GameIconKey, rate: '+0.5 AP/s base', note: 'Base chancery foundation' },
+    {
+      name: 'Clerks (Tier II)',
+      amount: clerksIncome.value,
+      icon: 'roleClerk' as GameIconKey,
+      rate: '+4.0 AP/s base',
+      note: '8× more productive than Scribes',
+    },
+    {
+      name: 'Crown Taxes',
+      amount: taxIncome.value,
+      icon: 'taxRate' as GameIconKey,
+      rate: `${taxRate.value}% tax rate`,
+      note: 'Scales with population',
+    },
+    {
+      name: 'Scribes (Tier I)',
+      amount: scribesIncome.value,
+      icon: 'roleScribe' as GameIconKey,
+      rate: '+0.5 AP/s base',
+      note: 'Base chancery foundation',
+    },
   ]
   sources.sort((a, b) => b.amount - a.amount)
-  return sources[0] ?? { name: 'None', amount: 0, icon: 'coins' as GameIconKey, rate: '0 AP/s', note: '' }
+  return (
+    sources[0] ?? {
+      name: 'None',
+      amount: 0,
+      icon: 'coins' as GameIconKey,
+      rate: '0 AP/s',
+      note: '',
+    }
+  )
 })
 
 // Passive Synergies & Realm Modifiers
@@ -207,11 +346,13 @@ const bonusAdminCap = computed(() => adminCap.value - 80)
 const bonusMilitaryCap = computed(() => militaryCap.value - 70)
 
 const totalDiscontentSuppression = computed(() => {
-  return Number((units.value.clergy * 0.02 + units.value.prelates * 0.10).toFixed(2))
+  return Number((units.value.clergy * 0.02 + units.value.prelates * 0.1).toFixed(2))
 })
 
 const baseCombatForce = computed(() => units.value.soldiers * 1 + units.value.menAtArms * 6)
-const officerBonusPercent = computed(() => Number((units.value.officers * 1.5 + units.value.captains * 8.0).toFixed(1)))
+const officerBonusPercent = computed(() =>
+  Number((units.value.officers * 1.5 + units.value.captains * 8.0).toFixed(1)),
+)
 
 const dragSavedAps = computed(() => {
   const gross = grossIncome.value
@@ -221,18 +362,20 @@ const dragSavedAps = computed(() => {
 })
 
 const logisticsSavingsAps = computed(() => {
-  const undiscountedMilitary = (units.value.menAtArms * 1.5 + units.value.captains * 2.0 + units.value.spies * 1.0)
+  const undiscountedMilitary =
+    units.value.menAtArms * 1.5 + units.value.captains * 2.0 + units.value.spies * 1.0
   return Number(Math.max(0, undiscountedMilitary - totalMilitaryUpkeep.value).toFixed(1))
 })
 const totalScoutReduction = computed(() => units.value.scouts * 3)
 
 const grossIncome = computed(() => {
   const baseScribes = units.value.scribes * 0.5 + units.value.clerks * 4.0
-  const supervisorBonus = 1 + units.value.supervisors * 0.02 + units.value.provincialStewards * 0.10
+  const supervisorBonus = 1 + units.value.supervisors * 0.02 + units.value.provincialStewards * 0.1
   const taxMultiplier = 1 + units.value.artisans * 0.005 + units.value.guilds * 0.025
-  const directTax = (units.value.taxCollectors * 0.8 + units.value.generalFarmers * 4.5) * (currentPop.value / 100)
+  const directTax =
+    (units.value.taxCollectors * 0.8 + units.value.generalFarmers * 4.5) * (currentPop.value / 100)
   const taxes = currentPop.value * (taxRate.value / 100) * 0.02 * taxMultiplier + directTax
-  return Number(((baseScribes * supervisorBonus) + taxes).toFixed(1))
+  return Number((baseScribes * supervisorBonus + taxes).toFixed(1))
 })
 
 const bureaucracyPercent = computed(() => {
@@ -334,7 +477,16 @@ function recruitUnit(type: keyof typeof units.value, cost: number): void {
     units.value[type]++
 
     // If recruiting from The People, trigger joyful hopping animation
-    const peopleUnits: (keyof typeof units.value)[] = ['peasants', 'farmers', 'artisans', 'guilds', 'clergy', 'prelates', 'notables', 'lords']
+    const peopleUnits: (keyof typeof units.value)[] = [
+      'peasants',
+      'farmers',
+      'artisans',
+      'guilds',
+      'clergy',
+      'prelates',
+      'notables',
+      'lords',
+    ]
     if (peopleUnits.includes(type)) {
       currentPop.value++
       popHopIconKey.value = type
@@ -345,7 +497,16 @@ function recruitUnit(type: keyof typeof units.value, cost: number): void {
     }
 
     // If recruiting from Administration, trigger admin stamp pulse
-    const adminUnits: (keyof typeof units.value)[] = ['scribes', 'clerks', 'supervisors', 'provincialStewards', 'archivists', 'auditChamber', 'taxCollectors', 'generalFarmers']
+    const adminUnits: (keyof typeof units.value)[] = [
+      'scribes',
+      'clerks',
+      'supervisors',
+      'provincialStewards',
+      'archivists',
+      'auditChamber',
+      'taxCollectors',
+      'generalFarmers',
+    ]
     if (adminUnits.includes(type)) {
       adminStampPulse.value = true
       setTimeout(() => {
@@ -392,16 +553,22 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
 <template>
   <div class="flex flex-col w-full bg-fief-dark text-fief-text select-none">
     <!-- STICKY TOP HUD: Deadline, Timer & Quotas -->
-    <header class="bg-fief-card border-b border-fief-border p-3 space-y-2 sticky top-0 z-20 shadow-md">
+    <header
+      class="bg-fief-card border-b border-fief-border p-3 space-y-2 sticky top-0 z-20 shadow-md"
+    >
       <!-- Deadline & Timer Row -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-wax-red text-royal-gold flex items-center justify-center border border-royal-gold/40 shadow-xs">
+          <div
+            class="w-8 h-8 rounded-full bg-wax-red text-royal-gold flex items-center justify-center border border-royal-gold/40 shadow-xs"
+          >
             <GameIcon name="crown" class="w-5 h-5" />
           </div>
           <div>
             <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-mono uppercase bg-wax-red px-1.5 py-0.2 rounded text-white font-bold">
+              <span
+                class="text-[10px] font-mono uppercase bg-wax-red px-1.5 py-0.2 rounded text-white font-bold"
+              >
                 Deadline 3/10
               </span>
               <span class="text-[11px] text-royal-gold font-medieval">Royal Inspection</span>
@@ -410,7 +577,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
         </div>
 
         <!-- Timer badge -->
-        <div class="flex items-center gap-1.5 bg-fief-dark border border-fief-border rounded px-2.5 py-1">
+        <div
+          class="flex items-center gap-1.5 bg-fief-dark border border-fief-border rounded px-2.5 py-1"
+        >
           <GameIcon name="timer" class="w-3.5 h-3.5 text-wax-red animate-pulse" />
           <span class="font-mono text-sm font-bold text-royal-gold leading-none">01:18</span>
         </div>
@@ -419,9 +588,13 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
       <!-- The 3 Quotas in Mobile Grid (2 out of 3 Rule) -->
       <div class="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
         <!-- AP Requirement -->
-        <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex flex-col justify-between">
+        <div
+          class="bg-fief-dark border border-fief-border rounded p-1.5 flex flex-col justify-between"
+        >
           <div class="flex items-center justify-between text-fief-text-muted">
-            <span class="flex items-center gap-1"><GameIcon name="adminPower" class="w-3 h-3 text-wax-red" /> AP</span>
+            <span class="flex items-center gap-1"
+              ><GameIcon name="adminPower" class="w-3 h-3 text-wax-red" /> AP</span
+            >
             <span>69%</span>
           </div>
           <div class="w-full bg-fief-card h-1.5 rounded-full overflow-hidden my-1">
@@ -431,16 +604,25 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
         </div>
 
         <!-- Population Requirement (MET) -->
-        <div class="bg-peasant-green/10 border border-peasant-green/40 rounded p-1.5 flex flex-col justify-between">
+        <div
+          class="bg-peasant-green/10 border border-peasant-green/40 rounded p-1.5 flex flex-col justify-between"
+        >
           <div class="flex items-center justify-between text-peasant-green font-bold">
             <span class="flex items-center gap-1">
               <GameIcon
                 name="population"
-                :class="['w-3 h-3 transition-transform', isPopHopping ? 'pop-hop-active text-white' : '']"
+                :class="[
+                  'w-3 h-3 transition-transform',
+                  isPopHopping ? 'pop-hop-active text-white' : '',
+                ]"
               />
               People
             </span>
-            <span v-if="recentArrival" class="text-[8px] font-mono text-royal-gold animate-pulse truncate max-w-[65px]">{{ recentArrival }}</span>
+            <span
+              v-if="recentArrival"
+              class="text-[8px] font-mono text-royal-gold animate-pulse truncate max-w-[65px]"
+              >{{ recentArrival }}</span
+            >
             <span v-else>✓ Met</span>
           </div>
           <div class="w-full bg-fief-card h-1.5 rounded-full overflow-hidden my-1">
@@ -449,13 +631,19 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               :style="{ width: Math.min(100, Math.round((currentPop / 550) * 100)) + '%' }"
             ></div>
           </div>
-          <div class="text-[9px] text-peasant-green/80 text-right font-mono">{{ currentPop }} / 550</div>
+          <div class="text-[9px] text-peasant-green/80 text-right font-mono">
+            {{ currentPop }} / 550
+          </div>
         </div>
 
         <!-- Military Requirement -->
-        <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex flex-col justify-between">
+        <div
+          class="bg-fief-dark border border-fief-border rounded p-1.5 flex flex-col justify-between"
+        >
           <div class="flex items-center justify-between text-fief-text-muted">
-            <span class="flex items-center gap-1"><GameIcon name="militaryPower" class="w-3 h-3 text-iron-grey" /> Army</span>
+            <span class="flex items-center gap-1"
+              ><GameIcon name="militaryPower" class="w-3 h-3 text-iron-grey" /> Army</span
+            >
             <span>77%</span>
           </div>
           <div class="w-full bg-fief-card h-1.5 rounded-full overflow-hidden my-1">
@@ -471,14 +659,19 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           <GameIcon name="discontent" class="w-3 h-3 text-wax-red" /> Discontent :
         </span>
         <div class="flex-1 bg-fief-dark h-2 rounded-full overflow-hidden border border-fief-border">
-          <div class="bg-gradient-to-r from-royal-gold to-wax-red h-full rounded-full" :style="{ width: discontent + '%' }"></div>
+          <div
+            class="bg-gradient-to-r from-royal-gold to-wax-red h-full rounded-full"
+            :style="{ width: discontent + '%' }"
+          ></div>
         </div>
         <span class="text-[10px] font-mono text-wax-red font-bold">{{ discontent }}%</span>
       </div>
     </header>
 
     <!-- MOBILE-FIRST SUB-NAVIGATION -->
-    <div class="flex border-b border-fief-border bg-fief-dark px-2 pt-2 gap-1 text-xs font-serif-book">
+    <div
+      class="flex border-b border-fief-border bg-fief-dark px-2 pt-2 gap-1 text-xs font-serif-book"
+    >
       <button
         type="button"
         @click="currentSubTab = 'ledger'"
@@ -486,7 +679,7 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           'flex-1 py-1.5 px-2 rounded-t flex items-center justify-center gap-1 transition-colors cursor-pointer border-t border-x',
           currentSubTab === 'ledger'
             ? 'bg-fief-card border-fief-border text-royal-gold font-bold'
-            : 'border-transparent text-fief-text-muted hover:text-fief-text hover:bg-fief-card/40'
+            : 'border-transparent text-fief-text-muted hover:text-fief-text hover:bg-fief-card/40',
         ]"
       >
         <GameIcon name="coins" class="w-3.5 h-3.5" />
@@ -500,7 +693,7 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           'flex-1 py-1.5 px-2 rounded-t flex items-center justify-center gap-1 transition-colors cursor-pointer border-t border-x',
           currentSubTab === 'orders'
             ? 'bg-fief-card border-fief-border text-royal-gold font-bold'
-            : 'border-transparent text-fief-text-muted hover:text-fief-text hover:bg-fief-card/40'
+            : 'border-transparent text-fief-text-muted hover:text-fief-text hover:bg-fief-card/40',
         ]"
       >
         <GameIcon name="rolePeasant" class="w-3.5 h-3.5" />
@@ -514,7 +707,7 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           'flex-1 py-1.5 px-2 rounded-t flex items-center justify-center gap-1 transition-colors cursor-pointer border-t border-x',
           currentSubTab === 'laws'
             ? 'bg-fief-card border-fief-border text-royal-gold font-bold'
-            : 'border-transparent text-fief-text-muted hover:text-fief-text hover:bg-fief-card/40'
+            : 'border-transparent text-fief-text-muted hover:text-fief-text hover:bg-fief-card/40',
         ]"
       >
         <GameIcon name="lawDecree" class="w-3.5 h-3.5" />
@@ -527,9 +720,15 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
       <!-- 1. TAB: THE LEDGER (Central Production & Big Clicker) -->
       <div v-if="currentSubTab === 'ledger'" class="space-y-3 animate-fade-in">
         <!-- Tactile Seal Clicker Container with Particle Emitters -->
-        <div class="bg-fief-card border border-fief-border rounded-lg p-4 flex flex-col items-center text-center shadow-sm relative overflow-hidden">
-          <div class="text-[10px] font-mono uppercase tracking-widest text-fief-text-muted">Domain Treasury</div>
-          <div class="text-3xl font-medieval text-royal-gold mt-0.5 flex items-center justify-center gap-2">
+        <div
+          class="bg-fief-card border border-fief-border rounded-lg p-4 flex flex-col items-center text-center shadow-sm relative overflow-hidden"
+        >
+          <div class="text-[10px] font-mono uppercase tracking-widest text-fief-text-muted">
+            Domain Treasury
+          </div>
+          <div
+            class="text-3xl font-medieval text-royal-gold mt-0.5 flex items-center justify-center gap-2"
+          >
             <GameIcon name="coins" class="w-7 h-7 text-royal-gold" />
             <span>{{ currentAp }} AP</span>
           </div>
@@ -537,14 +736,22 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           <!-- Click Button Area with Mini-Admins Tapping & Flying Missive Particles -->
           <div class="relative mt-3 mb-2 w-full flex flex-col items-center justify-center">
             <!-- Chancery Workshop Stage with Mini Administrators Orbiting in the Background -->
-            <div class="relative w-full max-w-[320px] h-52 flex items-center justify-center overflow-visible">
+            <div
+              class="relative w-full max-w-[320px] h-52 flex items-center justify-center overflow-visible"
+            >
               <!-- Orbiting Parchment Compass Ring -->
-              <div class="w-48 h-48 rounded-full border border-dashed border-royal-gold/20 absolute pointer-events-none animate-spin-slow"></div>
+              <div
+                class="w-48 h-48 rounded-full border border-dashed border-royal-gold/20 absolute pointer-events-none animate-spin-slow"
+              ></div>
 
               <!-- Bureaucratic Ink Pulse Shockwave on Stamping -->
               <div
                 class="w-40 h-40 rounded-full border border-wax-red/30 absolute pointer-events-none transition-all duration-200"
-                :class="adminStampPulse ? 'scale-115 opacity-80 border-royal-gold' : 'scale-100 opacity-20'"
+                :class="
+                  adminStampPulse
+                    ? 'scale-115 opacity-80 border-royal-gold'
+                    : 'scale-100 opacity-20'
+                "
               ></div>
 
               <!-- Mini-Admin 1: Royal Scribe (North-West) -->
@@ -554,7 +761,10 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               >
                 <GameIcon
                   name="quill"
-                  :class="['w-4 h-4 text-royal-gold', adminStampPulse ? 'scale-125 text-white' : 'animate-admin-scribble']"
+                  :class="[
+                    'w-4 h-4 text-royal-gold',
+                    adminStampPulse ? 'scale-125 text-white' : 'animate-admin-scribble',
+                  ]"
                 />
                 <div class="text-left font-mono leading-none">
                   <div class="text-[8px] text-royal-gold font-bold">Scribe</div>
@@ -569,7 +779,12 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               >
                 <GameIcon
                   name="waxSeal"
-                  :class="['w-4 h-4 text-wax-red', adminStampPulse ? 'scale-75 translate-y-1 text-royal-gold' : 'animate-admin-stamp']"
+                  :class="[
+                    'w-4 h-4 text-wax-red',
+                    adminStampPulse
+                      ? 'scale-75 translate-y-1 text-royal-gold'
+                      : 'animate-admin-stamp',
+                  ]"
                 />
                 <div class="text-left font-mono leading-none">
                   <div class="text-[8px] text-wax-red font-bold">Clerk</div>
@@ -584,7 +799,10 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               >
                 <GameIcon
                   name="roleSupervisor"
-                  :class="['w-4 h-4 text-royal-gold-light', adminStampPulse ? 'scale-115 text-royal-gold' : '']"
+                  :class="[
+                    'w-4 h-4 text-royal-gold-light',
+                    adminStampPulse ? 'scale-115 text-royal-gold' : '',
+                  ]"
                 />
                 <div class="text-left font-mono leading-none">
                   <div class="text-[8px] text-royal-gold-light font-bold">Supervisor</div>
@@ -608,7 +826,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               </div>
 
               <!-- Missive Particles Container Behind the Seal Button (z-5) -->
-              <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-5 overflow-visible">
+              <div
+                class="absolute inset-0 pointer-events-none flex items-center justify-center z-5 overflow-visible"
+              >
                 <div
                   v-for="p in particles"
                   :key="p.id"
@@ -621,7 +841,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                   }"
                 >
                   <!-- Sealed Missive / Letter Plaque -->
-                  <div class="p-2 rounded-lg bg-[#24170d] border border-royal-gold/80 shadow-2xl flex items-center justify-center">
+                  <div
+                    class="p-2 rounded-lg bg-[#24170d] border border-royal-gold/80 shadow-2xl flex items-center justify-center"
+                  >
                     <GameIcon :name="p.icon" class="w-6 h-6 text-royal-gold drop-shadow-md" />
                   </div>
                 </div>
@@ -633,41 +855,70 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 @click="handleProduceClick"
                 :class="[
                   'w-36 h-36 rounded-full bg-wax-red active:bg-wax-red-dark text-parchment-50 border-4 border-royal-gold/80 flex flex-col items-center justify-center shadow-2xl transition-transform cursor-pointer select-none relative z-10',
-                  clickEffect ? 'scale-90 ring-4 ring-royal-gold/60' : 'hover:scale-105 active:scale-95'
+                  clickEffect
+                    ? 'scale-90 ring-4 ring-royal-gold/60'
+                    : 'hover:scale-105 active:scale-95',
                 ]"
               >
-                <GameIcon name="waxSeal" class="w-12 h-12 text-royal-gold-light mb-0.5 drop-shadow-md" />
+                <GameIcon
+                  name="waxSeal"
+                  class="w-12 h-12 text-royal-gold-light mb-0.5 drop-shadow-md"
+                />
                 <span class="font-medieval text-xs font-bold tracking-wider">SEAL DECREE</span>
-                <span class="font-mono text-[10px] text-royal-gold-light mt-0.5">+{{ clickBonus }} AP</span>
+                <span class="font-mono text-[10px] text-royal-gold-light mt-0.5"
+                  >+{{ clickBonus }} AP</span
+                >
               </button>
             </div>
 
             <!-- Global AP Yield Badge & Chancery Cadence Indicator -->
-            <div class="mt-2 flex items-center justify-center gap-2 bg-[#1b1008] border border-royal-gold/40 rounded-full px-3 py-1 shadow-inner">
+            <div
+              class="mt-2 flex items-center justify-center gap-2 bg-[#1b1008] border border-royal-gold/40 rounded-full px-3 py-1 shadow-inner"
+            >
               <div
                 class="w-2 h-2 rounded-full transition-transform"
-                :class="adminStampPulse ? 'bg-royal-gold scale-150' : 'bg-peasant-green animate-pulse'"
+                :class="
+                  adminStampPulse ? 'bg-royal-gold scale-150' : 'bg-peasant-green animate-pulse'
+                "
               ></div>
-              <span class="text-[10px] font-mono uppercase tracking-wider text-fief-text-muted">Chancery Cadence:</span>
-              <span class="font-mono text-xs font-bold text-peasant-green">+{{ netIncome }} AP/s</span>
+              <span class="text-[10px] font-mono uppercase tracking-wider text-fief-text-muted"
+                >Chancery Cadence:</span
+              >
+              <span class="font-mono text-xs font-bold text-peasant-green"
+                >+{{ netIncome }} AP/s</span
+              >
               <span class="text-[9px] font-mono text-fief-text-dim">({{ grossIncome }} Gross)</span>
             </div>
 
             <!-- Realm Passive Synergies Quick Bar (Artisans, Notables, Warriors, Clergy) -->
-            <div class="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-[9px] font-mono text-fief-text-muted">
-              <span class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-royal-gold" title="Artisans & Guilds passive tax boost">
+            <div
+              class="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-[9px] font-mono text-fief-text-muted"
+            >
+              <span
+                class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-royal-gold"
+                title="Artisans & Guilds passive tax boost"
+              >
                 <GameIcon name="roleArtisan" class="w-3 h-3 text-royal-gold" />
                 <span>+{{ totalTaxMultiplierPercent }}% Tax (Artisans)</span>
               </span>
-              <span class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-royal-gold-light" title="Notables & Lords order capacity expansion">
+              <span
+                class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-royal-gold-light"
+                title="Notables & Lords order capacity expansion"
+              >
                 <GameIcon name="roleNotable" class="w-3 h-3 text-royal-gold-light" />
                 <span>+{{ totalCapExpansionPercent }}% Caps (Notables)</span>
               </span>
-              <span class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-iron-grey" title="Warriors & Officers combat power">
+              <span
+                class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-iron-grey"
+                title="Warriors & Officers combat power"
+              >
                 <GameIcon name="roleSoldier" class="w-3 h-3 text-iron-grey" />
                 <span>{{ totalMilitaryForce }} Force (Warriors)</span>
               </span>
-              <span class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-clergy-purple" title="Clergy & Prelates discontent reduction">
+              <span
+                class="flex items-center gap-1 bg-[#19110a] px-2 py-0.5 rounded border border-royal-gold/30 text-clergy-purple"
+                title="Clergy & Prelates discontent reduction"
+              >
                 <GameIcon name="roleClergy" class="w-3 h-3 text-clergy-purple" />
                 <span>−{{ totalDiscontentSuppression }}/s Calm (Clergy)</span>
               </span>
@@ -675,15 +926,20 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Economic Breakdown -->
-          <div class="w-full mt-3 bg-fief-dark border border-fief-border rounded-lg p-2.5 text-xs font-serif-book space-y-1.5 text-left">
+          <div
+            class="w-full mt-3 bg-fief-dark border border-fief-border rounded-lg p-2.5 text-xs font-serif-book space-y-1.5 text-left"
+          >
             <div class="flex justify-between items-center">
               <div>
                 <span class="text-fief-text font-bold">Gross Production</span>
                 <span class="text-[10px] text-fief-text-muted block font-mono">
-                  Scribes & Clerks (+{{ (scribesIncome + clerksIncome).toFixed(1) }} AP/s) • Taxes (+{{ taxIncome }} AP/s)
+                  Scribes & Clerks (+{{ (scribesIncome + clerksIncome).toFixed(1) }} AP/s) • Taxes
+                  (+{{ taxIncome }} AP/s)
                 </span>
               </div>
-              <span class="font-mono font-bold text-peasant-green text-sm">+{{ grossIncome }} AP/s</span>
+              <span class="font-mono font-bold text-peasant-green text-sm"
+                >+{{ grossIncome }} AP/s</span
+              >
             </div>
 
             <div class="flex justify-between items-center pt-1 border-t border-fief-border/50">
@@ -704,13 +960,16 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                   <GameIcon name="militaryPower" class="w-3.5 h-3.5 text-iron-grey" /> Domain Upkeep
                 </span>
                 <span class="text-[10px] text-fief-text-dim block font-mono">
-                  Army (−{{ totalMilitaryUpkeep }} AP/s) • Civil (−{{ civilUpkeepTotal }} AP/s) • Crown Overhead (−8.5)
+                  Army (−{{ totalMilitaryUpkeep }} AP/s) • Civil (−{{ civilUpkeepTotal }} AP/s) •
+                  Crown Overhead (−8.5)
                 </span>
               </div>
               <span class="font-mono font-bold text-wax-red">−{{ upkeep }} AP/s</span>
             </div>
 
-            <div class="flex justify-between items-center pt-1.5 border-t border-fief-border font-bold">
+            <div
+              class="flex justify-between items-center pt-1.5 border-t border-fief-border font-bold"
+            >
               <span class="text-fief-text">Net Domain Yield</span>
               <span class="font-mono text-royal-gold text-base">+{{ netIncome }} AP/s</span>
             </div>
@@ -737,13 +996,19 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Crown Strategic Intelligence & Domain Audit Card -->
-          <div class="w-full mt-3 bg-fief-dark border border-royal-gold/40 rounded-lg p-3 text-left space-y-2 shadow-sm">
+          <div
+            class="w-full mt-3 bg-fief-dark border border-royal-gold/40 rounded-lg p-3 text-left space-y-2 shadow-sm"
+          >
             <div class="flex items-center justify-between border-b border-fief-border pb-1.5">
               <div class="flex items-center gap-1.5">
                 <GameIcon name="archives" class="w-4 h-4 text-royal-gold" />
-                <span class="font-medieval text-xs text-royal-gold font-bold">Crown Strategic Intelligence</span>
+                <span class="font-medieval text-xs text-royal-gold font-bold"
+                  >Crown Strategic Intelligence</span
+                >
               </div>
-              <span class="text-[8px] font-mono uppercase bg-royal-gold/15 text-royal-gold px-1.5 py-0.5 rounded border border-royal-gold/30">
+              <span
+                class="text-[8px] font-mono uppercase bg-royal-gold/15 text-royal-gold px-1.5 py-0.5 rounded border border-royal-gold/30"
+              >
                 Decision Support
               </span>
             </div>
@@ -751,16 +1016,28 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             <!-- 3 Decision-Critical Strategic Indicators -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <!-- 1. Top Settler Influx Source (The People) -->
-              <div class="bg-fief-card border border-peasant-green/30 rounded p-2 flex flex-col justify-between">
+              <div
+                class="bg-fief-card border border-peasant-green/30 rounded p-2 flex flex-col justify-between"
+              >
                 <div class="flex items-center justify-between text-[10px]">
                   <span class="text-peasant-green font-bold flex items-center gap-1">
-                    <GameIcon :name="topPopContributor.icon" class="w-3.5 h-3.5 text-peasant-green" /> Top Growth
+                    <GameIcon
+                      :name="topPopContributor.icon"
+                      class="w-3.5 h-3.5 text-peasant-green"
+                    />
+                    Top Growth
                   </span>
-                  <span class="font-mono text-peasant-green font-bold">{{ topPopContributor.percent }}% share</span>
+                  <span class="font-mono text-peasant-green font-bold"
+                    >{{ topPopContributor.percent }}% share</span
+                  >
                 </div>
                 <div class="my-1">
-                  <div class="font-medieval text-xs text-fief-text font-bold">{{ topPopContributor.name }}</div>
-                  <div class="text-[9px] font-mono text-fief-text-muted">+{{ topPopContributor.rate }} pop/s ({{ topPopContributor.efficiency }})</div>
+                  <div class="font-medieval text-xs text-fief-text font-bold">
+                    {{ topPopContributor.name }}
+                  </div>
+                  <div class="text-[9px] font-mono text-fief-text-muted">
+                    +{{ topPopContributor.rate }} pop/s ({{ topPopContributor.efficiency }})
+                  </div>
                 </div>
                 <div class="text-[8px] text-fief-text-dim border-t border-fief-border/50 pt-1">
                   {{ topPopContributor.comparison }}
@@ -768,34 +1045,55 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               </div>
 
               <!-- 2. Heaviest Military Upkeep Drain (The Military) -->
-              <div class="bg-fief-card border border-wax-red/30 rounded p-2 flex flex-col justify-between">
+              <div
+                class="bg-fief-card border border-wax-red/30 rounded p-2 flex flex-col justify-between"
+              >
                 <div class="flex items-center justify-between text-[10px]">
                   <span class="text-wax-red font-bold flex items-center gap-1">
-                    <GameIcon :name="heaviestMilitaryDrain.icon" class="w-3.5 h-3.5 text-wax-red" /> Heaviest Drain
+                    <GameIcon :name="heaviestMilitaryDrain.icon" class="w-3.5 h-3.5 text-wax-red" />
+                    Heaviest Drain
                   </span>
-                  <span class="font-mono text-wax-red font-bold">−{{ heaviestMilitaryDrain.total }} AP/s</span>
+                  <span class="font-mono text-wax-red font-bold"
+                    >−{{ heaviestMilitaryDrain.total }} AP/s</span
+                  >
                 </div>
                 <div class="my-1">
-                  <div class="font-medieval text-xs text-fief-text font-bold">{{ heaviestMilitaryDrain.name }} (×{{ heaviestMilitaryDrain.count }})</div>
-                  <div class="text-[9px] font-mono text-fief-text-muted">Base {{ heaviestMilitaryDrain.unitCost }} AP/s each • {{ heaviestMilitaryDrain.desc }}</div>
+                  <div class="font-medieval text-xs text-fief-text font-bold">
+                    {{ heaviestMilitaryDrain.name }} (×{{ heaviestMilitaryDrain.count }})
+                  </div>
+                  <div class="text-[9px] font-mono text-fief-text-muted">
+                    Base {{ heaviestMilitaryDrain.unitCost }} AP/s each •
+                    {{ heaviestMilitaryDrain.desc }}
+                  </div>
                 </div>
-                <div class="text-[8px] text-peasant-green border-t border-fief-border/50 pt-1 flex justify-between">
+                <div
+                  class="text-[8px] text-peasant-green border-t border-fief-border/50 pt-1 flex justify-between"
+                >
                   <span>Supply lines:</span>
                   <span class="font-mono font-bold">−{{ militaryDiscountPercent }}% saved</span>
                 </div>
               </div>
 
               <!-- 3. Top AP Earner (Administration) -->
-              <div class="bg-fief-card border border-royal-gold/30 rounded p-2 flex flex-col justify-between">
+              <div
+                class="bg-fief-card border border-royal-gold/30 rounded p-2 flex flex-col justify-between"
+              >
                 <div class="flex items-center justify-between text-[10px]">
                   <span class="text-royal-gold font-bold flex items-center gap-1">
-                    <GameIcon :name="topApContributor.icon" class="w-3.5 h-3.5 text-royal-gold" /> Top AP Earner
+                    <GameIcon :name="topApContributor.icon" class="w-3.5 h-3.5 text-royal-gold" />
+                    Top AP Earner
                   </span>
-                  <span class="font-mono text-peasant-green font-bold">+{{ topApContributor.amount }} AP/s</span>
+                  <span class="font-mono text-peasant-green font-bold"
+                    >+{{ topApContributor.amount }} AP/s</span
+                  >
                 </div>
                 <div class="my-1">
-                  <div class="font-medieval text-xs text-fief-text font-bold">{{ topApContributor.name }}</div>
-                  <div class="text-[9px] font-mono text-fief-text-muted">{{ topApContributor.rate }} • Supervisors +{{ supervisorBonusPercent }}%</div>
+                  <div class="font-medieval text-xs text-fief-text font-bold">
+                    {{ topApContributor.name }}
+                  </div>
+                  <div class="text-[9px] font-mono text-fief-text-muted">
+                    {{ topApContributor.rate }} • Supervisors +{{ supervisorBonusPercent }}%
+                  </div>
                 </div>
                 <div class="text-[8px] text-fief-text-dim border-t border-fief-border/50 pt-1">
                   {{ topApContributor.note }}
@@ -806,11 +1104,15 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             <!-- All 6 Passive Domain Synergies & Modifiers (Artisans, Notables, Warriors, Clergy, Archivists, Logistics) -->
             <div class="pt-2 border-t border-fief-border/60 space-y-1.5">
               <div class="flex items-center justify-between">
-                <span class="font-medieval text-xs text-royal-gold font-bold flex items-center gap-1.5">
+                <span
+                  class="font-medieval text-xs text-royal-gold font-bold flex items-center gap-1.5"
+                >
                   <GameIcon name="roleArtisan" class="w-3.5 h-3.5 text-royal-gold" />
                   Passive Domain Synergies & Modifiers
                 </span>
-                <span class="text-[8px] font-mono uppercase bg-fief-card text-royal-gold px-1.5 py-0.5 rounded border border-fief-border">
+                <span
+                  class="text-[8px] font-mono uppercase bg-fief-card text-royal-gold px-1.5 py-0.5 rounded border border-fief-border"
+                >
                   6 Passive Buffs Active
                 </span>
               </div>
@@ -818,12 +1120,16 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               <!-- 6 Passive Pillar Tiles in Mobile Grid -->
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[9px] font-mono">
                 <!-- 1. Artisans & Guilds (Passive Tax Multiplier) -->
-                <div class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between">
+                <div
+                  class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between"
+                >
                   <div class="flex items-center justify-between">
                     <span class="text-royal-gold font-bold flex items-center gap-1">
                       <GameIcon name="roleArtisan" class="w-3 h-3 text-royal-gold" /> Artisans
                     </span>
-                    <span class="text-peasant-green font-bold">+{{ totalTaxMultiplierPercent }}% Tax</span>
+                    <span class="text-peasant-green font-bold"
+                      >+{{ totalTaxMultiplierPercent }}% Tax</span
+                    >
                   </div>
                   <div class="text-[8px] text-fief-text-dim mt-1">
                     Adds +{{ taxBonusRevenue }} AP/s in passive trade & workshop duties
@@ -831,20 +1137,29 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 </div>
 
                 <!-- 2. Notables & High Lords (Passive Order Cap Expander) -->
-                <div class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between">
+                <div
+                  class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between"
+                >
                   <div class="flex items-center justify-between">
                     <span class="text-royal-gold-light font-bold flex items-center gap-1">
                       <GameIcon name="roleNotable" class="w-3 h-3 text-royal-gold-light" /> Notables
                     </span>
-                    <span class="text-royal-gold font-bold">+{{ totalCapExpansionPercent }}% Caps</span>
+                    <span class="text-royal-gold font-bold"
+                      >+{{ totalCapExpansionPercent }}% Caps</span
+                    >
                   </div>
                   <div class="text-[8px] text-fief-text-dim mt-1">
-                    +{{ bonusPeopleCap }} People, +{{ bonusAdminCap }} Admin, +{{ bonusMilitaryCap }} Army cap
+                    +{{ bonusPeopleCap }} People, +{{ bonusAdminCap }} Admin, +{{
+                      bonusMilitaryCap
+                    }}
+                    Army cap
                   </div>
                 </div>
 
                 <!-- 3. Warriors & Officers (Passive Combat Power & Defense) -->
-                <div class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between">
+                <div
+                  class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between"
+                >
                   <div class="flex items-center justify-between">
                     <span class="text-iron-grey font-bold flex items-center gap-1">
                       <GameIcon name="roleSoldier" class="w-3 h-3 text-iron-grey" /> Warriors
@@ -857,12 +1172,16 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 </div>
 
                 <!-- 4. Clergy & Prelates (Passive Discontent Calm) -->
-                <div class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between">
+                <div
+                  class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between"
+                >
                   <div class="flex items-center justify-between">
                     <span class="text-clergy-purple font-bold flex items-center gap-1">
                       <GameIcon name="roleClergy" class="w-3 h-3 text-clergy-purple" /> Clergy
                     </span>
-                    <span class="text-clergy-purple font-bold">−{{ totalDiscontentSuppression }}/s</span>
+                    <span class="text-clergy-purple font-bold"
+                      >−{{ totalDiscontentSuppression }}/s</span
+                    >
                   </div>
                   <div class="text-[8px] text-fief-text-dim mt-1">
                     Calms unrest & lowers revolt pressure in parishes
@@ -870,12 +1189,17 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 </div>
 
                 <!-- 5. Archivists & Audit Chamber (Passive Bureaucracy Drag Cut) -->
-                <div class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between">
+                <div
+                  class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between"
+                >
                   <div class="flex items-center justify-between">
                     <span class="text-fief-text font-bold flex items-center gap-1">
-                      <GameIcon name="roleArchivist" class="w-3 h-3 text-fief-text-muted" /> Archivists
+                      <GameIcon name="roleArchivist" class="w-3 h-3 text-fief-text-muted" />
+                      Archivists
                     </span>
-                    <span class="text-peasant-green font-bold">−{{ dragReductionPercent }}% Drag</span>
+                    <span class="text-peasant-green font-bold"
+                      >−{{ dragReductionPercent }}% Drag</span
+                    >
                   </div>
                   <div class="text-[8px] text-fief-text-dim mt-1">
                     Protects +{{ dragSavedAps }} AP/s from paperwork loss
@@ -883,33 +1207,45 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 </div>
 
                 <!-- 6. Supply Intendants & Scouts (Passive Logistics & Recon) -->
-                <div class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between">
+                <div
+                  class="bg-fief-card border border-fief-border rounded p-1.5 flex flex-col justify-between"
+                >
                   <div class="flex items-center justify-between">
                     <span class="text-royal-gold font-bold flex items-center gap-1">
-                      <GameIcon name="roleMilitaryIntendant" class="w-3 h-3 text-royal-gold" /> Logistics
+                      <GameIcon name="roleMilitaryIntendant" class="w-3 h-3 text-royal-gold" />
+                      Logistics
                     </span>
-                    <span class="text-peasant-green font-bold">−{{ militaryDiscountPercent }}% Cut</span>
+                    <span class="text-peasant-green font-bold"
+                      >−{{ militaryDiscountPercent }}% Cut</span
+                    >
                   </div>
                   <div class="text-[8px] text-fief-text-dim mt-1">
-                    Saves −{{ logisticsSavingsAps }} AP/s upkeep • −{{ totalScoutReduction }} threat distance
+                    Saves −{{ logisticsSavingsAps }} AP/s upkeep • −{{ totalScoutReduction }} threat
+                    distance
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Dynamic Royal Auditor's Counsel -->
-            <div class="p-2 bg-royal-gold/10 border-l-2 border-royal-gold rounded text-[10px] flex items-start gap-2">
+            <div
+              class="p-2 bg-royal-gold/10 border-l-2 border-royal-gold rounded text-[10px] flex items-start gap-2"
+            >
               <GameIcon name="scrollUnfurled" class="w-4 h-4 text-royal-gold shrink-0 mt-0.5" />
               <div class="text-fief-text font-serif-book leading-tight">
                 <strong class="text-royal-gold">Auditor's Advice:</strong>
                 <span v-if="heaviestMilitaryDrain.total > 5">
-                  Army upkeep is your largest drain (−{{ totalMilitaryUpkeep }} AP/s). Recruit Supply Intendants to discount military rations, or recruit Clerks to bolster gross treasury yield!
+                  Army upkeep is your largest drain (−{{ totalMilitaryUpkeep }} AP/s). Recruit
+                  Supply Intendants to discount military rations, or recruit Clerks to bolster gross
+                  treasury yield!
                 </span>
                 <span v-else-if="popGrowthRate < 1.0">
-                  Demographic growth is modest (+{{ popGrowthRate }} pop/s). Farmers provide 6× more citizens per cap slot than Peasants.
+                  Demographic growth is modest (+{{ popGrowthRate }} pop/s). Farmers provide 6× more
+                  citizens per cap slot than Peasants.
                 </span>
                 <span v-else>
-                  Realm revenue is flourishing (+{{ netIncome }} AP/s). Invest in the Court of Accounts to wipe out bureaucratic drag (−{{ bureaucracyPercent }}%).
+                  Realm revenue is flourishing (+{{ netIncome }} AP/s). Invest in the Court of
+                  Accounts to wipe out bureaucratic drag (−{{ bureaucracyPercent }}%).
                 </span>
               </div>
             </div>
@@ -948,13 +1284,17 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
       <!-- 2. TAB: THE THREE ORDERS (All 12 Roles & Both Tiers: 24 Units) -->
       <div v-if="currentSubTab === 'orders'" class="space-y-3 animate-fade-in">
         <!-- Order Selector Chips with Reactive Live Totals & Caps -->
-        <div class="flex bg-fief-card border border-fief-border rounded p-1 gap-1 text-xs font-serif-book">
+        <div
+          class="flex bg-fief-card border border-fief-border rounded p-1 gap-1 text-xs font-serif-book"
+        >
           <button
             type="button"
             @click="activeOrder = 'people'"
             :class="[
               'flex-1 py-1 rounded text-center transition-colors cursor-pointer',
-              activeOrder === 'people' ? 'bg-peasant-green text-white font-bold' : 'text-fief-text-muted hover:text-fief-text'
+              activeOrder === 'people'
+                ? 'bg-peasant-green text-white font-bold'
+                : 'text-fief-text-muted hover:text-fief-text',
             ]"
           >
             The People ({{ peopleTotal }}/{{ peopleCap }})
@@ -964,7 +1304,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             @click="activeOrder = 'admin'"
             :class="[
               'flex-1 py-1 rounded text-center transition-colors cursor-pointer',
-              activeOrder === 'admin' ? 'bg-wax-red text-white font-bold' : 'text-fief-text-muted hover:text-fief-text'
+              activeOrder === 'admin'
+                ? 'bg-wax-red text-white font-bold'
+                : 'text-fief-text-muted hover:text-fief-text',
             ]"
           >
             Admin ({{ adminTotal }}/{{ adminCap }})
@@ -974,7 +1316,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             @click="activeOrder = 'military'"
             :class="[
               'flex-1 py-1 rounded text-center transition-colors cursor-pointer',
-              activeOrder === 'military' ? 'bg-iron-grey text-white font-bold' : 'text-fief-text-muted hover:text-fief-text'
+              activeOrder === 'military'
+                ? 'bg-iron-grey text-white font-bold'
+                : 'text-fief-text-muted hover:text-fief-text',
             ]"
           >
             Military ({{ militaryTotal }}/{{ militaryCap }})
@@ -987,16 +1331,26 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           <div class="p-3 bg-peasant-green/10 border border-peasant-green/40 rounded-lg space-y-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full bg-peasant-green/20 border border-peasant-green flex items-center justify-center">
+                <div
+                  class="w-8 h-8 rounded-full bg-peasant-green/20 border border-peasant-green flex items-center justify-center"
+                >
                   <GameIcon
                     name="population"
-                    :class="['w-5 h-5 text-peasant-green transition-transform', isPopHopping ? 'pop-hop-active text-white' : '']"
+                    :class="[
+                      'w-5 h-5 text-peasant-green transition-transform',
+                      isPopHopping ? 'pop-hop-active text-white' : '',
+                    ]"
                   />
                 </div>
                 <div>
-                  <div class="font-medieval text-xs text-peasant-green font-bold flex items-center gap-1.5">
+                  <div
+                    class="font-medieval text-xs text-peasant-green font-bold flex items-center gap-1.5"
+                  >
                     <span>Village Hearth & Migrations</span>
-                    <span v-if="recentArrival" class="text-[9px] font-mono text-royal-gold bg-fief-dark px-1.5 py-0.5 rounded border border-royal-gold/40 animate-pulse">
+                    <span
+                      v-if="recentArrival"
+                      class="text-[9px] font-mono text-royal-gold bg-fief-dark px-1.5 py-0.5 rounded border border-royal-gold/40 animate-pulse"
+                    >
                       {{ recentArrival }}
                     </span>
                   </div>
@@ -1024,7 +1378,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 <span>Next Settler Influx</span>
                 <span>{{ popProgress }}%</span>
               </div>
-              <div class="w-full bg-fief-dark h-1.5 rounded-full overflow-hidden border border-fief-border">
+              <div
+                class="w-full bg-fief-dark h-1.5 rounded-full overflow-hidden border border-fief-border"
+              >
                 <div
                   class="bg-peasant-green h-full rounded-full transition-all duration-300"
                   :style="{ width: popProgress + '%' }"
@@ -1034,13 +1390,17 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
 
             <!-- Demographic Contributors Breakdown -->
             <div class="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-1">
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between items-center">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between items-center"
+              >
                 <span class="text-fief-text-muted flex items-center gap-1">
                   <GameIcon name="rolePeasant" class="w-3 h-3 text-peasant-green" /> Peasants:
                 </span>
                 <span class="text-peasant-green font-bold">+{{ peasantsGrowth }} pop/s</span>
               </div>
-              <div class="bg-fief-dark border border-peasant-green/40 rounded p-1.5 flex justify-between items-center">
+              <div
+                class="bg-fief-dark border border-peasant-green/40 rounded p-1.5 flex justify-between items-center"
+              >
                 <span class="text-fief-text-muted flex items-center gap-1">
                   <GameIcon name="roleFarmer" class="w-3 h-3 text-peasant-green" /> Farmers:
                 </span>
@@ -1049,22 +1409,38 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </div>
 
             <!-- Strategic Advice on Demographic Growth -->
-            <div class="text-[9px] font-serif-book text-fief-text-dim border-t border-fief-border/50 pt-1 flex items-center justify-between">
-              <span>Top driver: <strong class="text-peasant-green">{{ topPopContributor.name }}</strong> ({{ topPopContributor.percent }}% share)</span>
+            <div
+              class="text-[9px] font-serif-book text-fief-text-dim border-t border-fief-border/50 pt-1 flex items-center justify-between"
+            >
+              <span
+                >Top driver:
+                <strong class="text-peasant-green">{{ topPopContributor.name }}</strong> ({{
+                  topPopContributor.percent
+                }}% share)</span
+              >
               <span class="font-mono text-peasant-green/90">6× slot efficiency for Farmers</span>
             </div>
           </div>
 
           <!-- Role 1: Growth -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="rolePeasant"
-                :class="['w-7 h-7 text-peasant-green transition-transform', isPopHopping && (popHopIconKey === 'peasants' || !popHopIconKey) ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-peasant-green transition-transform',
+                  isPopHopping && (popHopIconKey === 'peasants' || !popHopIconKey)
+                    ? 'pop-hop-active'
+                    : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text">Peasants (Tier I)</div>
-                <div class="text-[10px] text-fief-text-muted">+0.02 pop/s • Zero upkeep • Total: {{ units.peasants }}</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +0.02 pop/s • Zero upkeep • Total: {{ units.peasants }}
+                </div>
               </div>
             </div>
             <button
@@ -1076,18 +1452,28 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleFarmer"
-                :class="['w-7 h-7 text-peasant-green transition-transform', isPopHopping && popHopIconKey === 'farmers' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-peasant-green transition-transform',
+                  isPopHopping && popHopIconKey === 'farmers' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Farmers (Tier II)</span>
-                  <span class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30">Top Influx</span>
+                  <span
+                    class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30"
+                    >Top Influx</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+0.12 pop/s (6× Peasants), 0.1 upkeep • Total: {{ units.farmers }}</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +0.12 pop/s (6× Peasants), 0.1 upkeep • Total: {{ units.farmers }}
+                </div>
               </div>
             </div>
             <button
@@ -1100,18 +1486,30 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 2: Tax Base (Passive Tax Multipliers) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleArtisan"
-                :class="['w-7 h-7 text-royal-gold transition-transform', isPopHopping && popHopIconKey === 'artisans' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold transition-transform',
+                  isPopHopping && popHopIconKey === 'artisans' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Artisans (Tier I)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">Passive Tax Buff</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >Passive Tax Buff</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+0.5% taxes each • Zero upkeep • Current: +{{ (units.artisans * 0.5).toFixed(1) }}% rate</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +0.5% taxes each • Zero upkeep • Current: +{{
+                    (units.artisans * 0.5).toFixed(1)
+                  }}% rate
+                </div>
               </div>
             </div>
             <button
@@ -1123,18 +1521,29 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleGuild"
-                :class="['w-7 h-7 text-royal-gold transition-transform', isPopHopping && popHopIconKey === 'guilds' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold transition-transform',
+                  isPopHopping && popHopIconKey === 'guilds' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Guild Masters (Tier II)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">+2.5% Tax Multiplier</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >+2.5% Tax Multiplier</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+2.5% taxes each, 0.3 upkeep • Current: +{{ (units.guilds * 2.5).toFixed(1) }}% rate</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +2.5% taxes each, 0.3 upkeep • Current: +{{ (units.guilds * 2.5).toFixed(1) }}%
+                  rate
+                </div>
               </div>
             </div>
             <button
@@ -1147,18 +1556,30 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 3: Pacification (Passive Discontent Reduction) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleClergy"
-                :class="['w-7 h-7 text-clergy-purple transition-transform', isPopHopping && popHopIconKey === 'clergy' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-clergy-purple transition-transform',
+                  isPopHopping && popHopIconKey === 'clergy' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Clergy (Tier I)</span>
-                  <span class="text-[8px] font-mono text-clergy-purple bg-clergy-purple/15 px-1 rounded border border-clergy-purple/30">Passive Calm</span>
+                  <span
+                    class="text-[8px] font-mono text-clergy-purple bg-clergy-purple/15 px-1 rounded border border-clergy-purple/30"
+                    >Passive Calm</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">−0.02 discontent/s • Zero upkeep • Current: −{{ (units.clergy * 0.02).toFixed(2) }}/s</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  −0.02 discontent/s • Zero upkeep • Current: −{{
+                    (units.clergy * 0.02).toFixed(2)
+                  }}/s
+                </div>
               </div>
             </div>
             <button
@@ -1170,18 +1591,30 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="rolePrelate"
-                :class="['w-7 h-7 text-clergy-purple transition-transform', isPopHopping && popHopIconKey === 'prelates' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-clergy-purple transition-transform',
+                  isPopHopping && popHopIconKey === 'prelates' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Prelates (Tier II)</span>
-                  <span class="text-[8px] font-mono text-clergy-purple bg-clergy-purple/15 px-1 rounded border border-clergy-purple/30">Major Pacification</span>
+                  <span
+                    class="text-[8px] font-mono text-clergy-purple bg-clergy-purple/15 px-1 rounded border border-clergy-purple/30"
+                    >Major Pacification</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">−0.10 discontent/s, 0.2 upkeep • Current: −{{ (units.prelates * 0.10).toFixed(2) }}/s</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  −0.10 discontent/s, 0.2 upkeep • Current: −{{
+                    (units.prelates * 0.1).toFixed(2)
+                  }}/s
+                </div>
               </div>
             </div>
             <button
@@ -1194,18 +1627,28 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 4: Cap Expanders (Passive Order Capacity) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleNotable"
-                :class="['w-7 h-7 text-royal-gold-light transition-transform', isPopHopping && popHopIconKey === 'notables' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold-light transition-transform',
+                  isPopHopping && popHopIconKey === 'notables' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Notables (Tier I)</span>
-                  <span class="text-[8px] font-mono text-royal-gold-light bg-royal-gold-light/15 px-1 rounded border border-royal-gold-light/30">Passive Cap Expander</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold-light bg-royal-gold-light/15 px-1 rounded border border-royal-gold-light/30"
+                    >Passive Cap Expander</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+1% caps on all 3 orders • Zero upkeep • Current: +{{ units.notables }}% caps</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +1% caps on all 3 orders • Zero upkeep • Current: +{{ units.notables }}% caps
+                </div>
               </div>
             </div>
             <button
@@ -1217,18 +1660,28 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleLord"
-                :class="['w-7 h-7 text-royal-gold-light transition-transform', isPopHopping && popHopIconKey === 'lords' ? 'pop-hop-active' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold-light transition-transform',
+                  isPopHopping && popHopIconKey === 'lords' ? 'pop-hop-active' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>High Lords (Tier II)</span>
-                  <span class="text-[8px] font-mono text-royal-gold-light bg-royal-gold-light/15 px-1 rounded border border-royal-gold-light/30">+5% Grand Cap Expander</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold-light bg-royal-gold-light/15 px-1 rounded border border-royal-gold-light/30"
+                    >+5% Grand Cap Expander</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+5% caps on all orders, 0.8 upkeep • Current: +{{ units.lords * 5 }}% caps</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +5% caps on all orders, 0.8 upkeep • Current: +{{ units.lords * 5 }}% caps
+                </div>
               </div>
             </div>
             <button
@@ -1253,13 +1706,20 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
                 >
                   <GameIcon
                     name="waxSeal"
-                    :class="['w-5 h-5 text-wax-red transition-transform', adminStampPulse ? 'scale-90 text-royal-gold' : 'animate-admin-stamp']"
+                    :class="[
+                      'w-5 h-5 text-wax-red transition-transform',
+                      adminStampPulse ? 'scale-90 text-royal-gold' : 'animate-admin-stamp',
+                    ]"
                   />
                 </div>
                 <div>
-                  <div class="font-medieval text-xs text-wax-red font-bold flex items-center gap-1.5">
+                  <div
+                    class="font-medieval text-xs text-wax-red font-bold flex items-center gap-1.5"
+                  >
                     <span>Royal Chancery Cadence</span>
-                    <span class="text-[9px] font-mono text-royal-gold bg-fief-dark px-1.5 py-0.5 rounded border border-royal-gold/40">
+                    <span
+                      class="text-[9px] font-mono text-royal-gold bg-fief-dark px-1.5 py-0.5 rounded border border-royal-gold/40"
+                    >
                       +{{ netIncome }} AP/s Net
                     </span>
                   </div>
@@ -1270,49 +1730,77 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               </div>
 
               <!-- Pulse indicator light -->
-              <div class="flex items-center gap-1 px-2 py-1 bg-fief-dark rounded border border-fief-border">
-                <div class="w-2 h-2 rounded-full" :class="adminStampPulse ? 'bg-royal-gold scale-125' : 'bg-wax-red'" />
+              <div
+                class="flex items-center gap-1 px-2 py-1 bg-fief-dark rounded border border-fief-border"
+              >
+                <div
+                  class="w-2 h-2 rounded-full"
+                  :class="adminStampPulse ? 'bg-royal-gold scale-125' : 'bg-wax-red'"
+                />
                 <span class="text-[9px] font-mono text-fief-text-dim">Inking</span>
               </div>
             </div>
 
             <!-- Chancery Breakdown Metrics -->
             <div class="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-1">
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between"
+              >
                 <span class="text-fief-text-muted">Scribes & Clerks:</span>
                 <span class="text-peasant-green font-bold">+{{ scribeOutput }} AP/s</span>
               </div>
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between"
+              >
                 <span class="text-fief-text-muted">Supervisor Bonus:</span>
                 <span class="text-royal-gold font-bold">+{{ supervisorBonusPercent }}%</span>
               </div>
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between"
+              >
                 <span class="text-fief-text-muted">Drag Reduction:</span>
                 <span class="text-peasant-green font-bold">−{{ dragReductionPercent }}%</span>
               </div>
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between"
+              >
                 <span class="text-fief-text-muted">Direct Tax:</span>
                 <span class="text-royal-gold font-bold">+{{ directTaxOutput }} AP/s</span>
               </div>
             </div>
 
             <!-- Strategic Advice on Chancery Output -->
-            <div class="text-[9px] font-serif-book text-fief-text-dim border-t border-fief-border/50 pt-1 flex items-center justify-between">
-              <span>Top producer: <strong class="text-royal-gold">{{ topApContributor.name }}</strong> (+{{ topApContributor.amount }} AP/s)</span>
+            <div
+              class="text-[9px] font-serif-book text-fief-text-dim border-t border-fief-border/50 pt-1 flex items-center justify-between"
+            >
+              <span
+                >Top producer:
+                <strong class="text-royal-gold">{{ topApContributor.name }}</strong> (+{{
+                  topApContributor.amount
+                }}
+                AP/s)</span
+              >
               <span class="font-mono text-peasant-green/90">8× slot efficiency for Clerks</span>
             </div>
           </div>
 
           <!-- Role 1: AP Producers -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleScribe"
-                :class="['w-7 h-7 text-wax-red transition-transform', adminStampPulse ? 'scale-120 text-white' : 'animate-admin-scribble']"
+                :class="[
+                  'w-7 h-7 text-wax-red transition-transform',
+                  adminStampPulse ? 'scale-120 text-white' : 'animate-admin-scribble',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text">Scribes (Tier I)</div>
-                <div class="text-[10px] text-fief-text-muted">+0.5 AP/s • Zero upkeep • Total: {{ units.scribes }}</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +0.5 AP/s • Zero upkeep • Total: {{ units.scribes }}
+                </div>
               </div>
             </div>
             <button
@@ -1324,18 +1812,30 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleClerk"
-                :class="['w-7 h-7 text-wax-red transition-transform', adminStampPulse ? 'scale-90 translate-y-0.5 text-royal-gold' : 'animate-admin-stamp']"
+                :class="[
+                  'w-7 h-7 text-wax-red transition-transform',
+                  adminStampPulse
+                    ? 'scale-90 translate-y-0.5 text-royal-gold'
+                    : 'animate-admin-stamp',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Clerks (Tier II)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">Top Earner</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >Top Earner</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+4.0 AP/s (8× Scribes), 0.5 upkeep • Total: {{ units.clerks }}</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +4.0 AP/s (8× Scribes), 0.5 upkeep • Total: {{ units.clerks }}
+                </div>
               </div>
             </div>
             <button
@@ -1348,18 +1848,30 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 2: AP Multiplier (Passive Yield Boosters) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleSupervisor"
-                :class="['w-7 h-7 text-royal-gold transition-transform', adminStampPulse ? 'scale-115 text-royal-gold-light' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold transition-transform',
+                  adminStampPulse ? 'scale-115 text-royal-gold-light' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Supervisors (Tier I)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">Passive AP Boost</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >Passive AP Boost</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+2% AP to all scribes/clerks • Zero upkeep • Current: +{{ units.supervisors * 2 }}% yield</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +2% AP to all scribes/clerks • Zero upkeep • Current: +{{
+                    units.supervisors * 2
+                  }}% yield
+                </div>
               </div>
             </div>
             <button
@@ -1371,18 +1883,30 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleProvincialSteward"
-                :class="['w-7 h-7 text-royal-gold transition-transform', adminStampPulse ? 'scale-115' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold transition-transform',
+                  adminStampPulse ? 'scale-115' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Provincial Stewards (Tier II)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">+10% AP Multiplier</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >+10% AP Multiplier</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+10% AP across chancery, 1.0 upkeep • Current: +{{ units.provincialStewards * 10 }}% yield</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +10% AP across chancery, 1.0 upkeep • Current: +{{
+                    units.provincialStewards * 10
+                  }}% yield
+                </div>
               </div>
             </div>
             <button
@@ -1395,18 +1919,29 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 3: Paperwork Reducer (Passive Drag Reducers) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleArchivist"
-                :class="['w-7 h-7 text-fief-text-muted transition-transform', adminStampPulse ? 'scale-110 text-royal-gold' : '']"
+                :class="[
+                  'w-7 h-7 text-fief-text-muted transition-transform',
+                  adminStampPulse ? 'scale-110 text-royal-gold' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Archivists (Tier I)</span>
-                  <span class="text-[8px] font-mono text-fief-text-muted bg-fief-border px-1 rounded border border-fief-border">Passive Drag Cut</span>
+                  <span
+                    class="text-[8px] font-mono text-fief-text-muted bg-fief-border px-1 rounded border border-fief-border"
+                    >Passive Drag Cut</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">−1.5% drag • Zero upkeep • Current: −{{ (units.archivists * 1.5).toFixed(1) }}% bureaucracy</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  −1.5% drag • Zero upkeep • Current: −{{ (units.archivists * 1.5).toFixed(1) }}%
+                  bureaucracy
+                </div>
               </div>
             </div>
             <button
@@ -1418,18 +1953,29 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleAuditChamber"
-                :class="['w-7 h-7 text-fief-text-muted transition-transform', adminStampPulse ? 'scale-110 text-royal-gold' : '']"
+                :class="[
+                  'w-7 h-7 text-fief-text-muted transition-transform',
+                  adminStampPulse ? 'scale-110 text-royal-gold' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Court of Accounts (Tier II)</span>
-                  <span class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30">Major Drag Cut</span>
+                  <span
+                    class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30"
+                    >Major Drag Cut</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">−8.0% drag, 0.6 upkeep • Current: −{{ (units.auditChamber * 8.0).toFixed(1) }}% bureaucracy</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  −8.0% drag, 0.6 upkeep • Current: −{{ (units.auditChamber * 8.0).toFixed(1) }}%
+                  bureaucracy
+                </div>
               </div>
             </div>
             <button
@@ -1442,15 +1988,22 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 4: Tax Collectors & Farmers-General -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleTaxCollector"
-                :class="['w-7 h-7 text-royal-gold transition-transform', adminStampPulse ? 'scale-120' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold transition-transform',
+                  adminStampPulse ? 'scale-120' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text">Tax Collectors (Tier I)</div>
-                <div class="text-[10px] text-fief-text-muted">+0.8 AP/100 citizens • Total: {{ units.taxCollectors }}</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +0.8 AP/100 citizens • Total: {{ units.taxCollectors }}
+                </div>
               </div>
             </div>
             <button
@@ -1462,15 +2015,22 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon
                 name="roleGeneralFarmer"
-                :class="['w-7 h-7 text-royal-gold transition-transform', adminStampPulse ? 'scale-120' : '']"
+                :class="[
+                  'w-7 h-7 text-royal-gold transition-transform',
+                  adminStampPulse ? 'scale-120' : '',
+                ]"
               />
               <div>
                 <div class="font-medieval text-xs text-fief-text">Farmers-General (Tier II)</div>
-                <div class="text-[10px] text-fief-text-muted">+4.5 AP/100 citizens, 1.2 upkeep • Total: {{ units.generalFarmers }}</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +4.5 AP/100 citizens, 1.2 upkeep • Total: {{ units.generalFarmers }}
+                </div>
               </div>
             </div>
             <button
@@ -1489,27 +2049,38 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           <div class="p-3 bg-iron-grey/15 border border-iron-grey/40 rounded-lg space-y-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full bg-iron-grey/30 border border-iron-grey flex items-center justify-center">
+                <div
+                  class="w-8 h-8 rounded-full bg-iron-grey/30 border border-iron-grey flex items-center justify-center"
+                >
                   <GameIcon name="militaryPower" class="w-5 h-5 text-iron-grey" />
                 </div>
                 <div>
-                  <div class="font-medieval text-xs text-fief-text font-bold flex items-center gap-1.5">
+                  <div
+                    class="font-medieval text-xs text-fief-text font-bold flex items-center gap-1.5"
+                  >
                     <span>War Council Logistics</span>
-                    <span class="text-[9px] font-mono text-wax-red bg-fief-dark px-1.5 py-0.5 rounded border border-wax-red/40">
+                    <span
+                      class="text-[9px] font-mono text-wax-red bg-fief-dark px-1.5 py-0.5 rounded border border-wax-red/40"
+                    >
                       −{{ totalMilitaryUpkeep }} AP/s Total Drain
                     </span>
                   </div>
                   <div class="text-[10px] text-fief-text-muted font-mono">
-                    Army Force: {{ totalMilitaryForce }} combat power • Roster: {{ militaryTotal }}/{{ militaryCap }}
+                    Army Force: {{ totalMilitaryForce }} combat power • Roster:
+                    {{ militaryTotal }}/{{ militaryCap }}
                   </div>
                 </div>
               </div>
 
               <!-- Supply Discount Pill -->
-              <div class="flex items-center gap-1 px-2 py-1 bg-fief-dark rounded border border-fief-border">
+              <div
+                class="flex items-center gap-1 px-2 py-1 bg-fief-dark rounded border border-fief-border"
+              >
                 <GameIcon name="roleMilitaryIntendant" class="w-3.5 h-3.5 text-royal-gold" />
                 <div class="text-right leading-none">
-                  <div class="text-[8px] font-mono text-peasant-green font-bold">−{{ militaryDiscountPercent }}% Upkeep</div>
+                  <div class="text-[8px] font-mono text-peasant-green font-bold">
+                    −{{ militaryDiscountPercent }}% Upkeep
+                  </div>
                   <div class="text-[7px] text-fief-text-dim">Supply lines</div>
                 </div>
               </div>
@@ -1517,47 +2088,69 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
 
             <!-- Upkeep Breakdown & Heaviest Drain Alert -->
             <div class="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-1">
-              <div class="bg-fief-dark border border-wax-red/40 rounded p-1.5 flex justify-between items-center">
+              <div
+                class="bg-fief-dark border border-wax-red/40 rounded p-1.5 flex justify-between items-center"
+              >
                 <span class="text-fief-text-muted flex items-center gap-1">
                   <GameIcon :name="heaviestMilitaryDrain.icon" class="w-3 h-3 text-wax-red" />
                   Heaviest Drain:
                 </span>
                 <span class="text-wax-red font-bold">−{{ heaviestMilitaryDrain.total }} AP/s</span>
               </div>
-              <div class="bg-fief-dark border border-peasant-green/40 rounded p-1.5 flex justify-between items-center">
+              <div
+                class="bg-fief-dark border border-peasant-green/40 rounded p-1.5 flex justify-between items-center"
+              >
                 <span class="text-fief-text-muted flex items-center gap-1">
                   <GameIcon name="roleSoldier" class="w-3 h-3 text-peasant-green" />
                   Soldiers:
                 </span>
                 <span class="text-peasant-green font-bold">0 AP/s (Free)</span>
               </div>
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between items-center">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between items-center"
+              >
                 <span class="text-fief-text-muted">Men-at-Arms:</span>
                 <span class="text-wax-red font-bold">−{{ menAtArmsUpkeep }} AP/s</span>
               </div>
-              <div class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between items-center">
+              <div
+                class="bg-fief-dark border border-fief-border rounded p-1.5 flex justify-between items-center"
+              >
                 <span class="text-fief-text-muted">Captains:</span>
                 <span class="text-wax-red font-bold">−{{ captainsUpkeep }} AP/s</span>
               </div>
             </div>
 
             <!-- Strategic Military Guidance -->
-            <div class="text-[9px] font-serif-book text-fief-text-dim border-t border-fief-border/50 pt-1 flex items-center justify-between">
-              <span>Heaviest burden: <strong class="text-wax-red">{{ heaviestMilitaryDrain.name }}</strong> ({{ heaviestMilitaryDrain.desc }})</span>
+            <div
+              class="text-[9px] font-serif-book text-fief-text-dim border-t border-fief-border/50 pt-1 flex items-center justify-between"
+            >
+              <span
+                >Heaviest burden:
+                <strong class="text-wax-red">{{ heaviestMilitaryDrain.name }}</strong> ({{
+                  heaviestMilitaryDrain.desc
+                }})</span
+              >
               <span class="font-mono text-royal-gold/90">Intendants reduce up to 60%</span>
             </div>
           </div>
 
           <!-- Role 1: Strength Producer -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleSoldier" class="w-7 h-7 text-iron-grey" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Soldiers (Tier I)</span>
-                  <span class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30">Free Upkeep</span>
+                  <span
+                    class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30"
+                    >Free Upkeep</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+1 force • Zero ongoing upkeep • Current: +{{ units.soldiers }} garrison force</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +1 force • Zero ongoing upkeep • Current: +{{ units.soldiers }} garrison force
+                </div>
               </div>
             </div>
             <button
@@ -1569,15 +2162,23 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleManAtArms" class="w-7 h-7 text-iron-grey" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Men-at-Arms (Tier II)</span>
-                  <span class="text-[8px] font-mono text-wax-red bg-wax-red/15 px-1 rounded border border-wax-red/30">Heavy Upkeep</span>
+                  <span
+                    class="text-[8px] font-mono text-wax-red bg-wax-red/15 px-1 rounded border border-wax-red/30"
+                    >Heavy Upkeep</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+6 force • Upkeep: −{{ (1.5 * militaryDiscountFactor).toFixed(1) }} AP/s • Current: +{{ units.menAtArms * 6 }} combat force</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +6 force • Upkeep: −{{ (1.5 * militaryDiscountFactor).toFixed(1) }} AP/s •
+                  Current: +{{ units.menAtArms * 6 }} combat force
+                </div>
               </div>
             </div>
             <button
@@ -1590,15 +2191,24 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 2: Multiplier (Strength & Luck) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleOfficer" class="w-7 h-7 text-royal-gold" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Officers (Tier I)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">Passive Leadership</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >Passive Leadership</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+1.5% strength & battle luck • Zero upkeep • Current: +{{ (units.officers * 1.5).toFixed(1) }}% leadership</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +1.5% strength & battle luck • Zero upkeep • Current: +{{
+                    (units.officers * 1.5).toFixed(1)
+                  }}% leadership
+                </div>
               </div>
             </div>
             <button
@@ -1610,15 +2220,23 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleCaptain" class="w-7 h-7 text-royal-gold" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Captains (Tier II)</span>
-                  <span class="text-[8px] font-mono text-wax-red bg-wax-red/15 px-1 rounded border border-wax-red/30">+8.0% Command Bonus</span>
+                  <span
+                    class="text-[8px] font-mono text-wax-red bg-wax-red/15 px-1 rounded border border-wax-red/30"
+                    >+8.0% Command Bonus</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">+8.0% strength • Upkeep: −{{ (2.0 * militaryDiscountFactor).toFixed(1) }} AP/s • Current: +{{ (units.captains * 8.0).toFixed(1) }}% leadership</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  +8.0% strength • Upkeep: −{{ (2.0 * militaryDiscountFactor).toFixed(1) }} AP/s •
+                  Current: +{{ (units.captains * 8.0).toFixed(1) }}% leadership
+                </div>
               </div>
             </div>
             <button
@@ -1631,15 +2249,24 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 3: Upkeep Reducer (Passive Logistics) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleMilitaryIntendant" class="w-7 h-7 text-fief-text-muted" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Supply Intendants (Tier I)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">Passive Logistics</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >Passive Logistics</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">−1.5% army upkeep • Zero upkeep • Current: −{{ (units.militaryIntendants * 1.5).toFixed(1) }}% upkeep</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  −1.5% army upkeep • Zero upkeep • Current: −{{
+                    (units.militaryIntendants * 1.5).toFixed(1)
+                  }}% upkeep
+                </div>
               </div>
             </div>
             <button
@@ -1651,15 +2278,24 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleQuartermaster" class="w-7 h-7 text-fief-text-muted" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Quartermasters (Tier II)</span>
-                  <span class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30">−8.0% Major Discount</span>
+                  <span
+                    class="text-[8px] font-mono text-royal-gold bg-royal-gold/15 px-1 rounded border border-royal-gold/30"
+                    >−8.0% Major Discount</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">−8.0% army upkeep • Zero upkeep • Current: −{{ (units.quartermasters * 8.0).toFixed(1) }}% upkeep</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  −8.0% army upkeep • Zero upkeep • Current: −{{
+                    (units.quartermasters * 8.0).toFixed(1)
+                  }}% upkeep
+                </div>
               </div>
             </div>
             <button
@@ -1672,15 +2308,23 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <!-- Role 4: Scouts / Spies (Passive Threat Intel) -->
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleScout" class="w-7 h-7 text-royal-gold" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Scouts (Tier I)</span>
-                  <span class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30">Passive Recon</span>
+                  <span
+                    class="text-[8px] font-mono text-peasant-green bg-peasant-green/15 px-1 rounded border border-peasant-green/30"
+                    >Passive Recon</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">Narrows threat range by 3 • Zero upkeep • Current: −{{ units.scouts * 3 }} distance</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  Narrows threat range by 3 • Zero upkeep • Current: −{{ units.scouts * 3 }}
+                  distance
+                </div>
               </div>
             </div>
             <button
@@ -1692,15 +2336,25 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             </button>
           </div>
 
-          <div class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between">
+          <div
+            class="p-2.5 bg-fief-card border border-fief-border rounded flex items-center justify-between"
+          >
             <div class="flex items-center gap-2">
               <GameIcon name="roleSpy" class="w-7 h-7 text-royal-gold" />
               <div>
                 <div class="font-medieval text-xs text-fief-text flex items-center gap-1.5">
                   <span>Royal Spies (Tier II)</span>
-                  <span class="text-[8px] font-mono text-wax-red bg-wax-red/15 px-1 rounded border border-wax-red/30">Passive Espionage</span>
+                  <span
+                    class="text-[8px] font-mono text-wax-red bg-wax-red/15 px-1 rounded border border-wax-red/30"
+                    >Passive Espionage</span
+                  >
                 </div>
-                <div class="text-[10px] text-fief-text-muted">Reveals threat traits • Upkeep: −{{ (1.0 * militaryDiscountFactor).toFixed(1) }} AP/s • Total: {{ units.spies }} Spies</div>
+                <div class="text-[10px] text-fief-text-muted">
+                  Reveals threat traits • Upkeep: −{{
+                    (1.0 * militaryDiscountFactor).toFixed(1)
+                  }}
+                  AP/s • Total: {{ units.spies }} Spies
+                </div>
               </div>
             </div>
             <button
@@ -1726,7 +2380,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           </div>
 
           <div class="space-y-1.5 text-xs">
-            <div class="p-2 bg-fief-dark border-l-2 border-wax-red rounded flex justify-between items-center">
+            <div
+              class="p-2 bg-fief-dark border-l-2 border-wax-red rounded flex justify-between items-center"
+            >
               <div>
                 <div class="font-medieval text-fief-text">Royal Scriptorium</div>
                 <div class="text-[10px] text-peasant-green">+50% scribe AP output</div>
@@ -1734,7 +2390,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               <span class="text-[10px] font-mono text-wax-red">+20% drag</span>
             </div>
 
-            <div class="p-2 bg-fief-dark border-l-2 border-peasant-green rounded flex justify-between items-center">
+            <div
+              class="p-2 bg-fief-dark border-l-2 border-peasant-green rounded flex justify-between items-center"
+            >
               <div>
                 <div class="font-medieval text-fief-text">Ancient Birthright</div>
                 <div class="text-[10px] text-peasant-green">+15% province capacity</div>
@@ -1742,7 +2400,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               <span class="text-[10px] font-mono text-wax-red">−20% growth</span>
             </div>
 
-            <div class="p-2 bg-fief-dark border-l-2 border-iron-grey rounded flex justify-between items-center">
+            <div
+              class="p-2 bg-fief-dark border-l-2 border-iron-grey rounded flex justify-between items-center"
+            >
               <div>
                 <div class="font-medieval text-fief-text">Standing Garrison</div>
                 <div class="text-[10px] text-peasant-green">60% threat defense</div>
@@ -1750,10 +2410,14 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
               <span class="text-[10px] font-mono text-wax-red">+30% upkeep</span>
             </div>
 
-            <div class="p-2 border border-dashed border-fief-border rounded text-center text-fief-text-dim text-[11px] italic">
+            <div
+              class="p-2 border border-dashed border-fief-border rounded text-center text-fief-text-dim text-[11px] italic"
+            >
               Slot 4 : Empty
             </div>
-            <div class="p-2 border border-dashed border-fief-border rounded text-center text-fief-text-dim text-[11px] italic">
+            <div
+              class="p-2 border border-dashed border-fief-border rounded text-center text-fief-text-dim text-[11px] italic"
+            >
               Slot 5 : Empty
             </div>
           </div>
@@ -1765,8 +2429,11 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             <GameIcon name="counselorSteward" class="w-4 h-4 text-wax-red" />
             <span>Steward's Chronicle</span>
           </div>
-          <p class="p-2.5 bg-fief-dark border border-fief-border rounded text-[11px] font-serif-book italic text-fief-text-muted leading-relaxed">
-            "My Liege, your scribes ink parchment day and night, but coin drains faster than it gathers. Beware the auditors at Deadline 4..."
+          <p
+            class="p-2.5 bg-fief-dark border border-fief-border rounded text-[11px] font-serif-book italic text-fief-text-muted leading-relaxed"
+          >
+            "My Liege, your scribes ink parchment day and night, but coin drains faster than it
+            gathers. Beware the auditors at Deadline 4..."
           </p>
         </div>
       </div>
@@ -1787,35 +2454,65 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
             <GameIcon name="crown" class="w-5 h-5 text-royal-gold" />
             <span class="font-medieval text-sm text-royal-gold">Council Decrees</span>
           </div>
-          <button type="button" @click="activeModal = 'none'" class="text-fief-text-muted hover:text-wax-red font-bold text-sm cursor-pointer">✕</button>
+          <button
+            type="button"
+            @click="activeModal = 'none'"
+            class="text-fief-text-muted hover:text-wax-red font-bold text-sm cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
 
         <div class="space-y-2">
-          <div class="p-2.5 bg-fief-dark border border-fief-border rounded flex justify-between items-center cursor-pointer hover:border-wax-red" @click="activeModal = 'none'">
+          <div
+            class="p-2.5 bg-fief-dark border border-fief-border rounded flex justify-between items-center cursor-pointer hover:border-wax-red"
+            @click="activeModal = 'none'"
+          >
             <div>
               <div class="text-[10px] text-wax-red font-mono">Chancellor</div>
               <div class="font-medieval text-xs text-fief-text">General Cadastre</div>
               <div class="text-[10px] text-peasant-green">−25% base paperwork • +2 AP/s upkeep</div>
             </div>
-            <button type="button" class="px-2 py-1 bg-wax-red text-white text-[10px] rounded font-mono">Enact</button>
+            <button
+              type="button"
+              class="px-2 py-1 bg-wax-red text-white text-[10px] rounded font-mono"
+            >
+              Enact
+            </button>
           </div>
 
-          <div class="p-2.5 bg-fief-dark border border-fief-border rounded flex justify-between items-center cursor-pointer hover:border-peasant-green" @click="activeModal = 'none'">
+          <div
+            class="p-2.5 bg-fief-dark border border-fief-border rounded flex justify-between items-center cursor-pointer hover:border-peasant-green"
+            @click="activeModal = 'none'"
+          >
             <div>
               <div class="text-[10px] text-peasant-green font-mono">Prelate</div>
               <div class="font-medieval text-xs text-fief-text">Holy Holidays</div>
               <div class="text-[10px] text-peasant-green">−0.2 discontent/s • −10% AP output</div>
             </div>
-            <button type="button" class="px-2 py-1 bg-peasant-green text-white text-[10px] rounded font-mono">Enact</button>
+            <button
+              type="button"
+              class="px-2 py-1 bg-peasant-green text-white text-[10px] rounded font-mono"
+            >
+              Enact
+            </button>
           </div>
 
-          <div class="p-2.5 bg-fief-dark border border-fief-border rounded flex justify-between items-center cursor-pointer hover:border-iron-grey" @click="activeModal = 'none'">
+          <div
+            class="p-2.5 bg-fief-dark border border-fief-border rounded flex justify-between items-center cursor-pointer hover:border-iron-grey"
+            @click="activeModal = 'none'"
+          >
             <div>
               <div class="text-[10px] text-iron-grey font-mono">Marshal</div>
               <div class="font-medieval text-xs text-fief-text">Sanctioned Plunder</div>
               <div class="text-[10px] text-peasant-green">Battle loot ×1.5 • +20% discontent</div>
             </div>
-            <button type="button" class="px-2 py-1 bg-iron-grey text-white text-[10px] rounded font-mono">Enact</button>
+            <button
+              type="button"
+              class="px-2 py-1 bg-iron-grey text-white text-[10px] rounded font-mono"
+            >
+              Enact
+            </button>
           </div>
         </div>
 
@@ -1838,7 +2535,8 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
           <span class="font-medieval text-sm text-wax-red">The Scribe Who Counted Too Much</span>
         </div>
         <p class="text-[11px] font-serif-book italic text-fief-text-muted leading-relaxed">
-          "My Lord, a scribe claims to have found a discrepancy in the ledgers. He demands the title and wage of a Supervisor..."
+          "My Lord, a scribe claims to have found a discrepancy in the ledgers. He demands the title
+          and wage of a Supervisor..."
         </p>
         <div class="space-y-1.5 pt-1">
           <button
@@ -1867,7 +2565,9 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
       >
         <div class="flex items-center gap-2 border-b border-fief-border pb-2">
           <GameIcon name="battleCampaign" class="w-6 h-6 text-iron-grey" />
-          <span class="font-medieval text-sm text-fief-text">Siege of the Border Fief (Round 1/3)</span>
+          <span class="font-medieval text-sm text-fief-text"
+            >Siege of the Border Fief (Round 1/3)</span
+          >
         </div>
         <div class="bg-fief-dark p-2 rounded text-[11px] space-y-1">
           <div class="flex justify-between">
@@ -1941,7 +2641,8 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
 
 /* Bureaucratic Stamping Impact Animation */
 @keyframes adminStamp {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
   }
   30% {
@@ -1962,7 +2663,8 @@ const activeModal = ref<'none' | 'law' | 'event' | 'battle'>('none')
 
 /* Scribe Inking / Scribbling Animation */
 @keyframes adminScribble {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(-10deg) translate(0, 0);
   }
   25% {

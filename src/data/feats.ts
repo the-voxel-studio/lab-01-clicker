@@ -45,7 +45,8 @@ export const FEATS_DATA: Record<FeatId, FeatDef> = {
   iron_bailout: {
     id: 'iron_bailout',
     title: 'Iron Bailout',
-    description: 'Survive a run after triggering the Lombard Bailout at >= 20 seconds of bankruptcy.',
+    description:
+      'Survive a run after triggering the Lombard Bailout at >= 20 seconds of bankruptcy.',
     rewardArchivePoints: 0.5,
   },
   croesus_of_the_realm: {

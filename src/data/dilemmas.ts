@@ -26,7 +26,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:taxable_windows': {
     id: 'dilemma:taxable_windows',
     name: 'The Taxable Windows',
-    description: 'The Chancellor suggests levying a tax on the number of glass panes in noble estates.',
+    description:
+      'The Chancellor suggests levying a tax on the number of glass panes in noble estates.',
     trigger: (state, config) => calculateGrossApRate(state, config).total > 150,
     choices: [
       {
@@ -112,7 +113,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:princely_cousin': {
     id: 'dilemma:princely_cousin',
     name: 'The Princely Cousin',
-    description: 'A highborn relative demands an exorbitant sovereign pension for nominal military command.',
+    description:
+      'A highborn relative demands an exorbitant sovereign pension for nominal military command.',
     trigger: (state) => {
       let militaryUpkeep = 0
       for (const [id, count] of Object.entries(state.units)) {
@@ -160,7 +162,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     id: 'dilemma:great_archive_fire',
     name: 'The Great Archive Fire',
     description: 'A candle has fallen in the registry tower. Thousands of tax rolls are burning.',
-    trigger: (state, config) => calculateNetPaperwork(state, config) > 0.40,
+    trigger: (state, config) => calculateNetPaperwork(state, config) > 0.4,
     choices: [
       {
         text: 'Let them burn! (-20% paperwork, +20 Unrest)',
@@ -171,7 +173,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               source: 'dilemma:great_archive_fire',
               stat: 'paperwork_friction',
               op: 'addPct',
-              value: -0.20,
+              value: -0.2,
             },
           },
           {
@@ -227,7 +229,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               source: 'dilemma:cabinet_scarcity',
               stat: 'gross_ap_rate',
               op: 'addPct',
-              value: 0.10,
+              value: 0.1,
             },
           },
         ],
@@ -329,7 +331,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               source: 'dilemma:runaway_serfs',
               stat: 'tax_efficiency',
               op: 'addPct',
-              value: -0.10,
+              value: -0.1,
             },
           },
           {
@@ -349,7 +351,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:wandering_troubadours': {
     id: 'dilemma:wandering_troubadours',
     name: 'The Wandering Troubadours',
-    description: 'Minstrels have arrived in the castle courtyard singing tales of your dynastic virtue.',
+    description:
+      'Minstrels have arrived in the castle courtyard singing tales of your dynastic virtue.',
     trigger: (state) => state.deadline >= 3 && state.unrest < 35,
     choices: [
       {
@@ -389,8 +392,9 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:false_relic_merchant': {
     id: 'dilemma:false_relic_merchant',
     name: 'The False Relic Merchant',
-    description: 'A Venetian trader is peddling the finger bone of an obscure saint to local abbeys.',
-    trigger: (state) => ((state.units.clergy ?? 0) + (state.units.prelate ?? 0)) >= 5,
+    description:
+      'A Venetian trader is peddling the finger bone of an obscure saint to local abbeys.',
+    trigger: (state) => (state.units.clergy ?? 0) + (state.units.prelate ?? 0) >= 5,
     choices: [
       {
         text: 'Purchase bone for cathedral abbey (-450 AP, -20 Unrest)',
@@ -428,7 +432,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:foreign_envoy_bribe': {
     id: 'dilemma:foreign_envoy_bribe',
     name: "The Foreign Envoy's Bribe",
-    description: 'An ambassador from a rival realm offers a heavy purse to look away from border skirmishes.',
+    description:
+      'An ambassador from a rival realm offers a heavy purse to look away from border skirmishes.',
     trigger: (state) => state.provinces >= 4,
     choices: [
       {
@@ -530,7 +535,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:ghost_scribes': {
     id: 'dilemma:ghost_scribes',
     name: 'The Ghost Scribes',
-    description: 'An internal investigation reveals dozens of deceased scribes still receiving paychecks.',
+    description:
+      'An internal investigation reveals dozens of deceased scribes still receiving paychecks.',
     trigger: (state) => (state.units.scribe ?? 0) >= 20,
     choices: [
       {
@@ -557,7 +563,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               source: 'dilemma:ghost_scribes',
               stat: 'gross_ap_rate',
               op: 'addPct',
-              value: 0.10,
+              value: 0.1,
             },
           },
         ],
@@ -607,7 +613,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:auditor_nephew': {
     id: 'dilemma:auditor_nephew',
     name: "The Auditor's Nephew",
-    description: 'The Royal Auditor strongly hints that his inept nephew would make a fine provincial bailiff.',
+    description:
+      'The Royal Auditor strongly hints that his inept nephew would make a fine provincial bailiff.',
     trigger: (state) => state.deadline >= 5,
     choices: [
       {
@@ -770,7 +777,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:mutinous_quartermaster': {
     id: 'dilemma:mutinous_quartermaster',
     name: 'The Mutinous Quartermaster',
-    description: 'Our chief supply officer has been caught selling army provisions to private merchants.',
+    description:
+      'Our chief supply officer has been caught selling army provisions to private merchants.',
     trigger: (state) => {
       let milCount = 0
       for (const [id, count] of Object.entries(state.units)) {
@@ -812,7 +820,8 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
   'dilemma:astrologer_comet': {
     id: 'dilemma:astrologer_comet',
     name: "The Astrologer's Comet",
-    description: 'A crimson comet blazes across the night sky, unsettling soldiers and clergymen alike.',
+    description:
+      'A crimson comet blazes across the night sky, unsettling soldiers and clergymen alike.',
     trigger: (state) => state.deadline === 8 || state.deadline === 9,
     choices: [
       {
@@ -824,7 +833,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               source: 'dilemma:astrologer_comet',
               stat: 'military_power',
               op: 'addPct',
-              value: 0.10,
+              value: 0.1,
             },
           },
           {

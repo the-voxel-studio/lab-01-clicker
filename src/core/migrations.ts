@@ -48,7 +48,7 @@ export function migrateV1ToV2(oldData: unknown): unknown {
   // Assign 'heartland' biome to all existing provinces
   const provinceBiomes: BiomeId[] = Array.from(
     { length: Math.max(1, provinces) },
-    () => 'heartland'
+    () => 'heartland',
   )
 
   const migratedState: GameState = createInitialGameState({
@@ -67,7 +67,8 @@ export function migrateV1ToV2(oldData: unknown): unknown {
     victoriesCount: typeof oldState.victoriesCount === 'number' ? oldState.victoriesCount : 0,
     currentLawDraft: [],
     currentDilemmaId: null,
-    lastEdictDeadline: typeof oldState.lastEdictDeadline === 'number' ? oldState.lastEdictDeadline : 0,
+    lastEdictDeadline:
+      typeof oldState.lastEdictDeadline === 'number' ? oldState.lastEdictDeadline : 0,
     edictUsageCounts:
       typeof oldState.edictUsageCounts === 'object' && oldState.edictUsageCounts !== null
         ? (oldState.edictUsageCounts as GameState['edictUsageCounts'])
@@ -159,7 +160,7 @@ function validateStateNumbers(state: Record<string, unknown>): void {
     const val = state[field]
     if (typeof val !== 'number' || !Number.isFinite(val)) {
       throw new Error(
-        `Save import failed: State contains NaN or non-finite numerical values in '${field}'.`
+        `Save import failed: State contains NaN or non-finite numerical values in '${field}'.`,
       )
     }
   }
@@ -215,7 +216,7 @@ export function importSaveFromBase64(encodedString: string): GameState {
   const trimmed = encodedString.trim()
   if (!trimmed.startsWith(SAVE_PREFIX)) {
     throw new Error(
-      `Save import failed: Invalid integrity prefix. Expected string starting with '${SAVE_PREFIX}'.`
+      `Save import failed: Invalid integrity prefix. Expected string starting with '${SAVE_PREFIX}'.`,
     )
   }
 
@@ -251,13 +252,13 @@ export function importSaveFromBase64(encodedString: string): GameState {
   // Schema version validation
   if (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion < 1) {
     throw new Error(
-      `Save import failed: Invalid schema version ${parsed.schemaVersion}. Schema version must be an integer >= 1.`
+      `Save import failed: Invalid schema version ${parsed.schemaVersion}. Schema version must be an integer >= 1.`,
     )
   }
 
   if (parsed.schemaVersion > CURRENT_SCHEMA_VERSION) {
     throw new Error(
-      `Save import failed: Unsupported future schema version ${parsed.schemaVersion}. Current engine schema version is ${CURRENT_SCHEMA_VERSION}.`
+      `Save import failed: Unsupported future schema version ${parsed.schemaVersion}. Current engine schema version is ${CURRENT_SCHEMA_VERSION}.`,
     )
   }
 
@@ -272,7 +273,7 @@ export function importSaveFromBase64(encodedString: string): GameState {
     const migration = MIGRATIONS[currentVersion]
     if (!migration) {
       throw new Error(
-        `Save import failed: Missing migration pipeline step for schema version ${currentVersion}.`
+        `Save import failed: Missing migration pipeline step for schema version ${currentVersion}.`,
       )
     }
     currentPayload = migration(currentPayload)

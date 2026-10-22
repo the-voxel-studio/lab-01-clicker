@@ -7,10 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import {
-  DEFAULT_ENGINE_CONFIG,
-  type EngineConfig,
-} from '@/core/config'
+import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from '@/core/config'
 import { tick } from '@/core/engine'
 import { dispatch } from '@/core/commands'
 import { createInitialGameState, cloneGameState } from '@/core/state'
@@ -19,7 +16,9 @@ import { BALANCE, DEADLINE_QUOTAS, BIOMES_DATA } from '@/data/balance'
 
 describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
   it('exports DEFAULT_ENGINE_CONFIG matching canonical balance and quotas', () => {
-    expect(DEFAULT_ENGINE_CONFIG.balance.BASE_POP_GROWTH_RATE_R).toBe(BALANCE.BASE_POP_GROWTH_RATE_R)
+    expect(DEFAULT_ENGINE_CONFIG.balance.BASE_POP_GROWTH_RATE_R).toBe(
+      BALANCE.BASE_POP_GROWTH_RATE_R,
+    )
     expect(DEFAULT_ENGINE_CONFIG.quotas).toBe(DEADLINE_QUOTAS)
   })
 
@@ -71,11 +70,7 @@ describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
       expect(BIOMES_DATA[b].housingMultiplier).toBe(1.0)
     }
 
-    const cap = calculateHousingCapacity(
-      state.provinces,
-      state.units.notable,
-      state.units.baron
-    )
+    const cap = calculateHousingCapacity(state.provinces, state.units.notable, state.units.baron)
     expect(cap).toBe(750)
   })
 

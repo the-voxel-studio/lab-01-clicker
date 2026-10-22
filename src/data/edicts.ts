@@ -36,7 +36,6 @@ export const EDICTS_DATA: Record<EdictId, EdictDef> = {
     name: 'The Grand Festival',
     description: 'Opening wine cellars and funding public feasts.',
     gainDescription: 'Instantly pacifies the realm, reducing Unrest by 20 points.',
-    penaltyDescription:
-      'Costs max(100, 20% positive AP, 30 * Gross AP/s) AP from the treasury.',
+    penaltyDescription: 'Costs max(100, 20% positive AP, 30 * Gross AP/s) AP from the treasury.',
   },
 }

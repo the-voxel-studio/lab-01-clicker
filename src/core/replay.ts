@@ -41,7 +41,7 @@ export function getStateHash(state: GameState): string {
   const milPower = calculateMilitaryPower(state)
   const unitRoster = (Object.keys(state.units) as UnitId[])
     .sort()
-    .map(id => `${id}:${state.units[id]}`)
+    .map((id) => `${id}:${state.units[id]}`)
     .join(',')
 
   const rngStreamStr = `${state.rngStreams.click},${state.rngStreams.combat},${state.rngStreams.events},${state.rngStreams.council}`
@@ -89,7 +89,7 @@ export function executeReplay(
   journal: ReplayJournal,
   dt: number = 0.05,
   maxDurationSeconds: number = 1000,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): GameState {
   const state = createInitialGameState({ seed: journal.seed })
 
@@ -122,7 +122,7 @@ export function executeReplay(
     if (state.phase !== 'ACTIVE_CYCLE') {
       const canProgress = sortedEntries
         .slice(nextEntryIndex)
-        .some(entry => isCommandAllowedInPhase(state.phase, entry.command.type))
+        .some((entry) => isCommandAllowedInPhase(state.phase, entry.command.type))
 
       if (!canProgress) {
         // No remaining entry can exit this paused phase; exit cleanly
@@ -158,7 +158,7 @@ export function executeReplay(
     const tickResult = tick(state, stepDt, config)
     const consumed = tickResult.consumedDt ?? stepDt
     if (consumed < stepDt) {
-      leftoverDt += (stepDt - consumed)
+      leftoverDt += stepDt - consumed
     }
   }
 

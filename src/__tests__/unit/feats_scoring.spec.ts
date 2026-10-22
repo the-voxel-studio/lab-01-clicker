@@ -185,10 +185,10 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
     it('calculates run score correctly based on §13.1 formula', () => {
       const state = createInitialGameState({
         totalCumulativeAp: 250_000, // 2,500 pts
-        peakPopulation: 1_200,      // 2,400 pts
-        provinces: 6,               // 3,000 pts
-        victoriesCount: 5,          // 1,000 pts
-        strikes: 1,                 // -1,000 pts
+        peakPopulation: 1_200, // 2,400 pts
+        provinces: 6, // 3,000 pts
+        victoriesCount: 5, // 1,000 pts
+        strikes: 1, // -1,000 pts
       })
       // Expected: 2500 + 2400 + 3000 + 1000 - 1000 = 7900
       expect(calculateRunScore(state)).toBe(7900)

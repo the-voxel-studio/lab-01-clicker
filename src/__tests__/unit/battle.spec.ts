@@ -28,7 +28,7 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(roll).toBeLessThan(1.08)
 
     // 100 * 0.90 * roll
-    expect(effectivePower).toBeCloseTo(100 * 0.90 * roll, 2)
+    expect(effectivePower).toBeCloseTo(100 * 0.9 * roll, 2)
   })
 
   it('applies defender fortification (+20%), stronghold flat defense (+12), and rolls [0.95, 1.10]', () => {
@@ -38,7 +38,7 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
 
     const { roll, effectivePower } = calculateDefenderPower(forces, strongholds, prng)
     expect(roll).toBeGreaterThanOrEqual(0.95)
-    expect(roll).toBeLessThan(1.10)
+    expect(roll).toBeLessThan(1.1)
 
     // (50 * 1.20 + 2 * 12) * roll = (60 + 24) * roll = 84 * roll
     expect(effectivePower).toBeCloseTo(84 * roll, 2)
@@ -50,11 +50,11 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(decisive.outcome).toBe('decisive_victory')
     expect(decisive.provinceWon).toBe(true)
     expect(decisive.lootMultiplier).toBe(1.2)
-    expect(decisive.casualtyRate).toBe(0.10)
+    expect(decisive.casualtyRate).toBe(0.1)
     expect(decisive.unrestDelta).toBe(-5)
 
     // Clear Victory (1.05 < R < 1.40)
-    const clear = evaluateCampaignOutcome(1.20)
+    const clear = evaluateCampaignOutcome(1.2)
     expect(clear.outcome).toBe('clear_victory')
     expect(clear.provinceWon).toBe(true)
     expect(clear.lootMultiplier).toBe(1.0)
@@ -65,7 +65,7 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(razorThin.outcome).toBe('razor_thin_victory')
     expect(razorThin.provinceWon).toBe(false) // Core specification!
     expect(razorThin.lootMultiplier).toBe(0.5)
-    expect(razorThin.casualtyRate).toBe(0.50)
+    expect(razorThin.casualtyRate).toBe(0.5)
     expect(razorThin.unrestDelta).toBe(5)
 
     // Pyrrhic Standoff (0.80 <= R < 1.00)
@@ -76,10 +76,10 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(pyrrhic.casualtyRate).toBe(0.75)
 
     // Crushing Defeat (R < 0.80)
-    const crushing = evaluateCampaignOutcome(0.60)
+    const crushing = evaluateCampaignOutcome(0.6)
     expect(crushing.outcome).toBe('crushing_defeat')
     expect(crushing.provinceWon).toBe(false)
-    expect(crushing.casualtyRate).toBe(1.00)
+    expect(crushing.casualtyRate).toBe(1.0)
     expect(crushing.unrestDelta).toBe(25)
   })
 

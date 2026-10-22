@@ -167,7 +167,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       500, // enemy forces
       0,
       new PRNG(999),
-      DEFAULT_ENGINE_CONFIG
+      DEFAULT_ENGINE_CONFIG,
     )
 
     expect(clash.isCollapse).toBe(true)
@@ -185,14 +185,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     state.units.man_at_arms = 5
     state.totalPopulation = 100
 
-    const clash = resolveDefensiveClash(
-      state,
-      0,
-      500,
-      0,
-      new PRNG(777),
-      DEFAULT_ENGINE_CONFIG
-    )
+    const clash = resolveDefensiveClash(state, 0, 500, 0, new PRNG(777), DEFAULT_ENGINE_CONFIG)
 
     expect(clash.isCollapse).toBe(true)
     expect(state.provinces).toBe(0)
@@ -247,7 +240,11 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
     // Responding to threat directly reads these fields without fallback
     state.ap = state.currentThreatTributeAp + 100
-    const threatRes = dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' }, DEFAULT_ENGINE_CONFIG)
+    const threatRes = dispatch(
+      state,
+      { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' },
+      DEFAULT_ENGINE_CONFIG,
+    )
     expect(threatRes.success).toBe(true)
     expect(state.phase).toBe('EXPEDITION')
   })
@@ -369,7 +366,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       'soldiers',
       300,
       new PRNG(123),
-      DEFAULT_ENGINE_CONFIG
+      DEFAULT_ENGINE_CONFIG,
     )
 
     expect(result.provinceWon).toBe(true)
@@ -397,7 +394,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       'soldiers',
       300,
       new PRNG(123),
-      DEFAULT_ENGINE_CONFIG
+      DEFAULT_ENGINE_CONFIG,
     )
 
     expect(result.provinceWon).toBe(true)
@@ -424,7 +421,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       0,
       new PRNG(456),
       DEFAULT_ENGINE_CONFIG,
-      tributeAp
+      tributeAp,
     )
 
     expect(clash.success).toBe(true)

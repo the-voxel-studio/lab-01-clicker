@@ -34,7 +34,7 @@ export function triggerDefeat(state: GameState, reason: DefeatReason): void {
 export function addUnrest(
   state: GameState,
   delta: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): void {
   void config // Reserved for potential config overrides
   state.unrest = Math.max(0, Math.min(100, state.unrest + delta))
@@ -90,11 +90,7 @@ export const POPULATION_LOSS_CASCADE_ORDER: readonly UnitId[] = [
  * @param isStarvation - When true, tracks actual losses in state.starvationLosses.
  * @returns The actual population lost.
  */
-export function applyPopulationLoss(
-  state: GameState,
-  loss: number,
-  isStarvation = false
-): number {
+export function applyPopulationLoss(state: GameState, loss: number, isStarvation = false): number {
   if (loss <= 0 || state.totalPopulation <= 0) return 0
 
   const targetLoss = Math.min(loss, state.totalPopulation)

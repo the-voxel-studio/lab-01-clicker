@@ -41,7 +41,7 @@ describe('Automated Bot Archetype Simulations & Balance Calibration', () => {
       const winRate = wins / runCount
       expect(winRate).toBeGreaterThanOrEqual(0.35)
       expect(winRate).toBeLessThanOrEqual(0.65)
-    }
+    },
   )
 
   it.fails(
@@ -53,13 +53,16 @@ describe('Automated Bot Archetype Simulations & Balance Calibration', () => {
       for (let seed = 3001; seed < 3001 + runCount; seed++) {
         const result = runSimulation(expertBotStrategy, seed)
         if (result.won) wins++
-        else console.log(`Expert fail seed=${seed} d=${result.finalDeadline} reason=${result.defeatReason}`)
+        else
+          console.log(
+            `Expert fail seed=${seed} d=${result.finalDeadline} reason=${result.defeatReason}`,
+          )
       }
 
       const winRate = wins / runCount
       console.log(`[Expert Bot] Wins: ${wins}/${runCount} (${(winRate * 100).toFixed(1)}%)`)
       expect(winRate).toBeGreaterThan(0.65)
-    }
+    },
   )
 
   it('validates dominance test: no unit exceeds 60% of total expenditure after Deadline 3', () => {
@@ -71,7 +74,7 @@ describe('Automated Bot Archetype Simulations & Balance Calibration', () => {
 
     for (const [, spend] of Object.entries(result.unitExpenditures)) {
       const share = spend / totalSpend
-      expect(share).toBeLessThan(0.60)
+      expect(share).toBeLessThan(0.6)
     }
   })
 

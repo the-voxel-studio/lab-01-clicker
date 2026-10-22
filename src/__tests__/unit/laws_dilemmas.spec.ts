@@ -56,7 +56,11 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
       state.currentDilemmaId = 'dilemma:taxable_windows'
 
       // Choice 1: Forbid tax
-      const res = dispatch(state, { type: 'RESOLVE_DILEMMA', dilemmaId: 'dilemma:taxable_windows', choiceIndex: 1 })
+      const res = dispatch(state, {
+        type: 'RESOLVE_DILEMMA',
+        dilemmaId: 'dilemma:taxable_windows',
+        choiceIndex: 1,
+      })
       expect(res.success).toBe(true)
       expect(state.phase).toBe('COUNCIL_LAWS')
       expect(state.currentLawDraft.length).toBe(3)
@@ -112,7 +116,11 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
       const state = createInitialGameState()
       state.deadline = 2
       state.phase = 'COUNCIL_LAWS'
-      state.currentLawDraft = ['law:royal_scriptorium', 'law:holy_days_vigils', 'law:standing_garrisons']
+      state.currentLawDraft = [
+        'law:royal_scriptorium',
+        'law:holy_days_vigils',
+        'law:standing_garrisons',
+      ]
 
       const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' })
       expect(res.success).toBe(true)
@@ -124,7 +132,11 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
     it('rejects enacting a law that is not in the current draft', () => {
       const state = createInitialGameState()
       state.phase = 'COUNCIL_LAWS'
-      state.currentLawDraft = ['law:royal_scriptorium', 'law:holy_days_vigils', 'law:standing_garrisons']
+      state.currentLawDraft = [
+        'law:royal_scriptorium',
+        'law:holy_days_vigils',
+        'law:standing_garrisons',
+      ]
 
       const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:crown_monopolies' })
       expect(res.success).toBe(false)
@@ -137,7 +149,11 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
       const state = createInitialGameState()
       state.phase = 'COUNCIL_LAWS'
       state.activeLaws = ['law:1', 'law:2', 'law:3', 'law:4', 'law:5']
-      state.currentLawDraft = ['law:royal_scriptorium', 'law:holy_days_vigils', 'law:standing_garrisons']
+      state.currentLawDraft = [
+        'law:royal_scriptorium',
+        'law:holy_days_vigils',
+        'law:standing_garrisons',
+      ]
 
       const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' })
       expect(res.success).toBe(false)
@@ -149,7 +165,11 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
       const state = createInitialGameState()
       state.phase = 'COUNCIL_LAWS'
       state.ap = 50
-      state.currentLawDraft = ['law:grand_kermesse', 'law:holy_days_vigils', 'law:standing_garrisons']
+      state.currentLawDraft = [
+        'law:grand_kermesse',
+        'law:holy_days_vigils',
+        'law:standing_garrisons',
+      ]
 
       // Grand Kermesse costs 400 AP
       const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:grand_kermesse' })

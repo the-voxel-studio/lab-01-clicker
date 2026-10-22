@@ -127,9 +127,9 @@ export interface Modifier {
   /** Game timestamp (in seconds) when this modifier expires (undefined = permanent). */
   expiresAt?: number
   /**
-    * Optional strongly typed resolver key for dynamic conditional modifiers.
-    * Evaluated dynamically against current GameState, never serialized as a function.
-    */
+   * Optional strongly typed resolver key for dynamic conditional modifiers.
+   * Evaluated dynamically against current GameState, never serialized as a function.
+   */
   resolverKey?: ResolverKey
 }
 
@@ -139,7 +139,11 @@ export interface Modifier {
  */
 export type Effect =
   | { type: 'stat_modifier'; modifier: Modifier }
-  | { type: 'instant_resource'; resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'; amount: number }
+  | {
+      type: 'instant_resource'
+      resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'
+      amount: number
+    }
   | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
   | { type: 'rule_flag'; flag: string; enabled: boolean }
 
@@ -192,11 +196,11 @@ export interface CampaignTarget {
 
 /** Crisis escalation stages governed by public unrest level. */
 export type UnrestCrisisStage =
-  | 'tranquility'        // 0% - 49%: Normal governance
-  | 'fiscal_boycott'     // 50% - 74%: -20% Tax revenue
-  | 'strife_desertion'   // 75% - 89%: Pop growth frozen, desertions
-  | 'urban_rebellion'    // 90% - 99%: Admin AP output cut by 50%
-  | 'total_revolution'   // 100%: Realm collapse (Defeat)
+  | 'tranquility' // 0% - 49%: Normal governance
+  | 'fiscal_boycott' // 50% - 74%: -20% Tax revenue
+  | 'strife_desertion' // 75% - 89%: Pop growth frozen, desertions
+  | 'urban_rebellion' // 90% - 99%: Admin AP output cut by 50%
+  | 'total_revolution' // 100%: Realm collapse (Defeat)
 
 /** Defeat mode classification. */
 export type DefeatReason = 'quota_failure' | 'revolution' | 'bankruptcy' | 'conquest'

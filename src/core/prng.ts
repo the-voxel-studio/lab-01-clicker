@@ -44,7 +44,7 @@ export interface HasRngStreams {
 export function withStatePrng<T>(
   state: HasRngStreams,
   stream: RngStream,
-  fn: (prng: PRNG) => T
+  fn: (prng: PRNG) => T,
 ): T {
   const prng = new PRNG(state.rngStreams[stream])
   const result = fn(prng)

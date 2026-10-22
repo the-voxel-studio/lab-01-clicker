@@ -14,29 +14,45 @@ import type { Command } from './types'
  */
 export type RunPhase =
   // Inter-deadline sequence (GAME_RULES §8)
-  | 'AUDIT_ASSESSMENT'     // 1. Quotas evaluated, sanction/pardon or victory
-  | 'COUNCIL_DILEMMA'      // 2. Steward dilemma presentation
-  | 'COUNCIL_LAWS'         // 3. Council laws draft / reject
-  | 'THREAT_HERALD'        // 4. Upcoming threat announcement & response
-  | 'EXPEDITION'           // 5. Campaign planning, scout rerolls, launch
-  | 'AWAIT_RESUME'         // 6. Paused before unpausing, "Resume Governance" CTA
+  | 'AUDIT_ASSESSMENT' // 1. Quotas evaluated, sanction/pardon or victory
+  | 'COUNCIL_DILEMMA' // 2. Steward dilemma presentation
+  | 'COUNCIL_LAWS' // 3. Council laws draft / reject
+  | 'THREAT_HERALD' // 4. Upcoming threat announcement & response
+  | 'EXPEDITION' // 5. Campaign planning, scout rerolls, launch
+  | 'AWAIT_RESUME' // 6. Paused before unpausing, "Resume Governance" CTA
 
   // Active loop & Crisis states
-  | 'ACTIVE_CYCLE'         // Main ticking governance phase
-  | 'SURPRISE_RAID'        // Spontaneous border raid interrupting cycle
-  | 'LOMBARD_OFFER'        // Offered at 20s of bankruptcy grace timer (pauses countdown)
-  | 'RUN_VICTORY'          // Beat deadline 10
-  | 'RUN_DEFEAT'           // Game over
+  | 'ACTIVE_CYCLE' // Main ticking governance phase
+  | 'SURPRISE_RAID' // Spontaneous border raid interrupting cycle
+  | 'LOMBARD_OFFER' // Offered at 20s of bankruptcy grace timer (pauses countdown)
+  | 'RUN_VICTORY' // Beat deadline 10
+  | 'RUN_DEFEAT' // Game over
 
 /** Allowed dispatchable commands per RunPhase. */
 export const ALLOWED_COMMANDS_BY_PHASE: Record<RunPhase, readonly Command['type'][]> = {
-  ACTIVE_CYCLE: ['BUY_UNIT', 'DISBAND_UNIT', 'SET_TAX_RATE', 'STAMP_DOCUMENT', 'COLONISE_PROVINCE', 'ENACT_EDICT', 'UNLOCK_PATENT', 'TICK'],
+  ACTIVE_CYCLE: [
+    'BUY_UNIT',
+    'DISBAND_UNIT',
+    'SET_TAX_RATE',
+    'STAMP_DOCUMENT',
+    'COLONISE_PROVINCE',
+    'ENACT_EDICT',
+    'UNLOCK_PATENT',
+    'TICK',
+  ],
   AUDIT_ASSESSMENT: ['SUBMIT_AUDIT'],
   COUNCIL_DILEMMA: ['RESOLVE_DILEMMA'],
   COUNCIL_LAWS: ['ENACT_LAW', 'REJECT_LAWS'],
   THREAT_HERALD: ['SELECT_THREAT_RESPONSE'],
   EXPEDITION: ['LAUNCH_ATTACK', 'RECON_PATROL', 'SKIP_EXPEDITION'],
-  AWAIT_RESUME: ['RESUME_GOVERNANCE', 'BUY_UNIT', 'DISBAND_UNIT', 'COLONISE_PROVINCE', 'SET_TAX_RATE', 'UNLOCK_PATENT'],
+  AWAIT_RESUME: [
+    'RESUME_GOVERNANCE',
+    'BUY_UNIT',
+    'DISBAND_UNIT',
+    'COLONISE_PROVINCE',
+    'SET_TAX_RATE',
+    'UNLOCK_PATENT',
+  ],
   SURPRISE_RAID: ['RESOLVE_RAID_DEFENSE'],
   LOMBARD_OFFER: ['ACCEPT_LOMBARD_LOAN', 'REFUSE_LOMBARD_LOAN'],
   RUN_VICTORY: ['RESTART_RUN'],
@@ -59,7 +75,7 @@ export function isCommandAllowedInPhase(phase: RunPhase, commandType: Command['t
 export function assertCommandAllowed(phase: RunPhase, command: Command): void {
   if (!isCommandAllowedInPhase(phase, command.type)) {
     throw new Error(
-      `Command '${command.type}' is illegal during phase '${phase}'. Allowed commands: [${ALLOWED_COMMANDS_BY_PHASE[phase].join(', ')}]`
+      `Command '${command.type}' is illegal during phase '${phase}'. Allowed commands: [${ALLOWED_COMMANDS_BY_PHASE[phase].join(', ')}]`,
     )
   }
 }

@@ -6,10 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import {
-  tick,
-  evaluateDeadlineAudit,
-} from '@/core/engine'
+import { tick, evaluateDeadlineAudit } from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 
@@ -91,7 +88,7 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     tick(state, 2.0)
 
     expect(state.totalPopulation).toBeCloseTo(800 - 2.5 * 2.0, 1)
-    expect(state.unrest).toBeCloseTo(10 + 0.10 * 2.0, 1)
+    expect(state.unrest).toBeCloseTo(10 + 0.1 * 2.0, 1)
   })
 
   it('applies unrest stage penalties during simulation tick', () => {

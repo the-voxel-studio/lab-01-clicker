@@ -32,8 +32,7 @@ const allIconsList = Object.values(GAME_ICONS)
 
 const filteredIcons = computed(() => {
   return allIconsList.filter((item) => {
-    const matchesCat =
-      selectedCategory.value === 'all' || item.category === selectedCategory.value
+    const matchesCat = selectedCategory.value === 'all' || item.category === selectedCategory.value
     const q = searchQuery.value.toLowerCase().trim()
     const matchesQuery =
       !q ||
@@ -71,7 +70,9 @@ async function copySnippet(key: GameIconKey): Promise<void> {
         </h2>
 
         <!-- Color Tester Dots -->
-        <div class="flex items-center gap-1.5 bg-fief-dark px-2 py-1 rounded border border-fief-border">
+        <div
+          class="flex items-center gap-1.5 bg-fief-dark px-2 py-1 rounded border border-fief-border"
+        >
           <button
             v-for="c in colorOptions"
             :key="c.class"
@@ -80,7 +81,7 @@ async function copySnippet(key: GameIconKey): Promise<void> {
             :class="[
               c.bg,
               'w-4 h-4 rounded-full border border-fief-border transition-transform cursor-pointer',
-              activeColor === c.class ? 'scale-125 ring-2 ring-royal-gold' : 'hover:scale-110'
+              activeColor === c.class ? 'scale-125 ring-2 ring-royal-gold' : 'hover:scale-110',
             ]"
             :title="c.label"
           />
@@ -95,7 +96,12 @@ async function copySnippet(key: GameIconKey): Promise<void> {
           placeholder="Search icons (e.g. scroll, seal, sword, scribe)..."
           class="w-full bg-fief-dark border border-fief-border rounded px-2.5 py-1.5 text-xs text-fief-text placeholder-fief-text-dim focus:outline-none focus:border-royal-gold"
         />
-        <span v-if="searchQuery" class="absolute right-2 top-1.5 text-xs text-fief-text-dim cursor-pointer" @click="searchQuery = ''">✕</span>
+        <span
+          v-if="searchQuery"
+          class="absolute right-2 top-1.5 text-xs text-fief-text-dim cursor-pointer"
+          @click="searchQuery = ''"
+          >✕</span
+        >
       </div>
 
       <!-- Category Filter Horizontal Scroll -->
@@ -109,7 +115,7 @@ async function copySnippet(key: GameIconKey): Promise<void> {
             'px-2 py-0.5 rounded whitespace-nowrap transition-colors cursor-pointer border',
             selectedCategory === cat.key
               ? 'bg-wax-red text-white border-wax-red font-bold'
-              : 'bg-fief-dark text-fief-text-muted border-fief-border hover:text-fief-text'
+              : 'bg-fief-dark text-fief-text-muted border-fief-border hover:text-fief-text',
           ]"
         >
           {{ cat.label }}
@@ -125,8 +131,13 @@ async function copySnippet(key: GameIconKey): Promise<void> {
         @click="copySnippet(item.key)"
         class="bg-fief-card border border-fief-border hover:border-royal-gold rounded-lg p-2 flex flex-col items-center text-center transition-all cursor-pointer relative active:scale-95"
       >
-        <div class="w-10 h-10 rounded bg-fief-dark border border-fief-border flex items-center justify-center p-1.5 mb-1.5">
-          <GameIcon :name="item.key" :class="[activeColor, 'w-7 h-7 transition-colors drop-shadow-xs']" />
+        <div
+          class="w-10 h-10 rounded bg-fief-dark border border-fief-border flex items-center justify-center p-1.5 mb-1.5"
+        >
+          <GameIcon
+            :name="item.key"
+            :class="[activeColor, 'w-7 h-7 transition-colors drop-shadow-xs']"
+          />
         </div>
 
         <span class="font-mono text-[9px] font-bold text-fief-text truncate max-w-full">
@@ -146,7 +157,10 @@ async function copySnippet(key: GameIconKey): Promise<void> {
       </div>
     </div>
 
-    <div v-if="filteredIcons.length === 0" class="text-center py-8 bg-fief-card border border-fief-border rounded text-xs text-fief-text-dim italic">
+    <div
+      v-if="filteredIcons.length === 0"
+      class="text-center py-8 bg-fief-card border border-fief-border rounded text-xs text-fief-text-dim italic"
+    >
       No icons found matching your query.
     </div>
   </div>

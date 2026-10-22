@@ -88,14 +88,7 @@ import chevronSvg from '@assets/icons/delapouite/plain-arrow.svg?raw'
 import waxSealSvg from '@assets/icons/lorc/wax-seal.svg?raw'
 
 export type GameIconCategory =
-  | 'royal'
-  | 'admin'
-  | 'people'
-  | 'military'
-  | 'threat'
-  | 'economy'
-  | 'time'
-  | 'ui'
+  'royal' | 'admin' | 'people' | 'military' | 'threat' | 'economy' | 'time' | 'ui'
 
 export interface IconDefinition {
   /** Unique identifier of the icon. */

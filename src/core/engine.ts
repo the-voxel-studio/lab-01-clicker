@@ -6,11 +6,7 @@
  * @module core/engine
  */
 
-import {
-  UNITS_DATA,
-  BIOMES_DATA,
-  type UnitId,
-} from '@/data/balance'
+import { UNITS_DATA, BIOMES_DATA, type UnitId } from '@/data/balance'
 import {
   refillTokenBucket,
   calculateHousingCapacity,
@@ -19,18 +15,9 @@ import {
   calculatePaperworkFriction,
   getUnrestCrisisStage,
 } from './formulas'
-import {
-  composeStat,
-  extractRawEvaluationState,
-  TickStatCache,
-} from './modifiers'
+import { composeStat, extractRawEvaluationState, TickStatCache } from './modifiers'
 import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
-import type {
-  GameState,
-  TickResult,
-  AuditOutcome,
-  BiomeId,
-} from './types'
+import type { GameState, TickResult, AuditOutcome, BiomeId } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
 
@@ -68,7 +55,7 @@ export function calculateMilitaryPower(state: GameState): number {
  */
 export function calculateGrossApRate(
   state: GameState,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): { total: number; pollTax: number } {
   const rawState = extractRawEvaluationState(state)
   const crisisStage = getUnrestCrisisStage(state.unrest)
@@ -84,15 +71,9 @@ export function calculateGrossApRate(
   const rebellionFriction = crisisStage === 'urban_rebellion' ? 0.5 : 1.0
 
   grossApRate +=
-    (state.units.scribe ?? 0) *
-    UNITS_DATA.scribe.baseValue *
-    adminMultiplier *
-    rebellionFriction
+    (state.units.scribe ?? 0) * UNITS_DATA.scribe.baseValue * adminMultiplier * rebellionFriction
   grossApRate +=
-    (state.units.clerk ?? 0) *
-    UNITS_DATA.clerk.baseValue *
-    adminMultiplier *
-    rebellionFriction
+    (state.units.clerk ?? 0) * UNITS_DATA.clerk.baseValue * adminMultiplier * rebellionFriction
 
   // Collectors & Farmers-General (Non-quadratic yield with shared finite serf pool)
   const fgCount = state.units.farmer_general ?? 0
@@ -101,18 +82,15 @@ export function calculateGrossApRate(
     fgCount,
     state.freeSerfs,
     UNITS_DATA.farmer_general.baseValue,
-    config
+    config,
   )
-  const serfsUsedByFg = Math.min(
-    state.freeSerfs,
-    fgCount * config.balance.SERFS_PER_COLLECTOR
-  )
+  const serfsUsedByFg = Math.min(state.freeSerfs, fgCount * config.balance.SERFS_PER_COLLECTOR)
   const remainingSerfs = Math.max(0, state.freeSerfs - serfsUsedByFg)
   const colYield = calculateCollectorYield(
     colCount,
     remainingSerfs,
     UNITS_DATA.collector.baseValue,
-    config
+    config,
   )
   grossApRate += fgYield + colYield
 
@@ -128,14 +106,8 @@ export function calculateGrossApRate(
   const taxEfficiencyMultiplier = tickStatCache.getOrCompute(
     'tax_efficiency',
     state.tickIndex,
-    () =>
-      composeStat(
-        'tax_efficiency',
-        baseArtisanTaxBonus,
-        state.activeModifiers,
-        rawState
-      ),
-    state
+    () => composeStat('tax_efficiency', baseArtisanTaxBonus, state.activeModifiers, rawState),
+    state,
   )
   const pollTax =
     state.freeSerfs *
@@ -149,14 +121,8 @@ export function calculateGrossApRate(
   const total = tickStatCache.getOrCompute(
     'gross_ap_rate',
     state.tickIndex,
-    () =>
-      composeStat(
-        'gross_ap_rate',
-        grossApRate,
-        state.activeModifiers,
-        rawState
-      ),
-    state
+    () => composeStat('gross_ap_rate', grossApRate, state.activeModifiers, rawState),
+    state,
   )
 
   return { total, pollTax }
@@ -217,7 +183,7 @@ export function getBiomeModifiers(state: GameState): AggregatedBiomeModifiers {
  */
 export function calculateMaxPopulation(
   state: GameState,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const biomeMods = getBiomeModifiers(state)
   const baseHousing = calculateHousingCapacity(
@@ -225,14 +191,14 @@ export function calculateMaxPopulation(
     state.units.notable ?? 0,
     state.units.baron ?? 0,
     biomeMods.housingMultiplier,
-    config
+    config,
   )
   const rawState = extractRawEvaluationState(state)
   return tickStatCache.getOrCompute(
     'housing_capacity',
     state.tickIndex,
     () => composeStat('housing_capacity', baseHousing, state.activeModifiers, rawState),
-    state
+    state,
   )
 }
 
@@ -245,7 +211,7 @@ export function calculateMaxPopulation(
  */
 export function calculateNetPaperwork(
   state: GameState,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const biomeMods = getBiomeModifiers(state)
   const archivistReduction =
@@ -257,7 +223,7 @@ export function calculateNetPaperwork(
     state.units,
     state.provinces,
     archivistReduction,
-    config
+    config,
   )
 
   const rawState = extractRawEvaluationState(state)
@@ -269,9 +235,9 @@ export function calculateNetPaperwork(
         'paperwork_friction',
         state.tickIndex,
         () => composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState),
-        state
-      )
-    )
+        state,
+      ),
+    ),
   )
 }
 
@@ -285,13 +251,11 @@ export function calculateNetPaperwork(
  */
 export function evaluateDeadlineAudit(
   state: GameState,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): AuditOutcome {
   tickStatCache.clear()
   const quotas = config.quotas
-  const quota =
-    quotas.find((q) => q.deadline === state.deadline) ??
-    quotas[quotas.length - 1]!
+  const quota = quotas.find((q) => q.deadline === state.deadline) ?? quotas[quotas.length - 1]!
 
   const { total: grossApRate } = calculateGrossApRate(state, config)
   const apMet = grossApRate >= quota.apRate
@@ -368,7 +332,7 @@ export function evaluateDeadlineAudit(
 export function tick(
   state: GameState,
   dt: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): TickResult {
   if (state.isPaused || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
     return {
@@ -414,7 +378,7 @@ export function tick(
   // 0b. Bound stepDt to prevent deadline overshooting
   const stepDt = Math.min(
     dt,
-    Math.max(0, config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds)
+    Math.max(0, config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds),
   )
   if (stepDt <= 0 || config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9) {
     state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
@@ -449,7 +413,7 @@ export function tick(
 
   // 0c. Purge expired modifiers before evaluation
   state.activeModifiers = state.activeModifiers.filter(
-    (mod) => mod.expiresAt === undefined || mod.expiresAt > state.totalElapsedSeconds
+    (mod) => mod.expiresAt === undefined || mod.expiresAt > state.totalElapsedSeconds,
   )
   const rawState = extractRawEvaluationState(state)
 
@@ -482,21 +446,12 @@ export function tick(
   const peasantRateBonus = (state.units.peasant ?? 0) * 0.0005
   const farmerRateBonus = (state.units.farmer ?? 0) * 0.003
   const baseGrowthRateR =
-    config.balance.BASE_POP_GROWTH_RATE_R +
-    peasantRateBonus +
-    farmerRateBonus +
-    biomeMods.deltaR
+    config.balance.BASE_POP_GROWTH_RATE_R + peasantRateBonus + farmerRateBonus + biomeMods.deltaR
   const effectiveGrowthRateR = tickStatCache.getOrCompute(
     'pop_growth_rate',
     state.tickIndex,
-    () =>
-      composeStat(
-        'pop_growth_rate',
-        baseGrowthRateR,
-        state.activeModifiers,
-        rawState
-      ),
-    state
+    () => composeStat('pop_growth_rate', baseGrowthRateR, state.activeModifiers, rawState),
+    state,
   )
 
   let popGrowthThisTick = 0
@@ -517,17 +472,14 @@ export function tick(
       maxPop,
       effectiveGrowthRateR,
       state.taxRate,
-      config
+      config,
     )
     popGrowthThisTick = growthPerSec * stepDt
     state.totalPopulation += popGrowthThisTick
     state.freeSerfs += popGrowthThisTick
   } else if (initialExcessPop > 0) {
     // Housing crisis overcrowding bleed
-    const bleed = Math.min(
-      initialExcessPop,
-      config.balance.OVERCROWDING_BLEED_RATE * stepDt
-    )
+    const bleed = Math.min(initialExcessPop, config.balance.OVERCROWDING_BLEED_RATE * stepDt)
     applyPopulationLoss(state, bleed, true)
   }
 
@@ -564,34 +516,31 @@ export function tick(
   let taxUnrestRate = state.taxRate > 25 ? ((state.taxRate - 25) / 10) * 0.05 : 0
   const prelateCount = state.units.prelate ?? 0
   if (taxUnrestRate > 0 && prelateCount > 0) {
-    const prelateDiscount = Math.min(0.80, prelateCount * 0.20)
+    const prelateDiscount = Math.min(0.8, prelateCount * 0.2)
     taxUnrestRate *= 1.0 - prelateDiscount
   }
   const overcrowdingUnrestRate =
-    initialExcessPop > 0 ? Math.min(1.0, 0.10 * (initialExcessPop / 50)) : 0
+    initialExcessPop > 0 ? Math.min(1.0, 0.1 * (initialExcessPop / 50)) : 0
   const baseUnrestGen = taxUnrestRate + overcrowdingUnrestRate
   const composedGen = Math.max(
     0,
     tickStatCache.getOrCompute(
       'unrest_generation',
       state.tickIndex,
-      () =>
-        composeStat('unrest_generation', baseUnrestGen, state.activeModifiers, rawState),
-      state
-    )
+      () => composeStat('unrest_generation', baseUnrestGen, state.activeModifiers, rawState),
+      state,
+    ),
   )
 
-  const baseUnrestPac =
-    (state.units.clergy ?? 0) * 0.02 + (state.units.prelate ?? 0) * 0.15
+  const baseUnrestPac = (state.units.clergy ?? 0) * 0.02 + (state.units.prelate ?? 0) * 0.15
   const composedPac = Math.max(
     0,
     tickStatCache.getOrCompute(
       'unrest_pacification',
       state.tickIndex,
-      () =>
-        composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
-      state
-    )
+      () => composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
+      state,
+    ),
   )
 
   addUnrest(state, (composedGen - composedPac) * stepDt, config)
@@ -600,11 +549,10 @@ export function tick(
   const hasSanctuaryRights =
     state.activeLaws.includes('law:sanctuary_rights') ||
     state.activeModifiers.some((m) => m.source === 'law:sanctuary_rights')
-  const isDesertionActive =
-    state.unrest >= 75 && !(hasSanctuaryRights && state.unrest < 90)
+  const isDesertionActive = state.unrest >= 75 && !(hasSanctuaryRights && state.unrest < 90)
 
   const getEligibleDesertion = (
-    s: GameState
+    s: GameState,
   ): { unitId: 'soldier' | 'man_at_arms'; threshold: number } | null => {
     if ((s.units.soldier ?? 0) > 0) return { unitId: 'soldier', threshold: 15.0 }
     if ((s.units.man_at_arms ?? 0) > 0) return { unitId: 'man_at_arms', threshold: 30.0 }
@@ -632,7 +580,11 @@ export function tick(
     if (state.phase === 'ACTIVE_CYCLE') {
       state.bankruptcyGraceTimer -= stepDt
       // Lombard bailout offer only available if provinces >= 2 (§14.4, arbitrage 1.0 §11)
-      if (state.bankruptcyGraceTimer <= 20.0 && state.lombardBailoutAvailable && state.provinces >= 2) {
+      if (
+        state.bankruptcyGraceTimer <= 20.0 &&
+        state.lombardBailoutAvailable &&
+        state.provinces >= 2
+      ) {
         state.phase = 'LOMBARD_OFFER'
       }
       if (state.bankruptcyGraceTimer <= 0) {

@@ -6,12 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import {
-  composeStat,
-  TickStatCache,
-  applyEffect,
-  type RawEvaluationState,
-} from '@/core/modifiers'
+import { composeStat, TickStatCache, applyEffect, type RawEvaluationState } from '@/core/modifiers'
 import { createInitialGameState } from '@/core/state'
 import type { Modifier } from '@/core/types'
 
@@ -66,7 +61,9 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     }
 
     // <= 3 provinces -> active (+15%)
-    expect(composeStat('tax_efficiency', baseIncome, [isolationismMod], stateSmall)).toBeCloseTo(115)
+    expect(composeStat('tax_efficiency', baseIncome, [isolationismMod], stateSmall)).toBeCloseTo(
+      115,
+    )
 
     // > 3 provinces -> inactive
     const stateExpanded: RawEvaluationState = { ...stateSmall, provinces: 4 }

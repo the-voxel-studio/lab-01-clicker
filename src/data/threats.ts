@@ -7,12 +7,7 @@
 import type { GameState } from '@/core/types'
 
 export type FactionId =
-  | 'outlaws'
-  | 'barons'
-  | 'mercenaries'
-  | 'zealots'
-  | 'steppe_horsemen'
-  | 'imperial_legions'
+  'outlaws' | 'barons' | 'mercenaries' | 'zealots' | 'steppe_horsemen' | 'imperial_legions'
 
 export interface FactionDef {
   id: FactionId
@@ -25,8 +20,12 @@ export interface FactionDef {
   applyReactiveTrait: (
     state: GameState,
     threatPower: number,
-    tributeCost: number
-  ) => { adjustedThreatPower: number; adjustedTributeCost: number; extraCivilianCasualtyRate: number }
+    tributeCost: number,
+  ) => {
+    adjustedThreatPower: number
+    adjustedTributeCost: number
+    extraCivilianCasualtyRate: number
+  }
 }
 
 export interface ScheduledThreatDef {
@@ -42,8 +41,10 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
   outlaws: {
     id: 'outlaws',
     name: 'Outlaw Bandits & Marauders',
-    description: 'Bandits and deserters preying on poorly defended villages. Loot yields rescued captive serfs.',
-    reactiveTraitDescription: 'If player possesses < 10 soldiers, bandits inflict +15% civilian casualties upon collapse.',
+    description:
+      'Bandits and deserters preying on poorly defended villages. Loot yields rescued captive serfs.',
+    reactiveTraitDescription:
+      'If player possesses < 10 soldiers, bandits inflict +15% civilian casualties upon collapse.',
     applyReactiveTrait: (state, threatPower, tributeCost) => {
       const soldiers = state.units.soldier ?? 0
       return {
@@ -56,12 +57,14 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
   barons: {
     id: 'barons',
     name: 'Rebel Barons & Armored Knights',
-    description: 'Disciplined armored retinues fighting for feudal privileges. Surrenders yield armored soldiers.',
-    reactiveTraitDescription: 'If player maintains a huge army (>= 1.2x Quota), enemies deploy Armored Veterans (+10% power).',
+    description:
+      'Disciplined armored retinues fighting for feudal privileges. Surrenders yield armored soldiers.',
+    reactiveTraitDescription:
+      'If player maintains a huge army (>= 1.2x Quota), enemies deploy Armored Veterans (+10% power).',
     applyReactiveTrait: (state, threatPower, tributeCost) => {
       // In combat, threat power increases by 10% if player military exceeds 1.2x quota
       return {
-        adjustedThreatPower: Math.round(threatPower * 1.10),
+        adjustedThreatPower: Math.round(threatPower * 1.1),
         adjustedTributeCost: tributeCost,
         extraCivilianCasualtyRate: 0,
       }
@@ -82,7 +85,8 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
     id: 'zealots',
     name: 'Holy League Zealots',
     description: 'Religious fanatics exploiting peasant discontent. Victory yields converts.',
-    reactiveTraitDescription: 'If player Unrest is > 60%, zealots trigger Religious Defection (+15 Unrest and soldier desertions).',
+    reactiveTraitDescription:
+      'If player Unrest is > 60%, zealots trigger Religious Defection (+15 Unrest and soldier desertions).',
     applyReactiveTrait: (state, threatPower, tributeCost) => {
       if (state.unrest > 60) {
         state.unrest = Math.min(100, state.unrest + 15)

@@ -12,4 +12,3 @@ app.config.errorHandler = (err, instance, info) => {
 
 app.use(createPinia())
 app.mount('#app')
-

@@ -23,7 +23,7 @@ export function refillTokenBucket(
   currentTokens: number,
   dt: number,
   maxTokens?: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const capacity = maxTokens ?? config.balance.CLICK_MAX_TOKENS_PER_SECOND
   return Math.min(capacity, currentTokens + capacity * dt)
@@ -44,7 +44,7 @@ export function calculateClickValue(
   grossApRate: number,
   sealMultiplier: number = 1.0,
   isCritical: boolean = false,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const baseValue = 1.0 + Math.max(0, grossApRate * 0.035)
   const critMultiplier = isCritical ? config.balance.CLICK_CRITICAL_MULTIPLIER : 1.0
@@ -65,7 +65,7 @@ export function calculateUnitCost(
   unitId: UnitId,
   currentOwned: number,
   countToBuy: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   if (countToBuy <= 0) return 0
   const unit = UNITS_DATA[unitId]
@@ -83,9 +83,7 @@ export function calculateUnitCost(
 
   // Geometric sum: base * r^n * (r^K - 1) / (r - 1)
   const cost =
-    baseCost *
-    Math.pow(ratio, currentOwned) *
-    ((Math.pow(ratio, countToBuy) - 1) / (ratio - 1))
+    baseCost * Math.pow(ratio, currentOwned) * ((Math.pow(ratio, countToBuy) - 1) / (ratio - 1))
   return Math.round(cost * 100) / 100
 }
 
@@ -108,7 +106,7 @@ export function getMaxBulkSize(
   deadline: number,
   totalPopulation: number,
   def: UnitBalanceDef,
-  _config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  _config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): 1 | 10 | 50 | 100 {
   if (deadline >= 8 && def.allowsBulk100) {
     return 100
@@ -144,7 +142,7 @@ export function calculateMaxAffordableUnits(
   freeSerfs: number,
   orderHeadroom: number,
   maxBulkSizeOrConfig?: number | EngineConfig,
-  maybeConfig?: EngineConfig
+  maybeConfig?: EngineConfig,
 ): number {
   const maxBulkSize = typeof maxBulkSizeOrConfig === 'number' ? maxBulkSizeOrConfig : Infinity
   const config =
@@ -180,12 +178,7 @@ export function calculateMaxAffordableUnits(
     affordableByAp--
   }
 
-  return Math.min(
-    affordableByAp,
-    Math.floor(freeSerfs),
-    Math.floor(orderHeadroom),
-    maxBulkSize
-  )
+  return Math.min(affordableByAp, Math.floor(freeSerfs), Math.floor(orderHeadroom), maxBulkSize)
 }
 
 /**
@@ -217,7 +210,7 @@ export function calculateLogisticGrowth(
   maxPopulation: number,
   growthRateR?: number,
   taxRate?: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   if (population <= 0 || maxPopulation <= 0) return 0
 
@@ -248,7 +241,7 @@ export function calculateHousingCapacity(
   notables: number = 0,
   barons: number = 0,
   additionalMultiplier: number = 1.0,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const baseCap = config.balance.BASE_HOUSING_PER_PROVINCE * Math.max(1, provinces)
   const roleBonus = 1.0 + notables * 0.015 + barons * 0.06
@@ -266,9 +259,12 @@ export function calculateHousingCapacity(
  */
 export function calculateColonisationCost(
   colonisedCount: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
-  return config.balance.COLONISATION_BASE_COST * Math.pow(config.balance.COLONISATION_COST_MULTIPLIER, colonisedCount)
+  return (
+    config.balance.COLONISATION_BASE_COST *
+    Math.pow(config.balance.COLONISATION_COST_MULTIPLIER, colonisedCount)
+  )
 }
 
 /**
@@ -286,7 +282,7 @@ export function calculateCollectorYield(
   collectorCount: number,
   freeSerfs: number,
   yieldRate: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   if (collectorCount <= 0 || freeSerfs <= 0) return 0
   const coveragePool = freeSerfs / config.balance.SERFS_PER_COLLECTOR
@@ -312,7 +308,7 @@ export function calculatePaperworkFriction(
   units: Record<UnitId, number>,
   provinces: number,
   archivistReduction: number = 0,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   let size = 0
 
@@ -421,7 +417,7 @@ export function getDynasticTitle(state: GameState, score?: number): string {
     }
     const finalScore = score ?? calculateRunScore(state)
     const adminContribution = (state.totalCumulativeAp ?? 0) * 0.01
-    if (finalScore > 0 && adminContribution > 0.60 * finalScore) {
+    if (finalScore > 0 && adminContribution > 0.6 * finalScore) {
       return 'Grand Treasurer of the Crown'
     }
     return 'Universal Sovereign'
@@ -430,4 +426,3 @@ export function getDynasticTitle(state: GameState, score?: number): string {
   // Active / in-progress run
   return 'The Sovereign Regent'
 }
-
