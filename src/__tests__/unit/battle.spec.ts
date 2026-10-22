@@ -45,7 +45,7 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
   })
 
   it('enforces the Razor-Thin Victory Rule: NO province awarded when 1.00 <= R <= 1.05', () => {
-    // 1. Decisive Victory (R >= 1.40)
+    // Decisive Victory (R >= 1.40)
     const decisive = evaluateCampaignOutcome(1.45)
     expect(decisive.outcome).toBe('decisive_victory')
     expect(decisive.provinceWon).toBe(true)
@@ -53,14 +53,14 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(decisive.casualtyRate).toBe(0.10)
     expect(decisive.unrestDelta).toBe(-5)
 
-    // 2. Clear Victory (1.05 < R < 1.40)
+    // Clear Victory (1.05 < R < 1.40)
     const clear = evaluateCampaignOutcome(1.20)
     expect(clear.outcome).toBe('clear_victory')
     expect(clear.provinceWon).toBe(true)
     expect(clear.lootMultiplier).toBe(1.0)
     expect(clear.casualtyRate).toBe(0.25)
 
-    // 3. RAZOR-THIN VICTORY (1.00 <= R <= 1.05): Army exhausted, NO PROVINCE WON!
+    // RAZOR-THIN VICTORY (1.00 <= R <= 1.05): Army exhausted, NO PROVINCE WON!
     const razorThin = evaluateCampaignOutcome(1.03)
     expect(razorThin.outcome).toBe('razor_thin_victory')
     expect(razorThin.provinceWon).toBe(false) // Core specification!
@@ -68,14 +68,14 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(razorThin.casualtyRate).toBe(0.50)
     expect(razorThin.unrestDelta).toBe(5)
 
-    // 4. Pyrrhic Standoff (0.80 <= R < 1.00)
+    // Pyrrhic Standoff (0.80 <= R < 1.00)
     const pyrrhic = evaluateCampaignOutcome(0.85)
     expect(pyrrhic.outcome).toBe('pyrrhic_standoff')
     expect(pyrrhic.provinceWon).toBe(false)
     expect(pyrrhic.lootMultiplier).toBe(0)
     expect(pyrrhic.casualtyRate).toBe(0.75)
 
-    // 5. Crushing Defeat (R < 0.80)
+    // Crushing Defeat (R < 0.80)
     const crushing = evaluateCampaignOutcome(0.60)
     expect(crushing.outcome).toBe('crushing_defeat')
     expect(crushing.provinceWon).toBe(false)
@@ -174,12 +174,12 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     state.freeSerfs = 200
     state.unrest = 10
 
-    // 1. Pay Tribute (bypasses combat, deducts AP)
+    // Pay Tribute (bypasses combat, deducts AP)
     const tributeRes = resolveScheduledThreat(state, 'tribute', 50, 400)
     expect(tributeRes.success).toBe(true)
     expect(state.ap).toBe(1600)
 
-    // 2. Levy en Masse (mobilizes 10% pop, +30 unrest, 5% casualties)
+    // Levy en Masse (mobilizes 10% pop, +30 unrest, 5% casualties)
     const levyRes = resolveScheduledThreat(state, 'levy', 50, 400)
     expect(levyRes.success).toBe(true)
     expect(state.unrest).toBe(40) // 10 + 30

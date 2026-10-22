@@ -65,7 +65,7 @@ function handleBuyUnit(
     return { success: false, error: `Unknown unit: ${unitId}` }
   }
 
-  // 1. Check Bulk Purchase Ceiling (GAME_RULES.md §5.1 & Arbitrage 1.0 §8)
+  // Check Bulk Purchase Ceiling (GAME_RULES.md §5.1 & Arbitrage 1.0 §8)
   const maxBulk = getMaxBulkSize(state.deadline, state.totalPopulation, def, config)
   if (count > maxBulk) {
     return {
@@ -74,7 +74,7 @@ function handleBuyUnit(
     }
   }
 
-  // 2. Check Tier II Royal Patent
+  // Check Tier II Royal Patent
   if (def.tier === 2 && !state.unlockedPatents[def.order]) {
     return {
       success: false,
@@ -82,7 +82,7 @@ function handleBuyUnit(
     }
   }
 
-  // 3. Check demographic availability (Free Serfs)
+  // Check demographic availability (Free Serfs)
   if (state.freeSerfs < count) {
     return {
       success: false,
@@ -90,7 +90,7 @@ function handleBuyUnit(
     }
   }
 
-  // 4. Check Order Headroom
+  // Check Order Headroom
   const maxPop = calculateMaxPopulation(state, config)
   const orderCaps = calculateOrderCaps(maxPop)
   const currentOrderCount = Object.entries(state.units).reduce((sum, [id, qty]) => {
@@ -104,7 +104,7 @@ function handleBuyUnit(
     }
   }
 
-  // 4. Check AP treasury
+  // Check AP treasury
   const currentOwned = state.units[unitId] ?? 0
   const totalCost = calculateUnitCost(unitId, currentOwned, count, config)
   if (state.ap < totalCost) {
@@ -141,7 +141,7 @@ function handleUnlockPatent(
     return { success: false, error: `Patent for order '${order}' is already unlocked.` }
   }
 
-  // 1. Reached at least Deadline 4
+  // Reached at least Deadline 4
   if (state.deadline < config.balance.PATENT_MIN_DEADLINE) {
     return {
       success: false,
@@ -149,7 +149,7 @@ function handleUnlockPatent(
     }
   }
 
-  // 2. Maintaining at least 12 active Tier I units in that order
+  // Maintaining at least 12 active Tier I units in that order
   const tierICount = Object.entries(state.units).reduce((sum, [id, qty]) => {
     const def = UNITS_DATA[id as UnitId]
     return def && def.order === order && def.tier === 1 ? sum + qty : sum
@@ -162,7 +162,7 @@ function handleUnlockPatent(
     }
   }
 
-  // 3. Purchasing the royal charter fee
+  // Purchasing the royal charter fee
   const fee = config.balance.PATENT_COSTS[order]
   if (state.ap < fee) {
     return {
@@ -617,7 +617,7 @@ export function dispatch(
   command: Command,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG
 ): DispatchResult {
-  // 1. Enforce RunPhase command permissions
+  // Enforce RunPhase command permissions
   try {
     assertCommandAllowed(state.phase, command)
   } catch (err) {
@@ -631,7 +631,7 @@ export function dispatch(
     tickStatCache.clear()
   }
 
-  // 2. Dispatch to specific handler
+  // Dispatch to specific handler
   switch (command.type) {
     case 'BUY_UNIT':
       return handleBuyUnit(state, command, config)

@@ -100,12 +100,12 @@ export function applyPopulationLoss(
   const targetLoss = Math.min(loss, state.totalPopulation)
   let remainingLoss = targetLoss
 
-  // 1. Deduct from freeSerfs first
+  // Deduct from freeSerfs first
   const serfsLost = Math.min(remainingLoss, state.freeSerfs)
   state.freeSerfs -= serfsLost
   remainingLoss -= serfsLost
 
-  // 2. Cascade excess loss to units in deterministic hierarchy
+  // Cascade excess loss to units in deterministic hierarchy
   if (remainingLoss > 0) {
     for (const unitId of POPULATION_LOSS_CASCADE_ORDER) {
       if (remainingLoss <= 0) break
@@ -124,7 +124,7 @@ export function applyPopulationLoss(
     }
   }
 
-  // 3. Compute actual loss and reconcile totalPopulation
+  // Compute actual loss and reconcile totalPopulation
   let currentUnitsTotal = 0
   for (const count of Object.values(state.units)) {
     currentUnitsTotal += count ?? 0

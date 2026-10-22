@@ -125,24 +125,24 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
   it('applies effect taxonomy completely (stat_modifier, instant_resource, grant_units)', () => {
     const state = createInitialGameState()
 
-    // 1. Instant resource: AP
+    // Instant resource: AP
     applyEffect({ type: 'instant_resource', resource: 'ap', amount: 300 }, state)
     expect(state.ap).toBe(350)
     expect(state.cumulativeApThisDeadline).toBe(0)
 
-    // 2. Instant resource: Provinces
+    // Instant resource: Provinces
     applyEffect({ type: 'instant_resource', resource: 'provinces', amount: 2 }, state)
     expect(state.provinces).toBe(5)
 
-    // 3. Instant resource: Archive Points
+    // Instant resource: Archive Points
     applyEffect({ type: 'instant_resource', resource: 'archive_points', amount: 3 }, state)
     expect(state.archivePoints).toBe(3)
 
-    // 4. Grant Units
+    // Grant Units
     applyEffect({ type: 'grant_units', unitId: 'man_at_arms', count: 15 }, state)
     expect(state.units.man_at_arms).toBe(15)
 
-    // 5. Stat Modifier
+    // Stat Modifier
     const mod: Modifier = { source: 'law:test', stat: 'gross_ap_rate', op: 'add', value: 10 }
     applyEffect({ type: 'stat_modifier', modifier: mod }, state)
     expect(state.activeModifiers).toHaveLength(1)

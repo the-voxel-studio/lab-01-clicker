@@ -46,11 +46,11 @@ export { ALLOWED_COMMANDS_BY_PHASE, isCommandAllowedInPhase }
  * Fundamental Scaling & Balance Constants.
  */
 export const BALANCE = {
-  // 1. Economic Cost Scaling (Tier I vs Tier II)
+  // Economic Cost Scaling (Tier I vs Tier II)
   TIER_I_COST_RATIO: 1.07,
   TIER_II_COST_RATIO: 1.05,
 
-  // 2. Demographic Balance
+  // Demographic Balance
   STARTING_POPULATION: 100,
   STARTING_PROVINCES: 3,
   BASE_HOUSING_PER_PROVINCE: 250, // Starting capacity = 750
@@ -62,7 +62,7 @@ export const BALANCE = {
   COLONISATION_BASE_COST: 1500,
   COLONISATION_COST_MULTIPLIER: 2.0, // Cost = 1500 * (2^k) for k colonised provinces
 
-  // 3. Fiscal & Bureaucracy
+  // Fiscal & Bureaucracy
   STARTING_AP: 50,
   STARTING_TAX_RATE: 25, // Percent (0 - 60)
   STARTING_UNREST: 10,
@@ -72,19 +72,19 @@ export const BALANCE = {
   TAX_SHOCK_THRESHOLD: 15,
   TAX_SHOCK_UNREST_SPIKE: 20,
 
-  // 4. Ergonomic Clicker (Token Bucket)
+  // Ergonomic Clicker (Token Bucket)
   CLICK_MAX_TOKENS_PER_SECOND: 12,
   CLICK_CRITICAL_CHANCE: 0.05,
   CLICK_CRITICAL_MULTIPLIER: 3.0,
   CLICK_PAPERWORK_MITIGATION: 0.5, // Executive seals bypass 50% of paperwork
 
-  // 5. Special Roles Non-Quadratic Coverage Limit
+  // Special Roles Non-Quadratic Coverage Limit
   SERFS_PER_COLLECTOR: 100, // Each collector covers up to 100 free serfs
 
-  // 6. Province Floors
+  // Province Floors
   PROVINCE_MIN_FLOOR_FOR_FINES: 1, // Royal censure & Lombard bailout cannot reduce below 1 province
 
-  // 7. Tactical Combat Asymmetry
+  // Tactical Combat Asymmetry
   ATTACKER_SIEGE_FRICTION: 0.1, // -10% combat power when attacking
   DEFENDER_FORTIFICATION_BONUS: 0.2, // +20% combat power when defending
   BORDER_STRONGHOLD_DEFENSE_FLAT: 12,
@@ -92,12 +92,12 @@ export const BALANCE = {
   SCOUT_UNCERTAINTY_BASE: 0.45, // +/- 45% base fog of war
   SCOUT_UNCERTAINTY_MIN: 0.05, // +/- 5% with full scouts
 
-  // 8. Inter-Deadline Council
+  // Inter-Deadline Council
   DEADLINE_DURATION_SECONDS: 100,
   INTERIM_AUDIT_WARNING_SECONDS: 50,
   TOTAL_DEADLINES: 10,
 
-  // 9. Royal Patent Charters (Tier II Unlocks)
+  // Royal Patent Charters (Tier II Unlocks)
   PATENT_COSTS: {
     people: 500,
     admin: 600,

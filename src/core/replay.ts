@@ -101,7 +101,7 @@ export function executeReplay(
   while (state.totalElapsedSeconds < maxDurationSeconds && !state.isGameOver) {
     const currentTime = state.totalElapsedSeconds
 
-    // 1. Dispatch all commands scheduled up to currentTime
+    // Dispatch all commands scheduled up to currentTime
     while (
       nextEntryIndex < sortedEntries.length &&
       sortedEntries[nextEntryIndex]!.timeSeconds <= currentTime
@@ -118,7 +118,7 @@ export function executeReplay(
 
     if (state.isGameOver) break
 
-    // 2. Infinite loop guard when in paused or crisis phases (where tick does not advance totalElapsedSeconds)
+    // Infinite loop guard when in paused or crisis phases (where tick does not advance totalElapsedSeconds)
     if (state.phase !== 'ACTIVE_CYCLE') {
       const canProgress = sortedEntries
         .slice(nextEntryIndex)
@@ -142,7 +142,7 @@ export function executeReplay(
       }
     }
 
-    // 3. Simulation step in ACTIVE_CYCLE
+    // Simulation step in ACTIVE_CYCLE
     // Re-inject unconsumed reliquat if available, otherwise tick standard dt
     let stepDt = dt
     if (leftoverDt > 1e-9) {

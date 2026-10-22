@@ -65,13 +65,13 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
       ],
     }
 
-    // 1. High frequency UI tick (20 Hz, dt = 0.05s)
+    // High frequency UI tick (20 Hz, dt = 0.05s)
     const runFine = executeReplay(sampleJournal, 0.05, 100)
 
-    // 2. Medium frequency tick (dt = 0.5s)
+    // Medium frequency tick (dt = 0.5s)
     const runMedium = executeReplay(sampleJournal, 0.5, 100)
 
-    // 3. Fast simulation tick (dt = 1.0s)
+    // Fast simulation tick (dt = 1.0s)
     const runCoarse = executeReplay(sampleJournal, 1.0, 100)
 
     // AP output delta should be strictly under 1.5% across step sizes
@@ -218,28 +218,28 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
     const state = createInitialGameState({ seed: 1234 })
     const baseHash = getStateHash(state)
 
-    // 1. Modifying freeSerfs/units alters hash
+    // Modifying freeSerfs/units alters hash
     const stateUnits = createInitialGameState({ seed: 1234 })
     stateUnits.units.peasant += 1
     stateUnits.freeSerfs -= 1
     expect(getStateHash(stateUnits)).not.toBe(baseHash)
 
-    // 2. Modifying province biomes alters hash
+    // Modifying province biomes alters hash
     const stateBiomes = createInitialGameState({ seed: 1234 })
     stateBiomes.provinceBiomes = ['heartland', 'heartland', 'trade_hub']
     expect(getStateHash(stateBiomes)).not.toBe(baseHash)
 
-    // 3. Modifying rngStreams alters hash
+    // Modifying rngStreams alters hash
     const stateRng = createInitialGameState({ seed: 1234 })
     stateRng.rngStreams.click += 999
     expect(getStateHash(stateRng)).not.toBe(baseHash)
 
-    // 4. Modifying active laws alters hash
+    // Modifying active laws alters hash
     const stateLaws = createInitialGameState({ seed: 1234 })
     stateLaws.activeLaws = ['law_cadastre']
     expect(getStateHash(stateLaws)).not.toBe(baseHash)
 
-    // 5. Modifying active modifiers count alters hash
+    // Modifying active modifiers count alters hash
     const stateMods = createInitialGameState({ seed: 1234 })
     stateMods.activeModifiers.push({
       source: 'test',
@@ -249,7 +249,7 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
     })
     expect(getStateHash(stateMods)).not.toBe(baseHash)
 
-    // 6. Modifying any unit alters hash (e.g. spymaster)
+    // Modifying any unit alters hash (e.g. spymaster)
     const stateSpymaster = createInitialGameState({ seed: 1234 })
     stateSpymaster.units.spymaster = 1
     expect(getStateHash(stateSpymaster)).not.toBe(baseHash)

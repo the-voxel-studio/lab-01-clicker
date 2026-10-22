@@ -22,7 +22,7 @@ export interface LawDef {
 
 export const LAWS_DATA: Record<string, LawDef> = {
   // ==========================================
-  // 10.1 The Chancellor (Administration & Fiscal)
+  // §10.1 The Chancellor (Administration & Fiscal)
   // ==========================================
   'law:royal_scriptorium': {
     id: 'law:royal_scriptorium',
@@ -236,7 +236,7 @@ export const LAWS_DATA: Record<string, LawDef> = {
   },
 
   // ==========================================
-  // 10.2 The Prelate (The People & Church)
+  // §10.2 The Prelate (The People & Church)
   // ==========================================
   'law:census_edict': {
     id: 'law:census_edict',
@@ -451,7 +451,7 @@ export const LAWS_DATA: Record<string, LawDef> = {
   },
 
   // ==========================================
-  // 10.3 The Marshal (The Military & War)
+  // §10.3 The Marshal (The Military & War)
   // ==========================================
   'law:standing_garrisons': {
     id: 'law:standing_garrisons',

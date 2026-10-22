@@ -97,24 +97,24 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
   it('applies unrest stage penalties during simulation tick', () => {
     const state = createInitialGameState()
 
-    // 1. Fiscal boycott (unrest = 60 >= 50): -20% tax revenue
+    // Fiscal boycott (unrest = 60 >= 50): -20% tax revenue
     state.unrest = 60
     const tickBoycott = tick(state, 1.0)
     expect(tickBoycott.crisisStage).toBe('fiscal_boycott')
 
-    // 2. Strife & Desertion (unrest = 80 >= 75): population growth frozen to 0
+    // Strife & Desertion (unrest = 80 >= 75): population growth frozen to 0
     state.unrest = 80
     const initialPop = state.totalPopulation
     tick(state, 1.0)
     expect(state.totalPopulation).toBe(initialPop)
 
-    // 3. Urban Rebellion (unrest = 95 >= 90): Scribe AP output halved
+    // Urban Rebellion (unrest = 95 >= 90): Scribe AP output halved
     state.unrest = 95
     state.units.scribe = 10
     const tickRebellion = tick(state, 1.0)
     expect(tickRebellion.crisisStage).toBe('urban_rebellion')
 
-    // 4. Total Revolution (unrest = 100): Realm collapse
+    // Total Revolution (unrest = 100): Realm collapse
     state.unrest = 100
     tick(state, 1.0)
     expect(state.isGameOver).toBe(true)
@@ -164,7 +164,7 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     expect(buyLocked.error).toContain('Tier II patent is locked')
 
     // Unlock patent prerequisite checks:
-    // 1. Must reach Deadline 4
+    // Must reach Deadline 4
     const earlyUnlock = dispatch(state, { type: 'UNLOCK_PATENT', order: 'admin' })
     expect(earlyUnlock.success).toBe(false)
     expect(earlyUnlock.error).toContain('Institutional Maturity prerequisite not met')

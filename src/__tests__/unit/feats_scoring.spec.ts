@@ -217,17 +217,17 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
       state.isGameOver = true
       state.isVictory = true
 
-      // 1. The Bloodied Conqueror (provinces >= 8)
+      // The Bloodied Conqueror (provinces >= 8)
       state.provinces = 8
       expect(getDynasticTitle(state)).toBe('The Bloodied Conqueror')
 
-      // 2. Father of the Nation (pop >= 4000, 0 starvation)
+      // Father of the Nation (pop >= 4000, 0 starvation)
       state.provinces = 5
       state.totalPopulation = 4200
       state.starvationLosses = 0
       expect(getDynasticTitle(state)).toBe('Father of the Nation')
 
-      // 3. Grand Treasurer of the Crown (> 60% of score from administration)
+      // Grand Treasurer of the Crown (> 60% of score from administration)
       state.totalPopulation = 500
       state.provinces = 3
       state.victoriesCount = 0
@@ -236,7 +236,7 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
       // peakPop 500 * 2 = 1000, prov 3 * 500 = 1500. Total = 12500. 10000 / 12500 = 80% > 60%
       expect(getDynasticTitle(state)).toBe('Grand Treasurer of the Crown')
 
-      // 4. Universal Sovereign (balanced)
+      // Universal Sovereign (balanced)
       state.totalCumulativeAp = 50_000 // 500 AP pts
       state.peakPopulation = 1000 // 2000 pts
       state.provinces = 4 // 2000 pts

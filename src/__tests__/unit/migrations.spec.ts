@@ -94,23 +94,23 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
   })
 
   it('rejects corrupt, malformed, or tampered save strings with explicit errors', () => {
-    // 1. Missing prefix
+    // Missing prefix
     expect(() => importSaveFromBase64('INVALID_BASE64_STRING')).toThrow(
       /Invalid integrity prefix/
     )
 
-    // 2. Corrupt Base64 content
+    // Corrupt Base64 content
     expect(() => importSaveFromBase64(`${SAVE_PREFIX}???not-base64???`)).toThrow(
       /Base64 decoding failed|Malformed JSON/
     )
 
-    // 3. Valid Base64 but not JSON
+    // Valid Base64 but not JSON
     const notJsonBase64 = Buffer.from('hello world', 'utf-8').toString('base64')
     expect(() => importSaveFromBase64(`${SAVE_PREFIX}${notJsonBase64}`)).toThrow(
       /Malformed JSON payload/
     )
 
-    // 4. Valid JSON but invalid schema
+    // Valid JSON but invalid schema
     const invalidSchema = Buffer.from(JSON.stringify({ bad: 'schema' }), 'utf-8').toString('base64')
     expect(() => importSaveFromBase64(`${SAVE_PREFIX}${invalidSchema}`)).toThrow(
       /does not conform to SerializedSavePayload schema/

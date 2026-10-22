@@ -9,7 +9,7 @@ const legacyNestedDir = path.join(iconsDir, 'ffffff', '000000', '1x1')
 
 console.log('--- Cleaning and standardizing all 4,180 icons ---')
 
-// 1. Move authors out of ffffff/000000/1x1/ directly to assets/icons/ if needed
+// Move authors out of ffffff/000000/1x1/ directly to assets/icons/ if needed
 if (fs.existsSync(legacyNestedDir)) {
   console.log('Unnesting ffffff/000000/1x1/ structure...')
   const authors = fs.readdirSync(legacyNestedDir)
@@ -25,7 +25,7 @@ if (fs.existsSync(legacyNestedDir)) {
   console.log('Author directories flattened directly under assets/icons/')
 }
 
-// 2. Recursively find and clean all SVGs in assets/icons
+// Recursively find and clean all SVGs in assets/icons
 function getSvgFiles(dir) {
   let svgs = []
   const entries = fs.readdirSync(dir, { withFileTypes: true })

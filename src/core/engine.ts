@@ -453,10 +453,10 @@ export function tick(
   )
   const rawState = extractRawEvaluationState(state)
 
-  // 1. Refill ergonomic click token bucket (12 tokens/s max)
+  // Refill ergonomic click token bucket (12 tokens/s max)
   state.clickTokens = refillTokenBucket(state.clickTokens, stepDt, undefined, config)
 
-  // 2. Tax promulgation delay processing (8s timer)
+  // Tax promulgation delay processing (8s timer)
   if (state.pendingTaxRate !== null) {
     state.taxPromulgationTimer -= stepDt
     if (state.taxPromulgationTimer <= 0) {
@@ -475,7 +475,7 @@ export function tick(
     state.forcedTitheFreezeTimer = Math.max(0, state.forcedTitheFreezeTimer - stepDt)
   }
 
-  // 3. Demographics: Housing Capacity & Proportional Logistic Growth
+  // Demographics: Housing Capacity & Proportional Logistic Growth
   const maxPop = calculateMaxPopulation(state, config)
   const biomeMods = getBiomeModifiers(state)
 
@@ -531,10 +531,10 @@ export function tick(
     applyPopulationLoss(state, bleed, true)
   }
 
-  // 4. Bureaucracy Paperwork Inertia
+  // Bureaucracy Paperwork Inertia
   const paperworkFriction = calculateNetPaperwork(state, config)
 
-  // 5. AP Economics: Production, Upkeep & Friction Drag
+  // AP Economics: Production, Upkeep & Friction Drag
   const { total: grossApRate } = calculateGrossApRate(state, config)
 
   let totalUpkeep = 0
@@ -560,7 +560,7 @@ export function tick(
   state.cumulativeApThisDeadline += grossApThisTick
   state.totalCumulativeAp += grossApThisTick
 
-  // 6. Public Discontent (Unrest) Dynamics & Dual-Stat Composition
+  // Public Discontent (Unrest) Dynamics & Dual-Stat Composition
   let taxUnrestRate = state.taxRate > 25 ? ((state.taxRate - 25) / 10) * 0.05 : 0
   const prelateCount = state.units.prelate ?? 0
   if (taxUnrestRate > 0 && prelateCount > 0) {
@@ -627,7 +627,7 @@ export function tick(
     }
   }
 
-  // 7. Bankruptcy Countdown & Lombard Bailout Offer
+  // Bankruptcy Countdown & Lombard Bailout Offer
   if (state.ap <= 0 && netApPerSecond < 0) {
     if (state.phase === 'ACTIVE_CYCLE') {
       state.bankruptcyGraceTimer -= stepDt
@@ -644,7 +644,7 @@ export function tick(
     state.bankruptcyGraceTimer = 30.0 + auditChamberCount * 10.0
   }
 
-  // 8. Spontaneous Surprise Border Raids (GAME_RULES §8.3)
+  // Spontaneous Surprise Border Raids (GAME_RULES §8.3)
   if (
     state.phase === 'ACTIVE_CYCLE' &&
     !state.isGameOver &&
@@ -668,7 +668,7 @@ export function tick(
     }
   }
 
-  // 9. Deadline Timing & Interim Warnings (Active Governance)
+  // Deadline Timing & Interim Warnings (Active Governance)
   let interimWarningTriggered = false
   let deadlineCompleted = false
 
@@ -703,7 +703,7 @@ export function tick(
     }
   }
 
-  // 10. Conquest Defeat Check
+  // Conquest Defeat Check
   if (state.provinces <= 0) {
     triggerDefeat(state, 'conquest')
   }
