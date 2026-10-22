@@ -209,10 +209,11 @@ export function applyEffect(effect: Effect, state: GameState): void {
           addUnrest(state, effect.amount)
           break
         case 'provinces':
-          for (let i = 0; i < effect.amount; i++) {
+          // Provinces are whole units: a fractional amount truncates toward zero.
+          for (let i = 0; i < Math.trunc(effect.amount); i++) {
             addProvince(state, 'heartland')
           }
-          for (let i = 0; i > effect.amount && state.provinces > 1; i--) {
+          for (let i = 0; i > Math.trunc(effect.amount) && state.provinces > 1; i--) {
             removeLastProvince(state)
           }
           break

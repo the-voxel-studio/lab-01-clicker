@@ -298,9 +298,9 @@ export function resolveOffensiveCampaign(
   enemyDefendingPower: number,
   lootType: LootType = 'ap',
   baseLootAp: number = 300,
-  prng?: PRNG,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
-  targetBiome: BiomeId = 'heartland',
+  prng: PRNG | undefined,
+  config: EngineConfig,
+  targetBiome: BiomeId,
 ): CampaignClashResult {
   if (!prng) {
     return withStatePrng(state, 'combat', (p) =>

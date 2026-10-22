@@ -15,6 +15,7 @@ import {
   generateCampaignTarget,
 } from '@/core/battle'
 import { PRNG } from '@/core/prng'
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 
 describe('Task 2.1: Secondary Effects of Units (GAME_RULES §4)', () => {
   describe('1. Prelate: Tax Unrest Mitigation', () => {
@@ -76,14 +77,32 @@ describe('Task 2.1: Secondary Effects of Units (GAME_RULES §4)', () => {
       state0.units.soldier = 100
       state0.units.captain = 0
       // Large force for clear victory:
-      resolveOffensiveCampaign(state0, 200, 100, 'ap', 300, new PRNG(42))
+      resolveOffensiveCampaign(
+        state0,
+        200,
+        100,
+        'ap',
+        300,
+        new PRNG(42),
+        DEFAULT_ENGINE_CONFIG,
+        'heartland',
+      )
       const loss0 = 100 - (state0.units.soldier ?? 0)
 
       // 4 captains: -20% casualties
       const state4 = createInitialGameState()
       state4.units.soldier = 100
       state4.units.captain = 4
-      resolveOffensiveCampaign(state4, 200, 100, 'ap', 300, new PRNG(42))
+      resolveOffensiveCampaign(
+        state4,
+        200,
+        100,
+        'ap',
+        300,
+        new PRNG(42),
+        DEFAULT_ENGINE_CONFIG,
+        'heartland',
+      )
       const loss4 = 100 - (state4.units.soldier ?? 0)
 
       expect(loss4).toBeLessThan(loss0)
@@ -92,7 +111,16 @@ describe('Task 2.1: Secondary Effects of Units (GAME_RULES §4)', () => {
       const state12 = createInitialGameState()
       state12.units.soldier = 100
       state12.units.captain = 12
-      resolveOffensiveCampaign(state12, 200, 100, 'ap', 300, new PRNG(42))
+      resolveOffensiveCampaign(
+        state12,
+        200,
+        100,
+        'ap',
+        300,
+        new PRNG(42),
+        DEFAULT_ENGINE_CONFIG,
+        'heartland',
+      )
       const loss12 = 100 - (state12.units.soldier ?? 0)
 
       expect(loss12).toBe(Math.round(loss0 * 0.5))

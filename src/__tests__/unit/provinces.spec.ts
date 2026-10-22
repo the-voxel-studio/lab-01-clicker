@@ -105,6 +105,24 @@ describe('One province list', () => {
     expectInSync(state)
   })
 
+  it('truncates a fractional instant_resource amount toward zero', () => {
+    const state = createInitialGameState()
+    applyEffect({ type: 'instant_resource', resource: 'provinces', amount: 1.5 }, state)
+    expect(state.provinces).toBe(4)
+    expectInSync(state)
+
+    applyEffect({ type: 'instant_resource', resource: 'provinces', amount: -1.5 }, state)
+    expect(state.provinces).toBe(3)
+    expectInSync(state)
+  })
+
+  it('gives zero housing at zero provinces', () => {
+    const state = createInitialGameState()
+    state.provinceBiomes = []
+    state.provinces = 0
+    expect(calculateMaxPopulation(state)).toBe(0)
+  })
+
   it('sums housing per province', () => {
     const state = createInitialGameState()
     state.provinceBiomes = ['heartland', 'farmlands', 'wilderness']

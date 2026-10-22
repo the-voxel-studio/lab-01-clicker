@@ -367,6 +367,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       300,
       new PRNG(123),
       DEFAULT_ENGINE_CONFIG,
+      'heartland',
     )
 
     expect(result.provinceWon).toBe(true)
@@ -395,6 +396,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       300,
       new PRNG(123),
       DEFAULT_ENGINE_CONFIG,
+      'heartland',
     )
 
     expect(result.provinceWon).toBe(true)

@@ -122,8 +122,11 @@ describe('Core Formulas & Mathematical Scaling (Gate A)', () => {
       // With 1 Baron (+6%): 750 * 1.06 = 795
       expect(calculateHousingCapacity(750, 0, 1)).toBe(795)
 
-      // Per-province base already carries the biome multipliers: 250 + 375 + 200
-      expect(calculateHousingCapacity(825, 0, 0)).toBe(825)
+      // Base 825 (250 + 375 + 200), 10 Notables (+15%) and 2 Barons (+12%): 825 * 1.27 = 1047.75 -> 1048
+      expect(calculateHousingCapacity(825, 10, 2)).toBe(1048)
+
+      // Zero provinces give zero base housing and zero capacity (conquest defeat, no floor of 1)
+      expect(calculateHousingCapacity(0, 10, 2)).toBe(0)
     })
 
     it('calculates civil colonisation cost exponentially (1500 * 2^k)', () => {
