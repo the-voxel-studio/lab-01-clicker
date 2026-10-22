@@ -131,10 +131,34 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' })
     expect(res.success).toBe(true)
     const template = LAWS_DATA['law:royal_scriptorium']!.effects[0]
-    expect(template?.type).toBe('stat_modifier')
-    if (template?.type !== 'stat_modifier') return
-    expect(state.activeModifiers[0]).not.toBe(template.modifier)
+    if (template?.type !== 'stat_modifier') throw new Error('expected a stat_modifier template')
+    const clone = state.activeModifiers[0]
+    expect(clone).not.toBe(template.modifier)
     expect(template.modifier.appliedAt).toBeUndefined()
+    expect(clone).toBeDefined()
+    if (clone === undefined) throw new Error('expected an applied modifier')
+    expect('expiresAt' in clone).toBe(false)
+    expect('durationSeconds' in clone).toBe(false)
+  })
+
+  it('stamps expiresAt = totalElapsedSeconds + durationSeconds on a 30 s modifier', () => {
+    const state = createInitialGameState()
+    state.totalElapsedSeconds = 200
+    applyEffect(
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'dilemma:test',
+          stat: 'gross_ap_rate',
+          op: 'mul',
+          value: 0.85,
+          durationSeconds: 30,
+        },
+      },
+      state,
+    )
+    expect(state.activeModifiers[0]?.expiresAt).toBe(230)
+    expect(state.activeModifiers[0]?.appliedAt).toBe(200)
   })
 
   it('keeps a 30 s dilemma modifier for 30 s of active time', () => {
@@ -156,6 +180,32 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     expect(res.success).toBe(true)
     state.phase = 'ACTIVE_CYCLE'
     const has = () => state.activeModifiers.some((m) => m.source === 'dilemma:crowns_forced_loan')
+    for (let i = 0; i < 299; i++) tick(state, 0.1)
+    expect(has()).toBe(true)
+    tick(state, 0.1)
+    tick(state, 0.1)
+    expect(has()).toBe(false)
+  })
+
+  it('keeps the 30 s salt boycott modifier (tax_efficiency addPct -0.25) for 30 s of active time', () => {
+    const state = createInitialGameState()
+    state.totalElapsedSeconds = 200
+    state.phase = 'COUNCIL_DILEMMA'
+    state.currentDilemmaId = 'dilemma:peasant_salt_boycott'
+    state.ap = 10000
+    const choices = DILEMMAS_DATA['dilemma:peasant_salt_boycott']!.choices
+    const choiceIndex = choices.findIndex((c) =>
+      c.effects.some((e) => e.type === 'stat_modifier' && e.modifier.durationSeconds === 30),
+    )
+    expect(choiceIndex).toBeGreaterThanOrEqual(0)
+    const res = dispatch(state, {
+      type: 'RESOLVE_DILEMMA',
+      dilemmaId: 'dilemma:peasant_salt_boycott',
+      choiceIndex,
+    })
+    expect(res.success).toBe(true)
+    state.phase = 'ACTIVE_CYCLE'
+    const has = () => state.activeModifiers.some((m) => m.source === 'dilemma:peasant_salt_boycott')
     for (let i = 0; i < 299; i++) tick(state, 0.1)
     expect(has()).toBe(true)
     tick(state, 0.1)

@@ -183,12 +183,14 @@ export function applyEffect(effect: Effect, state: GameState): void {
     case 'stat_modifier': {
       const { modifier } = effect
       const now = state.totalElapsedSeconds
-      const { durationSeconds, ...rest } = modifier
-      state.activeModifiers.push({
-        ...rest,
-        appliedAt: now,
-        expiresAt: durationSeconds === undefined ? modifier.expiresAt : now + durationSeconds,
-      })
+      const { durationSeconds, expiresAt, ...rest } = modifier
+      const clone: Modifier = { ...rest, appliedAt: now }
+      if (durationSeconds !== undefined) {
+        clone.expiresAt = now + durationSeconds
+      } else if (expiresAt !== undefined) {
+        clone.expiresAt = expiresAt
+      }
+      state.activeModifiers.push(clone)
       break
     }
 

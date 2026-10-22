@@ -243,5 +243,7 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     const before = calculateMaxPopulation(state)
     dispatch(state, { type: 'BUY_UNIT', unitId: 'notable', count: 10 })
     expect(calculateMaxPopulation(state)).toBeGreaterThan(before)
+    // GAME_RULES 6.1: 3 heartland x 250 = 750; 750 x (1 + 0.015 x 10) = 862.5, rounded up to 863
+    expect(calculateMaxPopulation(state)).toBe(863)
   })
 })

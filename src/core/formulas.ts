@@ -239,8 +239,8 @@ export function calculateHousingCapacity(
   notables: number = 0,
   barons: number = 0,
 ): number {
-  const roleBonus = 1.0 + notables * 0.015 + barons * 0.06
-  return Math.round(baseHousing * roleBonus)
+  // Integer thousandths: floating point 1 + 0.015 x n is inexact and broke .5 rounding.
+  return Math.round((baseHousing * (1000 + notables * 15 + barons * 60)) / 1000)
 }
 
 /**
