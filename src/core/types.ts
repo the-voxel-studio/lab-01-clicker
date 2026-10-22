@@ -1,40 +1,193 @@
 /**
  * Core Domain Types, State Interfaces, and Command Contracts.
- * Completely decoupled from Vue reactivity and DOM APIs.
+ * Completely decoupled from Vue reactivity, DOM APIs, and data catalogs.
+ * Single source of truth for engine types.
  *
  * @module core/types
  */
 
-import type {
-  UnitId,
-  UnitOrder,
-  UnitRole,
-  UnitTier,
-  StatKey,
-  ModifierOp,
-  ResolverKey,
-  Modifier,
-  Effect,
-  Command,
-  RunPhase,
-  DeadlineQuota,
-  BiomeId,
-} from '@/data/balance'
+import type { RngStream } from './prng'
+import type { RunPhase } from './phases'
 
-export type {
-  UnitId,
-  UnitOrder,
-  UnitRole,
-  UnitTier,
-  StatKey,
-  ModifierOp,
-  ResolverKey,
-  Modifier,
-  Effect,
-  Command,
-  RunPhase,
-  DeadlineQuota,
-  BiomeId,
+export type { RngStream }
+export type { RunPhase }
+export { ALLOWED_COMMANDS_BY_PHASE, isCommandAllowedInPhase } from './phases'
+
+/** Canonical Unit Identifiers (English only). */
+export type UnitId =
+  // The People (Tier I & II)
+  | 'peasant'
+  | 'farmer'
+  | 'artisan'
+  | 'guild'
+  | 'clergy'
+  | 'prelate'
+  | 'notable'
+  | 'baron'
+  // Administration (Tier I & II)
+  | 'scribe'
+  | 'clerk'
+  | 'supervisor'
+  | 'provincial_steward'
+  | 'archivist'
+  | 'audit_chamber'
+  | 'collector'
+  | 'farmer_general'
+  // The Military (Tier I & II)
+  | 'soldier'
+  | 'man_at_arms'
+  | 'sergeant'
+  | 'captain'
+  | 'quartermaster'
+  | 'grand_marshal'
+  | 'scout'
+  | 'spymaster'
+
+/** Unit Order category. */
+export type UnitOrder = 'people' | 'admin' | 'military'
+
+/** Unit Role taxonomy. */
+export type UnitRole = 'producer' | 'multiplier' | 'reducer' | 'special'
+
+/** Unit Tier level. */
+export type UnitTier = 1 | 2
+
+/** Unit definition contract. */
+export interface UnitBalanceDef {
+  id: UnitId
+  order: UnitOrder
+  tier: UnitTier
+  role: UnitRole
+  baseCost: number
+  upkeepAp: number
+  baseValue: number
+  /** Base geometric scaling ratio: 1.07 for Tier I, 1.05 for Tier II. */
+  costRatio: number
+  /** Whether bulk mode x100 is enabled for this unit. */
+  allowsBulk100: boolean
+}
+
+/** Province Biome definition contract. */
+export interface BiomeDef {
+  id: BiomeId
+  name: string
+  /** Housing capacity multiplier: 1.0 for Heartland, 1.5 for Farmlands, 0.8 for Wilderness. */
+  housingMultiplier: number
+  /** Additive modulation to base logistic growth rate r: +0.001 for Farmlands. */
+  deltaR: number
+  /** Realm-wide tax efficiency bonus: +0.15 for Trade Hub. */
+  taxEfficiencyBonus: number
+  /** Passive defense power in defensive battles: +12 for Stronghold. */
+  passiveDefense: number
+  /** Bureaucratic paperwork reduction: +0.05 (5%) for Wilderness. */
+  paperworkReduction: number
+}
+
+/** Stat keys that can be dynamically altered by Modifiers. */
+export type StatKey =
+  | 'gross_ap_rate'
+  | 'net_ap_rate'
+  | 'click_power'
+  | 'paperwork_friction'
+  | 'unrest_generation'
+  | 'unrest_pacification'
+  | 'pop_growth_rate'
+  | 'housing_capacity'
+  | 'military_power'
+  | 'tax_efficiency'
+  | 'battle_loot_multiplier'
+  | 'threat_mitigation_rate'
+
+/** Arithmetic composition operation: 'add' -> 'addPct' -> 'mul' -> 'set'. */
+export type ModifierOp = 'add' | 'addPct' | 'mul' | 'set'
+
+/** Literal union of supported dynamic conditional resolver keys. */
+export type ResolverKey =
+  | 'law:isolationism'
+  | 'law:provincial_tithe'
+  | 'law:border_fortifications'
+  | 'law:feudal_levy'
+  | 'law:monastic_scriptoria'
+  | 'perk:iron_fist'
+
+/** Universal Modifier Contract for laws, perks, edicts, and faction traits. */
+export interface Modifier {
+  /** Optional unique modifier instance ID. */
+  id?: string
+  /** Identifier of the originating system (e.g. 'law:cadastre', 'faction:veterans'). */
+  source: string
+  /** The target stat modified. */
+  stat: StatKey
+  /** Arithmetic composition operation: 'add' -> 'addPct' -> 'mul' -> 'set'. */
+  op: ModifierOp
+  /** The scalar value to apply. */
+  value: number
+  /** Game timestamp (in seconds) or tick when this modifier was applied. */
+  appliedAt?: number
+  /** Game timestamp (in seconds) when this modifier expires (undefined = permanent). */
+  expiresAt?: number
+  /**
+    * Optional strongly typed resolver key for dynamic conditional modifiers.
+    * Evaluated dynamically against current GameState, never serialized as a function.
+    */
+  resolverKey?: ResolverKey
+}
+
+/**
+ * Universal Effect Taxonomy:
+ * Distinguishes continuous StatModifiers from instant resource transfers, unit grants, and global rule flags.
+ */
+export type Effect =
+  | { type: 'stat_modifier'; modifier: Modifier }
+  | { type: 'instant_resource'; resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'; amount: number }
+  | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
+  | { type: 'rule_flag'; flag: string; enabled: boolean }
+
+/**
+ * Command Interface Taxonomy:
+ * Single dispatchable command contracts for the engine state machine.
+ */
+export type Command =
+  // Active governance commands
+  | { type: 'BUY_UNIT'; unitId: UnitId; count: number }
+  | { type: 'DISBAND_UNIT'; unitId: UnitId; count: number }
+  | { type: 'SET_TAX_RATE'; rate: number }
+  | { type: 'STAMP_DOCUMENT' }
+  | { type: 'COLONISE_PROVINCE' }
+  | { type: 'ENACT_EDICT'; edictId: 'forced_tithe' | 'church_seizure' | 'grand_festival' }
+  | { type: 'UNLOCK_PATENT'; order: UnitOrder }
+  | { type: 'TICK'; dt: number }
+
+  // Inter-deadline sequence commands
+  | { type: 'SUBMIT_AUDIT' }
+  | { type: 'RESOLVE_DILEMMA'; dilemmaId: string; choiceIndex: number }
+  | { type: 'ENACT_LAW'; lawId: string }
+  | { type: 'REJECT_LAWS' }
+  | { type: 'SELECT_THREAT_RESPONSE'; response: 'defense' | 'tribute' | 'levy' }
+  | { type: 'LAUNCH_ATTACK'; targetProvinceIndex?: number }
+  | { type: 'RECON_PATROL' }
+  | { type: 'SKIP_EXPEDITION' }
+  | { type: 'RESUME_GOVERNANCE' }
+
+  // Crisis & Special commands
+  | { type: 'RESOLVE_RAID_DEFENSE' }
+  | { type: 'ACCEPT_LOMBARD_LOAN' }
+  | { type: 'REFUSE_LOMBARD_LOAN' }
+  | { type: 'RESTART_RUN'; seed?: number }
+
+/** Province Biome Identifiers. */
+export type BiomeId = 'heartland' | 'farmlands' | 'trade_hub' | 'stronghold' | 'wilderness'
+
+/** Expedition campaign reconnaissance target. */
+export interface CampaignTarget {
+  power: number
+  uncertaintyMargin: number
+  biome: BiomeId
+  lootType: 'ap' | 'population' | 'soldiers' | 'mixed'
+  isFalseLedger: boolean
+  isAmbush: boolean
+  revealedFalseLedger?: boolean
+  revealedAmbush?: boolean
 }
 
 /** Crisis escalation stages governed by public unrest level. */
@@ -59,6 +212,8 @@ export interface GameState {
   runId: string
   /** PRNG seed for deterministic runs. */
   seed: number
+  /** Independent deterministic PRNG stream states. */
+  rngStreams: Record<RngStream, number>
   /** Current state machine phase. */
   phase: RunPhase
   /** Current deadline inspection index (1 to 10). */
@@ -71,6 +226,8 @@ export interface GameState {
   tickIndex: number
   /** Whether the mid-deadline 50-second interim warning has been issued. */
   interimWarningShown: boolean
+  /** Whether the interim warning was on track at 50s. */
+  interimWarningOnTrack: boolean | null
 
   // Treasury & Resources
   /** Current spendable Administrative Power (AP). */
@@ -87,8 +244,14 @@ export interface GameState {
   freeSerfs: number
   /** Total provinces held by the sovereign. */
   provinces: number
+  /** Biomes assigned to each controlled province in order of acquisition. */
+  provinceBiomes: BiomeId[]
   /** Number of provinces colonised peacefully via executive decree. */
   colonisedProvincesCount: number
+  /** Peak historical population achieved during this run. */
+  peakPopulation: number
+  /** Cumulative citizens lost to starvation/overcrowding bleed. */
+  starvationLosses: number
 
   // Fiscal & Discontent
   /** Promulgated active tax rate percentage [0, 60]. */
@@ -99,6 +262,10 @@ export interface GameState {
   taxPromulgationTimer: number
   /** Public discontent level [0, 100]. */
   unrest: number
+  /** Elapsed timer tracking military desertion intervals during strife. */
+  desertionTimer: number
+  /** Remaining timer for demographic freeze after forced tithe edict. */
+  forcedTitheFreezeTimer: number
 
   // Failsafes & Bankruptcy
   /** Seconds remaining on bankruptcy grace countdown before sovereign collapse. */
@@ -107,20 +274,42 @@ export interface GameState {
   lombardBailoutAvailable: boolean
   /** Number of royal strikes received (1 strike = Royal Censure, 2 strikes = Execution). */
   strikes: number
+  /** Outcome of the most recent deadline audit inspection. */
+  lastAuditOutcome: AuditOutcome | null
 
-  // Military & Threat
+  // Military, Threat & Expeditions
   /** Target threat power for the upcoming/current deadline. */
   currentThreatPower: number
   /** Tribute AP cost to appease current threat. */
   currentThreatTributeAp: number
+  /** Currently scouted target province during expedition phase. */
+  currentTarget: CampaignTarget | null
+  /** Number of campaigns launched during the current deadline expedition. */
+  campaignsLaunchedThisDeadline: number
+  /** Timestamp of the last surprise border raid. */
+  lastSurpriseRaidTime: number
+  /** Whether a surprise raid already triggered during the current deadline. */
+  surpriseRaidTriggeredThisDeadline: boolean
+  /** History of disbanded military units for mutiny tracking. */
+  disbandedMilitaryHistory: Array<{ timeSeconds: number; count: number }>
+  /** Total military campaign/defensive clash victories won. */
+  victoriesCount: number
 
-  // Roster, Patents & Decrees
+  // Roster, Patents, Laws & Edicts
   /** Active unit head counts indexed by unit ID. */
   units: Record<UnitId, number>
   /** Royal charter patent unlock status per order. */
   unlockedPatents: Record<UnitOrder, boolean>
   /** Active laws enacted in the Royal Council (max 5, or 6 with archive perk). */
   activeLaws: string[]
+  /** Offered law IDs currently drafted in Council of Laws. */
+  currentLawDraft: string[]
+  /** Active dilemma ID presented in Council Dilemma. */
+  currentDilemmaId: string | null
+  /** Deadline during which an emergency edict was last enacted. */
+  lastEdictDeadline: number
+  /** Lifetime usage counters for each emergency edict. */
+  edictUsageCounts: Record<'forced_tithe' | 'church_seizure' | 'grand_festival', number>
   /** Active temporary and permanent stat modifiers. */
   activeModifiers: Modifier[]
 
@@ -131,10 +320,20 @@ export interface GameState {
   // Meta & Persistence
   /** Total archive points accumulated for permanent Crown Charters. */
   archivePoints: number
+  /** Total scouts sacrificed in reconnaissance patrols. */
+  scoutsSacrificed: number
+  /** Total military combat units recruited via BUY_UNIT during run. */
+  militaryRecruitedCount: number
+  /** Whether the tax rate ever exceeded 15% during simulation ticks. */
+  taxRateViolated15: boolean
+  /** Whether the Lombard Bailout was accepted during this run. */
+  lombardBailoutAccepted: boolean
 
   // Run Lifecycle State
   /** Whether the game loop is manually paused by the lord. */
   isPaused: boolean
+  /** Whether a deadline audit is pending immediate execution. */
+  pendingDeadlineAudit: boolean
   /** Whether the run has concluded. */
   isGameOver: boolean
   /** Whether the sovereign achieved victory at Deadline 10. */
@@ -157,6 +356,8 @@ export interface DispatchResult {
 export interface TickResult {
   /** Effective delta-time integrated in seconds. */
   dt: number
+  /** Delta-time consumed by simulation before any pause/phase transition. */
+  consumedDt?: number
   /** Gross AP generated during this tick. */
   grossApGenerated: number
   /** Net AP gained or lost this tick after upkeep and paperwork. */
@@ -188,4 +389,5 @@ export interface AuditOutcome {
   royalPardonIssued: boolean
   isGameOver: boolean
   victory: boolean
+  grossApRate: number
 }

@@ -61,11 +61,6 @@ export function runSimulation(
   while (!state.isGameOver && state.deadline <= maxDeadlines) {
     // 1. Inter-deadline phase progression handling
     if (state.phase === 'AUDIT_ASSESSMENT') {
-      const quota = DEADLINE_QUOTAS.find((q) => q.deadline === state.deadline) ?? DEADLINE_QUOTAS[0]!
-      const mil = calculateMilitaryPower(state)
-      if (seed === 3001 || seed === 2001) {
-        console.log(`[D${state.deadline}] Seed ${seed} Audit: AP=${Math.round(state.cumulativeApThisDeadline)}/${quota.ap}, Pop=${Math.round(state.totalPopulation)}/${quota.pop}, Mil=${mil}/${quota.military}, Prov=${state.provinces}, Unrest=${state.unrest.toFixed(1)}, Strikes=${state.strikes}`)
-      }
       dispatch(state, { type: 'SUBMIT_AUDIT' })
       continue
     }
@@ -81,9 +76,8 @@ export function runSimulation(
     }
 
     if (state.phase === 'THREAT_HERALD') {
-      const quota = DEADLINE_QUOTAS.find((q) => q.deadline === state.deadline) ?? DEADLINE_QUOTAS[0]!
-      const threatPower = Math.round(quota.military * 0.8)
-      const tributeCost = Math.round(quota.ap * 0.2)
+      const threatPower = state.currentThreatPower
+      const tributeCost = state.currentThreatTributeAp
       const milPower = calculateMilitaryPower(state)
 
       if (milPower >= threatPower * 1.30) {

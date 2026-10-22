@@ -26,8 +26,6 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     ]
 
     expect(composeStat('gross_ap_rate', baseValue, modifiers)).toBe(36)
-    // Supports 3-arg overload
-    expect(composeStat(baseValue, modifiers)).toBe(36)
 
     // Overriding with a 'set' modifier
     const overrideMod: Modifier = { source: 'edict:d', stat: 'gross_ap_rate', op: 'set', value: 99 }
@@ -37,11 +35,11 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
   it('filters modifiers by statKey when evaluating composite lists', () => {
     const modifiers: Modifier[] = [
       { source: 'law:a', stat: 'gross_ap_rate', op: 'add', value: 10 },
-      { source: 'law:b', stat: 'unrest_growth', op: 'add', value: 5 },
+      { source: 'law:b', stat: 'unrest_generation', op: 'add', value: 5 },
     ]
 
     expect(composeStat('gross_ap_rate', 20, modifiers)).toBe(30)
-    expect(composeStat('unrest_growth', 0, modifiers)).toBe(5)
+    expect(composeStat('unrest_generation', 0, modifiers)).toBe(5)
   })
 
   it('evaluates dynamic conditional resolvers against raw state', () => {
@@ -130,7 +128,7 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     // 1. Instant resource: AP
     applyEffect({ type: 'instant_resource', resource: 'ap', amount: 300 }, state)
     expect(state.ap).toBe(350)
-    expect(state.cumulativeApThisDeadline).toBe(300)
+    expect(state.cumulativeApThisDeadline).toBe(0)
 
     // 2. Instant resource: Provinces
     applyEffect({ type: 'instant_resource', resource: 'provinces', amount: 2 }, state)

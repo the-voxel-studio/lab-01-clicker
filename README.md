@@ -48,7 +48,7 @@ All project specifications, architecture guidelines, and engineering roadmaps ar
 ## 4. Development Workflow & Commands
 
 ### Prerequisites
-- Node.js >= 20.x
+- Node.js `^22.18.0` or `>=24.12.0` (the `engines` field of `package.json`)
 - npm >= 10.x
 
 ### Commands

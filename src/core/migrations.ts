@@ -1,15 +1,9 @@
-/**
- * Versioned Save State & Sequential Typed Migrations Pipeline.
- * Enforces zero any, strict unknown guards, and Base64 clipboard format with GRA-v1: prefix.
- *
- * @module core/migrations
- */
-
-import type { GameState } from './types'
+import type { GameState, BiomeId } from './types'
 import { createInitialGameState } from './state'
+import { deriveStreamSeed } from './prng'
 
 /** Active master save schema version. */
-export const CURRENT_SCHEMA_VERSION = 1
+export const CURRENT_SCHEMA_VERSION = 2
 
 /** Integrity prefix for clipboard import and export strings. */
 export const SAVE_PREFIX = 'GRA-v1:'
@@ -28,12 +22,76 @@ export interface SerializedSavePayload {
 export type MigrationFunction = (oldData: unknown) => unknown
 
 /**
+ * Migrates a legacy schema v1 save payload to schema v2.
+ * Injects deterministic PRNG streams, province biomes, and all newly introduced GameState fields.
+ *
+ * @param oldData - Raw v1 payload to migrate.
+ * @returns Migrated SerializedSavePayload conforming to schema v2.
+ */
+export function migrateV1ToV2(oldData: unknown): unknown {
+  if (!isSerializedSavePayload(oldData)) {
+    throw new Error('Migration v1 -> v2 failed: Source data is not a valid SerializedSavePayload.')
+  }
+
+  const oldState = oldData.state as unknown as Record<string, unknown>
+  const seed = typeof oldState.seed === 'number' ? oldState.seed : 1337
+  const provinces = typeof oldState.provinces === 'number' ? oldState.provinces : 3
+
+  // Derive PRNG streams deterministically from seed
+  const rngStreams = {
+    click: deriveStreamSeed(seed, 'click'),
+    combat: deriveStreamSeed(seed, 'combat'),
+    events: deriveStreamSeed(seed, 'events'),
+    council: deriveStreamSeed(seed, 'council'),
+  }
+
+  // Assign 'heartland' biome to all existing provinces
+  const provinceBiomes: BiomeId[] = Array.from(
+    { length: Math.max(1, provinces) },
+    () => 'heartland'
+  )
+
+  const migratedState: GameState = createInitialGameState({
+    ...(oldData.state as Partial<GameState>),
+    rngStreams,
+    provinceBiomes,
+    desertionTimer: typeof oldState.desertionTimer === 'number' ? oldState.desertionTimer : 0,
+    forcedTitheFreezeTimer:
+      typeof oldState.forcedTitheFreezeTimer === 'number' ? oldState.forcedTitheFreezeTimer : 0,
+    currentTarget: null,
+    campaignsLaunchedThisDeadline: 0,
+    lastSurpriseRaidTime:
+      typeof oldState.lastSurpriseRaidTime === 'number' ? oldState.lastSurpriseRaidTime : -60,
+    surpriseRaidTriggeredThisDeadline: false,
+    disbandedMilitaryHistory: [],
+    victoriesCount: typeof oldState.victoriesCount === 'number' ? oldState.victoriesCount : 0,
+    currentLawDraft: [],
+    currentDilemmaId: null,
+    lastEdictDeadline: typeof oldState.lastEdictDeadline === 'number' ? oldState.lastEdictDeadline : 0,
+    edictUsageCounts:
+      typeof oldState.edictUsageCounts === 'object' && oldState.edictUsageCounts !== null
+        ? (oldState.edictUsageCounts as GameState['edictUsageCounts'])
+        : { forced_tithe: 0, church_seizure: 0, grand_festival: 0 },
+    clickTokens: typeof oldState.clickTokens === 'number' ? oldState.clickTokens : 12,
+    interimWarningOnTrack: null,
+    pendingDeadlineAudit: false,
+  })
+
+  const newPayload: SerializedSavePayload = {
+    schemaVersion: 2,
+    timestamp: oldData.timestamp,
+    state: migratedState,
+  }
+
+  return newPayload
+}
+
+/**
  * Ordered registry of sequential version migrations.
  * Migrations chain sequentially: v1 -> v2 -> v3 etc.
  */
 export const MIGRATIONS: Record<number, MigrationFunction> = {
-  // Version 1 is initial schema baseline; future migrations registered here:
-  // 1: (v0Data: unknown) => migrateV0ToV1(v0Data),
+  1: migrateV1ToV2,
 }
 
 /**
@@ -54,6 +112,61 @@ export function isSerializedSavePayload(value: unknown): value is SerializedSave
     typeof candidate.state === 'object' &&
     candidate.state !== null
   )
+}
+
+/**
+ * Recursively inspects a value to ensure all numbers are finite.
+ * Rejects NaN, Infinity, -Infinity.
+ */
+function hasNonFiniteNumbers(obj: unknown): boolean {
+  if (obj === null || obj === undefined) {
+    return false
+  }
+  if (typeof obj === 'number') {
+    return !Number.isFinite(obj)
+  }
+  if (typeof obj === 'object') {
+    if (Array.isArray(obj)) {
+      return obj.some(hasNonFiniteNumbers)
+    }
+    return Object.values(obj as Record<string, unknown>).some(hasNonFiniteNumbers)
+  }
+  return false
+}
+
+/**
+ * Validates that all numeric fields in state are present, valid, and finite.
+ *
+ * @param state - State object to inspect.
+ * @throws Error if NaN or non-finite values are found.
+ */
+function validateStateNumbers(state: Record<string, unknown>): void {
+  const requiredNumericFields = [
+    'ap',
+    'totalPopulation',
+    'freeSerfs',
+    'provinces',
+    'taxRate',
+    'unrest',
+    'strikes',
+    'deadline',
+    'deadlineTimeSeconds',
+    'totalElapsedSeconds',
+    'tickIndex',
+  ]
+
+  for (const field of requiredNumericFields) {
+    const val = state[field]
+    if (typeof val !== 'number' || !Number.isFinite(val)) {
+      throw new Error(
+        `Save import failed: State contains NaN or non-finite numerical values in '${field}'.`
+      )
+    }
+  }
+
+  if (hasNonFiniteNumbers(state)) {
+    throw new Error('Save import failed: State contains NaN or non-finite numerical values.')
+  }
 }
 
 /**
@@ -135,6 +248,22 @@ export function importSaveFromBase64(encodedString: string): GameState {
     throw new Error('Save import failed: Payload does not conform to SerializedSavePayload schema.')
   }
 
+  // Schema version validation
+  if (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion < 1) {
+    throw new Error(
+      `Save import failed: Invalid schema version ${parsed.schemaVersion}. Schema version must be an integer >= 1.`
+    )
+  }
+
+  if (parsed.schemaVersion > CURRENT_SCHEMA_VERSION) {
+    throw new Error(
+      `Save import failed: Unsupported future schema version ${parsed.schemaVersion}. Current engine schema version is ${CURRENT_SCHEMA_VERSION}.`
+    )
+  }
+
+  // Validate numeric values in source state
+  validateStateNumbers(parsed.state as unknown as Record<string, unknown>)
+
   let currentPayload: unknown = parsed
   let currentVersion = parsed.schemaVersion
 
@@ -142,7 +271,9 @@ export function importSaveFromBase64(encodedString: string): GameState {
   while (currentVersion < CURRENT_SCHEMA_VERSION) {
     const migration = MIGRATIONS[currentVersion]
     if (!migration) {
-      throw new Error(`Save import failed: Missing migration pipeline step for schema version ${currentVersion}.`)
+      throw new Error(
+        `Save import failed: Missing migration pipeline step for schema version ${currentVersion}.`
+      )
     }
     currentPayload = migration(currentPayload)
     currentVersion += 1
@@ -151,6 +282,9 @@ export function importSaveFromBase64(encodedString: string): GameState {
   if (!isSerializedSavePayload(currentPayload)) {
     throw new Error('Save import failed: Migrated payload failed schema validation.')
   }
+
+  // Validate numeric values in migrated state
+  validateStateNumbers(currentPayload.state as unknown as Record<string, unknown>)
 
   // Ensure state has complete fields with safe fallback defaults
   return createInitialGameState(currentPayload.state)

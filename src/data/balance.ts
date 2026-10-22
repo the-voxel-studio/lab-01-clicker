@@ -6,108 +6,41 @@
  * @module data/balance
  */
 
-/** Canonical Unit Identifiers (English only). */
-export type UnitId =
-  // The People (Tier I & II)
-  | 'peasant'
-  | 'farmer'
-  | 'artisan'
-  | 'guild'
-  | 'clergy'
-  | 'prelate'
-  | 'notable'
-  | 'baron'
-  // Administration (Tier I & II)
-  | 'scribe'
-  | 'clerk'
-  | 'supervisor'
-  | 'provincial_steward'
-  | 'archivist'
-  | 'audit_chamber'
-  | 'collector'
-  | 'farmer_general'
-  // The Military (Tier I & II)
-  | 'soldier'
-  | 'man_at_arms'
-  | 'sergeant'
-  | 'captain'
-  | 'quartermaster'
-  | 'grand_marshal'
-  | 'scout'
-  | 'spymaster'
+import type {
+  UnitId,
+  UnitOrder,
+  UnitRole,
+  UnitTier,
+  UnitBalanceDef,
+  StatKey,
+  ModifierOp,
+  ResolverKey,
+  Modifier,
+  Effect,
+  Command,
+  RunPhase,
+  BiomeId,
+  BiomeDef,
+} from '@/core/types'
+import { ALLOWED_COMMANDS_BY_PHASE, isCommandAllowedInPhase } from '@/core/phases'
 
-/** Stat keys that can be dynamically altered by Modifiers. */
-export type StatKey =
-  | 'gross_ap_rate'
-  | 'net_ap_rate'
-  | 'click_power'
-  | 'paperwork_friction'
-  | 'unrest_growth'
-  | 'pop_growth_rate'
-  | 'housing_capacity'
-  | 'military_power'
-  | 'tax_efficiency'
-  | 'battle_loot_multiplier'
-  | 'threat_mitigation_rate'
-
-/** Arithmetic composition operation: 'add' -> 'addPct' -> 'mul' -> 'set'. */
-export type ModifierOp = 'add' | 'addPct' | 'mul' | 'set'
-
-/** Literal union of supported dynamic conditional resolver keys. */
-export type ResolverKey =
-  | 'law:isolationism'
-  | 'law:provincial_tithe'
-  | 'law:border_fortifications'
-  | 'law:feudal_levy'
-  | 'law:monastic_scriptoria'
-  | 'perk:iron_fist'
-
-/** Universal Modifier Contract for laws, perks, edicts, and faction traits. */
-export interface Modifier {
-  /** Optional unique modifier instance ID. */
-  id?: string
-  /** Identifier of the originating system (e.g. 'law:cadastre', 'faction:veterans'). */
-  source: string
-  /** The target stat modified. */
-  stat: StatKey
-  /** Arithmetic composition operation: 'add' -> 'addPct' -> 'mul' -> 'set'. */
-  op: ModifierOp
-  /** The scalar value to apply. */
-  value: number
-  /** Game timestamp (in seconds) or tick when this modifier was applied. */
-  appliedAt?: number
-  /** Game timestamp (in seconds) when this modifier expires (undefined = permanent). */
-  expiresAt?: number
-  /**
-   * Optional strongly typed resolver key for dynamic conditional modifiers.
-   * Evaluated dynamically against current GameState, never serialized as a function.
-   */
-  resolverKey?: ResolverKey
+export type {
+  UnitId,
+  UnitOrder,
+  UnitRole,
+  UnitTier,
+  UnitBalanceDef,
+  StatKey,
+  ModifierOp,
+  ResolverKey,
+  Modifier,
+  Effect,
+  Command,
+  RunPhase,
+  BiomeId,
+  BiomeDef,
 }
-
-/** Unit Tier level. */
-export type UnitTier = 1 | 2
-
-/** Unit Order category. */
-export type UnitOrder = 'people' | 'admin' | 'military'
-
-/** Unit Role taxonomy. */
-export type UnitRole = 'producer' | 'multiplier' | 'reducer' | 'special'
-
-/** Unit definition contract. */
-export interface UnitBalanceDef {
-  id: UnitId
-  order: UnitOrder
-  tier: UnitTier
-  role: UnitRole
-  baseCost: number
-  upkeepAp: number
-  baseValue: number
-  /** Base geometric scaling ratio: 1.07 for Tier I, 1.05 for Tier II. */
-  costRatio: number
-  /** Whether bulk mode x100 is enabled for this unit. */
-  allowsBulk100: boolean
-}
+export { ALLOWED_COMMANDS_BY_PHASE, isCommandAllowedInPhase }
 
 /**
  * Fundamental Scaling & Balance Constants.
@@ -452,81 +385,8 @@ export const UNITS_DATA: Record<UnitId, UnitBalanceDef> = {
   },
 }
 
-// Re-export core formulas and modifier engines from single source of truth (src/core/)
-export {
-  calculateUnitCost,
-  calculateColonisationCost,
-  calculateLogisticGrowth,
-  calculateCollectorYield,
-} from '@/core/formulas'
-
-export {
-  composeStat,
-  TickStatCache,
-  DYNAMIC_MODIFIER_RESOLVERS,
-  type RawEvaluationState,
-  type DynamicResolverResult,
-  type DynamicModifierResolver,
-} from '@/core/modifiers'
-
-/** Province Biome Identifiers. */
-export type BiomeId = 'farmlands' | 'trade_hub' | 'stronghold' | 'wilderness'
-
-/** Province Biome definition contract. */
-export interface BiomeDef {
-  id: BiomeId
-  name: string
-  /** Housing capacity multiplier: 1.5 for Farmlands, 0.8 for Wilderness, 1.0 for others. */
-  housingMultiplier: number
-  /** Additive modulation to base logistic growth rate r: +0.001 for Farmlands. */
-  deltaR: number
-  /** Realm-wide tax efficiency bonus: +0.15 for Trade Hub. */
-  taxEfficiencyBonus: number
-  /** Passive defense power in defensive battles: +12 for Stronghold. */
-  passiveDefense: number
-  /** Bureaucratic paperwork reduction: +0.05 (5%) for Wilderness. */
-  paperworkReduction: number
-}
-
-/** 4 Province Biomes data catalog. */
-export const BIOMES_DATA: Record<BiomeId, BiomeDef> = {
-  farmlands: {
-    id: 'farmlands',
-    name: 'Arable Plains',
-    housingMultiplier: 1.5,
-    deltaR: 0.001,
-    taxEfficiencyBonus: 0,
-    passiveDefense: 0,
-    paperworkReduction: 0,
-  },
-  trade_hub: {
-    id: 'trade_hub',
-    name: 'Trade Hub',
-    housingMultiplier: 1.0,
-    deltaR: 0,
-    taxEfficiencyBonus: 0.15,
-    passiveDefense: 0,
-    paperworkReduction: 0,
-  },
-  stronghold: {
-    id: 'stronghold',
-    name: 'Border Stronghold',
-    housingMultiplier: 1.0,
-    deltaR: 0,
-    taxEfficiencyBonus: 0,
-    passiveDefense: 12,
-    paperworkReduction: 0,
-  },
-  wilderness: {
-    id: 'wilderness',
-    name: 'Marshes & Forests',
-    housingMultiplier: 0.8,
-    deltaR: 0,
-    taxEfficiencyBonus: 0,
-    passiveDefense: 0,
-    paperworkReduction: 0.05,
-  },
-}
+/** Re-export 5 Province Biomes catalog from dedicated module. */
+export { BIOMES_DATA } from './biomes'
 
 /**
  * Dynamic calculation of Crown threat power based on deadline military quota (80%).
@@ -536,10 +396,13 @@ export function getThreatPower(militaryQuota: number): number {
 }
 
 /**
- * Dynamic calculation of Crown threat tribute based on deadline AP quota (20%).
+ * Dynamic calculation of Crown threat tribute based on deadline AP gross rate quota (20 seconds of required throughput).
+ *
+ * @param apRate - AP gross rate quota (AP/s).
+ * @returns Tribute AP cost.
  */
-export function getThreatTributeAp(apQuota: number): number {
-  return Math.round(0.2 * apQuota)
+export function getThreatTributeAp(apRate: number): number {
+  return Math.round(20 * apRate)
 }
 
 /**
@@ -553,90 +416,13 @@ export function getDeadlineThreat(quota: DeadlineQuota): {
   return {
     deadline: quota.deadline,
     power: getThreatPower(quota.military),
-    tributeAp: getThreatTributeAp(quota.ap),
+    tributeAp: getThreatTributeAp(quota.apRate),
   }
 }
 
-/**
- * Universal Effect Taxonomy:
- * Distinguishes continuous StatModifiers from instant resource transfers, unit grants, and global rule flags.
- */
-export type Effect =
-  | { type: 'stat_modifier'; modifier: Modifier }
-  | { type: 'instant_resource'; resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'; amount: number }
-  | { type: 'grant_units'; unitId: UnitId; count: number }
-  | { type: 'rule_flag'; flag: string; enabled: boolean }
+// Re-exports for Gate D/E Content Catalogs
+export * from './edicts'
+export * from './archives'
+export * from './feats'
+export * from './threats'
 
-/**
- * Command Interface Taxonomy:
- * Single dispatchable command contracts for the engine state machine.
- */
-export type Command =
-  // Active governance commands
-  | { type: 'BUY_UNIT'; unitId: UnitId; count: number }
-  | { type: 'SET_TAX_RATE'; rate: number }
-  | { type: 'STAMP_DOCUMENT'; isCritical?: boolean }
-  | { type: 'COLONISE_PROVINCE' }
-  | { type: 'ENACT_EDICT'; edictId: 'forced_tithe' | 'church_seizure' | 'grand_festival' }
-  | { type: 'UNLOCK_PATENT'; order: UnitOrder }
-  | { type: 'TICK'; dt: number }
-
-  // Inter-deadline sequence commands
-  | { type: 'SUBMIT_AUDIT' }
-  | { type: 'RESOLVE_DILEMMA'; dilemmaId: string; choiceIndex: number }
-  | { type: 'ENACT_LAW'; lawId: string }
-  | { type: 'REJECT_LAWS' }
-  | { type: 'SELECT_THREAT_RESPONSE'; response: 'defense' | 'tribute' | 'levy' }
-  | { type: 'LAUNCH_ATTACK'; targetProvinceIndex?: number }
-  | { type: 'RECON_PATROL' }
-  | { type: 'SKIP_EXPEDITION' }
-  | { type: 'RESUME_GOVERNANCE' }
-
-  // Crisis & Special commands
-  | { type: 'RESOLVE_RAID_DEFENSE' }
-  | { type: 'ACCEPT_LOMBARD_LOAN' }
-  | { type: 'REFUSE_LOMBARD_LOAN' }
-  | { type: 'RESOLVE_COMBAT' }
-  | { type: 'RESTART_RUN'; seed?: number }
-
-/**
- * Engine Run Phase State Machine.
- * Inter-deadline sequence follows GAME_RULES §8 exactly.
- */
-export type RunPhase =
-  // Inter-deadline sequence (GAME_RULES §8)
-  | 'AUDIT_ASSESSMENT'     // 1. Quotas evaluated, sanction/pardon or victory
-  | 'COUNCIL_DILEMMA'      // 2. Steward dilemma presentation
-  | 'COUNCIL_LAWS'         // 3. Council laws draft / reject
-  | 'THREAT_HERALD'        // 4. Upcoming threat announcement & response
-  | 'EXPEDITION'           // 5. Campaign planning, scout rerolls, launch
-  | 'AWAIT_RESUME'         // 6. Paused before unpausing, "Resume Governance" CTA
-
-  // Active loop & Crisis states
-  | 'ACTIVE_CYCLE'         // Main ticking governance phase
-  | 'SURPRISE_RAID'        // Spontaneous border raid interrupting cycle
-  | 'LOMBARD_OFFER'        // Offered at 20s of bankruptcy grace timer (pauses countdown)
-  | 'COMBAT_RESOLUTION'    // Tactical battle clash resolution
-  | 'RUN_VICTORY'          // Beat deadline 10
-  | 'RUN_DEFEAT'           // Game over
-
-/** Allowed dispatchable commands per RunPhase. */
-export const ALLOWED_COMMANDS_BY_PHASE: Record<RunPhase, readonly Command['type'][]> = {
-  ACTIVE_CYCLE: ['BUY_UNIT', 'SET_TAX_RATE', 'STAMP_DOCUMENT', 'COLONISE_PROVINCE', 'ENACT_EDICT', 'UNLOCK_PATENT', 'TICK'],
-  AUDIT_ASSESSMENT: ['SUBMIT_AUDIT'],
-  COUNCIL_DILEMMA: ['RESOLVE_DILEMMA'],
-  COUNCIL_LAWS: ['ENACT_LAW', 'REJECT_LAWS'],
-  THREAT_HERALD: ['SELECT_THREAT_RESPONSE'],
-  EXPEDITION: ['LAUNCH_ATTACK', 'RECON_PATROL', 'SKIP_EXPEDITION'],
-  AWAIT_RESUME: ['RESUME_GOVERNANCE', 'BUY_UNIT', 'COLONISE_PROVINCE', 'SET_TAX_RATE', 'UNLOCK_PATENT'],
-  SURPRISE_RAID: ['RESOLVE_RAID_DEFENSE'],
-  LOMBARD_OFFER: ['ACCEPT_LOMBARD_LOAN', 'REFUSE_LOMBARD_LOAN'],
-  COMBAT_RESOLUTION: ['RESOLVE_COMBAT'],
-  RUN_VICTORY: ['RESTART_RUN'],
-  RUN_DEFEAT: ['RESTART_RUN'],
-}
-
-/** Validates whether a command type is permitted in the given run phase. */
-export function isCommandAllowedInPhase(phase: RunPhase, commandType: Command['type']): boolean {
-  return ALLOWED_COMMANDS_BY_PHASE[phase]?.includes(commandType) ?? false
-}

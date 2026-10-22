@@ -7,9 +7,8 @@
  */
 
 import {
-  BALANCE,
   UNITS_DATA,
-  DEADLINE_QUOTAS,
+  BIOMES_DATA,
   type UnitId,
 } from '@/data/balance'
 import {
@@ -20,13 +19,23 @@ import {
   calculatePaperworkFriction,
   getUnrestCrisisStage,
 } from './formulas'
-import { composeStat, extractRawEvaluationState } from './modifiers'
+import {
+  composeStat,
+  extractRawEvaluationState,
+  TickStatCache,
+} from './modifiers'
+import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
 import type {
   GameState,
   TickResult,
   AuditOutcome,
-  DeadlineQuota,
+  BiomeId,
 } from './types'
+import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
+import { withStatePrng } from './prng'
+
+/** High-frequency per-tick cache instance for stat evaluations. */
+export const tickStatCache = new TickStatCache()
 
 /**
  * Calculates current total military combat power across active armed retinues.
@@ -51,188 +60,19 @@ export function calculateMilitaryPower(state: GameState): number {
 }
 
 /**
- * Evaluates the tri-metric Crown Audit at the conclusion of a deadline.
- * Enforces the Two-Out-Of-Three rule and the single Royal Pardon grace rule.
+ * Calculates current instantaneous gross AP production rate and its poll tax component.
  *
- * @param state - The active GameState.
- * @param quotas - Optional calibrated quotas matrix (defaults to DEADLINE_QUOTAS).
- * @returns AuditOutcome summary.
+ * @param state - Current GameState.
+ * @param config - Balance configuration.
+ * @returns Total gross AP rate per second and the poll tax subcomponent.
  */
-export function evaluateDeadlineAudit(
+export function calculateGrossApRate(
   state: GameState,
-  quotas: readonly DeadlineQuota[] = DEADLINE_QUOTAS
-): AuditOutcome {
-  const quota = quotas.find((q) => q.deadline === state.deadline) ?? {
-    deadline: state.deadline,
-    ap: 500 * state.deadline,
-    pop: 150 + 50 * state.deadline,
-    military: 15 * state.deadline,
-  }
-
-  const apMet = state.cumulativeApThisDeadline >= quota.ap
-  const popMet = state.totalPopulation >= quota.pop
-  const militaryPower = calculateMilitaryPower(state)
-  const militaryMet = militaryPower >= quota.military
-
-  const passedCount = (apMet ? 1 : 0) + (popMet ? 1 : 0) + (militaryMet ? 1 : 0)
-  const passedAudit = passedCount >= 2
-
-  let royalPardonIssued = false
-  let isGameOver = false
-  let victory = false
-
-  if (passedAudit) {
-    if (state.deadline >= 10) {
-      state.isGameOver = true
-      state.isVictory = true
-      state.phase = 'RUN_VICTORY'
-      victory = true
-      isGameOver = true
-    } else {
-      state.archivePoints += 1
-    }
-  } else {
-    // Audit failed
-    if (state.strikes === 0) {
-      // Strike 1: Royal Censure (Confiscate 1 Province and 50% AP, respecting Province Floor)
-      state.strikes = 1
-      state.provinces = Math.max(
-        BALANCE.PROVINCE_MIN_FLOOR_FOR_FINES,
-        state.provinces - 1
-      )
-      state.ap *= 0.5
-      royalPardonIssued = true
-    } else {
-      // Strike 2: Royal Execution
-      state.strikes = 2
-      state.isGameOver = true
-      state.isVictory = false
-      state.defeatReason = 'quota_failure'
-      state.phase = 'RUN_DEFEAT'
-      isGameOver = true
-    }
-  }
-
-  return {
-    deadline: state.deadline,
-    apMet,
-    popMet,
-    militaryMet,
-    passedCount,
-    success: passedAudit,
-    royalPardonIssued,
-    isGameOver,
-    victory,
-  }
-}
-
-/**
- * Advances the simulation by delta-time dt seconds.
- * Pure state mutation, thread-safe, step-size invariant.
- *
- * @param state - The active mutable GameState.
- * @param dt - Delta time in seconds (e.g. 0.05 for 20 Hz, 1.0 for fast sim).
- * @returns TickResult metrics summary.
- */
-export function tick(state: GameState, dt: number): TickResult {
-  if (state.isPaused || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
-    return {
-      dt: 0,
-      grossApGenerated: 0,
-      netApDelta: 0,
-      netApPerSecond: 0,
-      popGrowth: 0,
-      paperworkFriction: 0,
-      crisisStage: getUnrestCrisisStage(state.unrest),
-      interimWarningTriggered: false,
-      deadlineCompleted: false,
-      isGameOver: state.isGameOver,
-    }
-  }
-
-  state.tickIndex += 1
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+): { total: number; pollTax: number } {
   const rawState = extractRawEvaluationState(state)
-
-  // 1. Refill ergonomic click token bucket (12 tokens/s max)
-  state.clickTokens = refillTokenBucket(state.clickTokens, dt)
-
-  // 2. Tax promulgation delay processing (8s timer)
-  if (state.pendingTaxRate !== null) {
-    state.taxPromulgationTimer -= dt
-    if (state.taxPromulgationTimer <= 0) {
-      state.taxRate = state.pendingTaxRate
-      state.pendingTaxRate = null
-      state.taxPromulgationTimer = 0
-    }
-  }
-
-  // 3. Demographics: Housing Capacity & Proportional Logistic Growth
-  const baseHousing = calculateHousingCapacity(
-    state.provinces,
-    state.units.notable ?? 0,
-    state.units.baron ?? 0
-  )
-  const maxPop = composeStat('housing_capacity', baseHousing, state.activeModifiers, rawState)
-
-  const peasantRateBonus = (state.units.peasant ?? 0) * 0.0005
-  const farmerRateBonus = (state.units.farmer ?? 0) * 0.003
-  const baseGrowthRateR =
-    BALANCE.BASE_POP_GROWTH_RATE_R + peasantRateBonus + farmerRateBonus
-  const effectiveGrowthRateR = composeStat(
-    'pop_growth_rate',
-    baseGrowthRateR,
-    state.activeModifiers,
-    rawState
-  )
-
-  let popGrowthThisTick = 0
   const crisisStage = getUnrestCrisisStage(state.unrest)
 
-  // Growth freezes during severe strife (crisisStage >= 'strife_desertion')
-  const canGrow =
-    state.totalPopulation < maxPop &&
-    crisisStage !== 'strife_desertion' &&
-    crisisStage !== 'urban_rebellion' &&
-    crisisStage !== 'total_revolution'
-
-  if (canGrow) {
-    const growthPerSec = calculateLogisticGrowth(
-      state.totalPopulation,
-      maxPop,
-      effectiveGrowthRateR,
-      state.taxRate
-    )
-    popGrowthThisTick = growthPerSec * dt
-    state.totalPopulation += popGrowthThisTick
-    state.freeSerfs += popGrowthThisTick
-  } else if (state.totalPopulation > maxPop) {
-    // Housing crisis overcrowding bleed
-    const bleed = Math.min(
-      state.totalPopulation - maxPop,
-      BALANCE.OVERCROWDING_BLEED_RATE * dt
-    )
-    state.totalPopulation -= bleed
-    state.freeSerfs = Math.max(0, state.freeSerfs - bleed)
-    state.unrest = Math.min(100, state.unrest + BALANCE.OVERCROWDING_UNREST_RATE * dt)
-  }
-
-  // 4. Bureaucracy Paperwork Inertia
-  const archivistReduction =
-    (state.units.archivist ?? 0) * 0.015 + (state.units.audit_chamber ?? 0) * 0.065
-  const basePaperwork = calculatePaperworkFriction(
-    state.units,
-    state.provinces,
-    archivistReduction
-  )
-  const paperworkFriction = Math.min(
-    0.99,
-    Math.max(
-      0,
-      composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState)
-    )
-  )
-
-  // 5. AP Economics: Production, Upkeep & Friction Drag
   let grossApRate = 0
 
   // Scribes & Clerks
@@ -260,55 +100,449 @@ export function tick(state: GameState, dt: number): TickResult {
   const fgYield = calculateCollectorYield(
     fgCount,
     state.freeSerfs,
-    UNITS_DATA.farmer_general.baseValue
+    UNITS_DATA.farmer_general.baseValue,
+    config
   )
   const serfsUsedByFg = Math.min(
     state.freeSerfs,
-    fgCount * BALANCE.SERFS_PER_COLLECTOR
+    fgCount * config.balance.SERFS_PER_COLLECTOR
   )
   const remainingSerfs = Math.max(0, state.freeSerfs - serfsUsedByFg)
   const colYield = calculateCollectorYield(
     colCount,
     remainingSerfs,
-    UNITS_DATA.collector.baseValue
+    UNITS_DATA.collector.baseValue,
+    config
   )
   grossApRate += fgYield + colYield
 
   // Baseline poll tax from free serfs
   // Fiscal boycott applies whenever Unrest >= 50%
   const fiscalBoycottPenalty = state.unrest >= 50 ? 0.8 : 1.0
+  const biomeMods = getBiomeModifiers(state)
   const baseArtisanTaxBonus =
-    1.0 + (state.units.artisan ?? 0) * 0.005 + (state.units.guild ?? 0) * 0.035
-  const taxEfficiencyMultiplier = composeStat(
+    1.0 +
+    (state.units.artisan ?? 0) * 0.005 +
+    (state.units.guild ?? 0) * 0.035 +
+    biomeMods.taxEfficiencyBonus
+  const taxEfficiencyMultiplier = tickStatCache.getOrCompute(
     'tax_efficiency',
-    baseArtisanTaxBonus,
-    state.activeModifiers,
-    rawState
+    state.tickIndex,
+    () =>
+      composeStat(
+        'tax_efficiency',
+        baseArtisanTaxBonus,
+        state.activeModifiers,
+        rawState
+      ),
+    state
   )
-  const taxYieldPerSec =
+  const pollTax =
     state.freeSerfs *
-    BALANCE.TAX_POLL_RATE *
+    config.balance.TAX_POLL_RATE *
     (state.taxRate / 25) *
     taxEfficiencyMultiplier *
     fiscalBoycottPenalty
-  grossApRate += taxYieldPerSec
+  grossApRate += pollTax
 
   // Apply global gross_ap_rate modifiers
-  grossApRate = composeStat(
+  const total = tickStatCache.getOrCompute(
     'gross_ap_rate',
-    grossApRate,
-    state.activeModifiers,
-    rawState
+    state.tickIndex,
+    () =>
+      composeStat(
+        'gross_ap_rate',
+        grossApRate,
+        state.activeModifiers,
+        rawState
+      ),
+    state
   )
 
-  // Upkeep costs
+  return { total, pollTax }
+}
+
+/** Aggregated biome trait bonuses across all controlled provinces. */
+export interface AggregatedBiomeModifiers {
+  housingMultiplier: number
+  deltaR: number
+  taxEfficiencyBonus: number
+  passiveDefense: number
+  paperworkReduction: number
+}
+
+/**
+ * Aggregates all biome traits across currently controlled provinces.
+ *
+ * @param state - Current GameState.
+ * @returns Aggregated biome modifiers.
+ */
+export function getBiomeModifiers(state: GameState): AggregatedBiomeModifiers {
+  const biomes =
+    state.provinceBiomes && state.provinceBiomes.length > 0
+      ? state.provinceBiomes
+      : (['heartland'] as BiomeId[])
+
+  let totalHousingMultiplier = 0
+  let totalDeltaR = 0
+  let totalTaxEfficiency = 0
+  let totalPassiveDefense = 0
+  let totalPaperworkReduction = 0
+
+  for (const biomeId of biomes) {
+    const def = BIOMES_DATA[biomeId] ?? BIOMES_DATA.heartland
+    totalHousingMultiplier += def.housingMultiplier
+    totalDeltaR += def.deltaR
+    totalTaxEfficiency += def.taxEfficiencyBonus
+    totalPassiveDefense += def.passiveDefense
+    totalPaperworkReduction += def.paperworkReduction
+  }
+
+  const count = biomes.length || 1
+  return {
+    housingMultiplier: totalHousingMultiplier / count,
+    deltaR: totalDeltaR,
+    taxEfficiencyBonus: totalTaxEfficiency,
+    passiveDefense: totalPassiveDefense,
+    paperworkReduction: totalPaperworkReduction,
+  }
+}
+
+/**
+ * Calculates current maximum population capacity, integrating Notables, Barons, biomes, and modifiers.
+ *
+ * @param state - Current GameState.
+ * @param config - Injected engine configuration.
+ * @returns Maximum living population capacity.
+ */
+export function calculateMaxPopulation(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+): number {
+  const biomeMods = getBiomeModifiers(state)
+  const baseHousing = calculateHousingCapacity(
+    state.provinces,
+    state.units.notable ?? 0,
+    state.units.baron ?? 0,
+    biomeMods.housingMultiplier,
+    config
+  )
+  const rawState = extractRawEvaluationState(state)
+  return tickStatCache.getOrCompute(
+    'housing_capacity',
+    state.tickIndex,
+    () => composeStat('housing_capacity', baseHousing, state.activeModifiers, rawState),
+    state
+  )
+}
+
+/**
+ * Calculates current net bureaucratic paperwork friction drag [0, 0.99].
+ *
+ * @param state - Current GameState.
+ * @param config - Injected engine configuration.
+ * @returns Net paperwork friction drag.
+ */
+export function calculateNetPaperwork(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+): number {
+  const biomeMods = getBiomeModifiers(state)
+  const archivistReduction =
+    (state.units.archivist ?? 0) * 0.015 +
+    (state.units.audit_chamber ?? 0) * 0.065 +
+    biomeMods.paperworkReduction
+
+  const basePaperwork = calculatePaperworkFriction(
+    state.units,
+    state.provinces,
+    archivistReduction,
+    config
+  )
+
+  const rawState = extractRawEvaluationState(state)
+  return Math.min(
+    0.99,
+    Math.max(
+      0,
+      tickStatCache.getOrCompute(
+        'paperwork_friction',
+        state.tickIndex,
+        () => composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState),
+        state
+      )
+    )
+  )
+}
+
+/**
+ * Evaluates the tri-metric Crown Audit at the conclusion of a deadline.
+ * Enforces the Two-Out-Of-Three rule and the single Royal Pardon grace rule.
+ *
+ * @param state - The active GameState.
+ * @param config - Optional engine configuration (defaults to DEFAULT_ENGINE_CONFIG).
+ * @returns AuditOutcome summary.
+ */
+export function evaluateDeadlineAudit(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+): AuditOutcome {
+  tickStatCache.clear()
+  const quotas = config.quotas
+  const quota =
+    quotas.find((q) => q.deadline === state.deadline) ??
+    quotas[quotas.length - 1]!
+
+  const { total: grossApRate } = calculateGrossApRate(state, config)
+  const apMet = grossApRate >= quota.apRate
+  const popMet = state.totalPopulation >= quota.pop
+  const militaryPower = calculateMilitaryPower(state)
+  const militaryMet = militaryPower >= quota.military
+
+  const passedCount = (apMet ? 1 : 0) + (popMet ? 1 : 0) + (militaryMet ? 1 : 0)
+  const passedAudit = passedCount >= 2
+
+  let royalPardonIssued = false
+  let isGameOver = false
+  let victory = false
+
+  if (passedAudit) {
+    if (state.deadline >= config.balance.TOTAL_DEADLINES) {
+      state.isGameOver = true
+      state.isVictory = true
+      state.phase = 'RUN_VICTORY'
+      victory = true
+      isGameOver = true
+    } else {
+      state.archivePoints += 1
+    }
+  } else {
+    // Audit failed
+    if (state.strikes >= 1 || state.deadline >= 10) {
+      // Strike 2 or Deadline 10: Royal Execution / Quota Failure
+      state.strikes = Math.min(2, state.strikes + 1)
+      triggerDefeat(state, 'quota_failure')
+      isGameOver = true
+    } else {
+      // Strike 1 (Deadlines 1-9): Royal Censure
+      state.strikes = 1
+      if (state.provinces > config.balance.PROVINCE_MIN_FLOOR_FOR_FINES) {
+        state.provinces -= 1
+        if (state.provinceBiomes.length > 0) {
+          state.provinceBiomes.pop()
+        }
+      }
+      // Confiscate 50% of POSITIVE AP (never divide a debt by 2)
+      if (state.ap > 0) {
+        state.ap -= state.ap * 0.5
+      }
+      royalPardonIssued = true
+    }
+  }
+
+  const outcome: AuditOutcome = {
+    deadline: state.deadline,
+    apMet,
+    popMet,
+    militaryMet,
+    passedCount,
+    success: passedAudit,
+    royalPardonIssued,
+    isGameOver,
+    victory,
+    grossApRate,
+  }
+  state.lastAuditOutcome = outcome
+  return outcome
+}
+
+/**
+ * Advances the simulation by delta-time dt seconds.
+ * Pure state mutation, thread-safe, step-size invariant.
+ *
+ * @param state - The active mutable GameState.
+ * @param dt - Delta time in seconds (e.g. 0.05 for 20 Hz, 1.0 for fast sim).
+ * @param config - Injected engine configuration.
+ * @returns TickResult metrics summary.
+ */
+export function tick(
+  state: GameState,
+  dt: number,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG
+): TickResult {
+  if (state.isPaused || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
+    return {
+      dt: 0,
+      consumedDt: 0,
+      grossApGenerated: 0,
+      netApDelta: 0,
+      netApPerSecond: 0,
+      popGrowth: 0,
+      paperworkFriction: 0,
+      crisisStage: getUnrestCrisisStage(state.unrest),
+      interimWarningTriggered: false,
+      deadlineCompleted: false,
+      isGameOver: state.isGameOver,
+    }
+  }
+
+  // 0a. Check pending audit before integrating new step
+  if (
+    state.pendingDeadlineAudit ||
+    state.deadlineTimeSeconds >= config.balance.DEADLINE_DURATION_SECONDS ||
+    config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9
+  ) {
+    state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
+    state.pendingDeadlineAudit = false
+    state.phase = 'AUDIT_ASSESSMENT'
+    evaluateDeadlineAudit(state, config)
+    return {
+      dt: 0,
+      consumedDt: 0,
+      grossApGenerated: 0,
+      netApDelta: 0,
+      netApPerSecond: 0,
+      popGrowth: 0,
+      paperworkFriction: 0,
+      crisisStage: getUnrestCrisisStage(state.unrest),
+      interimWarningTriggered: false,
+      deadlineCompleted: true,
+      isGameOver: state.isGameOver,
+    }
+  }
+
+  // 0b. Bound stepDt to prevent deadline overshooting
+  const stepDt = Math.min(
+    dt,
+    Math.max(0, config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds)
+  )
+  if (stepDt <= 0 || config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9) {
+    state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
+    state.phase = 'AUDIT_ASSESSMENT'
+    evaluateDeadlineAudit(state, config)
+    return {
+      dt: 0,
+      consumedDt: 0,
+      grossApGenerated: 0,
+      netApDelta: 0,
+      netApPerSecond: 0,
+      popGrowth: 0,
+      paperworkFriction: 0,
+      crisisStage: getUnrestCrisisStage(state.unrest),
+      interimWarningTriggered: false,
+      deadlineCompleted: true,
+      isGameOver: state.isGameOver,
+    }
+  }
+
+  tickStatCache.clear()
+  state.tickIndex += 1
+  const prevDeadlineTime = state.deadlineTimeSeconds
+  state.deadlineTimeSeconds += stepDt
+  if (config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9) {
+    state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
+  }
+  state.totalElapsedSeconds += stepDt
+  if (Math.abs(Math.round(state.totalElapsedSeconds) - state.totalElapsedSeconds) < 1e-9) {
+    state.totalElapsedSeconds = Math.round(state.totalElapsedSeconds)
+  }
+
+  // 0c. Purge expired modifiers before evaluation
+  state.activeModifiers = state.activeModifiers.filter(
+    (mod) => mod.expiresAt === undefined || mod.expiresAt > state.totalElapsedSeconds
+  )
+  const rawState = extractRawEvaluationState(state)
+
+  // 1. Refill ergonomic click token bucket (12 tokens/s max)
+  state.clickTokens = refillTokenBucket(state.clickTokens, stepDt, undefined, config)
+
+  // 2. Tax promulgation delay processing (8s timer)
+  if (state.pendingTaxRate !== null) {
+    state.taxPromulgationTimer -= stepDt
+    if (state.taxPromulgationTimer <= 0) {
+      state.taxRate = state.pendingTaxRate
+      state.pendingTaxRate = null
+      state.taxPromulgationTimer = 0
+    }
+  }
+
+  if (state.taxRate > 15) {
+    state.taxRateViolated15 = true
+  }
+
+  // 2b. Forced tithe growth freeze countdown (20s timer)
+  if (state.forcedTitheFreezeTimer > 0) {
+    state.forcedTitheFreezeTimer = Math.max(0, state.forcedTitheFreezeTimer - stepDt)
+  }
+
+  // 3. Demographics: Housing Capacity & Proportional Logistic Growth
+  const maxPop = calculateMaxPopulation(state, config)
+  const biomeMods = getBiomeModifiers(state)
+
+  const peasantRateBonus = (state.units.peasant ?? 0) * 0.0005
+  const farmerRateBonus = (state.units.farmer ?? 0) * 0.003
+  const baseGrowthRateR =
+    config.balance.BASE_POP_GROWTH_RATE_R +
+    peasantRateBonus +
+    farmerRateBonus +
+    biomeMods.deltaR
+  const effectiveGrowthRateR = tickStatCache.getOrCompute(
+    'pop_growth_rate',
+    state.tickIndex,
+    () =>
+      composeStat(
+        'pop_growth_rate',
+        baseGrowthRateR,
+        state.activeModifiers,
+        rawState
+      ),
+    state
+  )
+
+  let popGrowthThisTick = 0
+  const crisisStage = getUnrestCrisisStage(state.unrest)
+
+  const canGrow =
+    state.totalPopulation < maxPop &&
+    crisisStage !== 'strife_desertion' &&
+    crisisStage !== 'urban_rebellion' &&
+    crisisStage !== 'total_revolution' &&
+    state.forcedTitheFreezeTimer <= 0
+
+  const initialExcessPop = Math.max(0, state.totalPopulation - maxPop)
+
+  if (canGrow) {
+    const growthPerSec = calculateLogisticGrowth(
+      state.totalPopulation,
+      maxPop,
+      effectiveGrowthRateR,
+      state.taxRate,
+      config
+    )
+    popGrowthThisTick = growthPerSec * stepDt
+    state.totalPopulation += popGrowthThisTick
+    state.freeSerfs += popGrowthThisTick
+  } else if (initialExcessPop > 0) {
+    // Housing crisis overcrowding bleed
+    const bleed = Math.min(
+      initialExcessPop,
+      config.balance.OVERCROWDING_BLEED_RATE * stepDt
+    )
+    applyPopulationLoss(state, bleed, true)
+  }
+
+  // 4. Bureaucracy Paperwork Inertia
+  const paperworkFriction = calculateNetPaperwork(state, config)
+
+  // 5. AP Economics: Production, Upkeep & Friction Drag
+  const { total: grossApRate } = calculateGrossApRate(state, config)
+
   let totalUpkeep = 0
   for (const [id, count] of Object.entries(state.units) as [UnitId, number][]) {
     if (count <= 0) continue
     const def = UNITS_DATA[id]
     if (def && def.upkeepAp > 0) {
       let unitUpkeep = def.upkeepAp
-      // Military upkeep mitigations
       if (def.order === 'military') {
         const qmDiscount = (state.units.quartermaster ?? 0) * 0.015
         const gmDiscount = (state.units.grand_marshal ?? 0) * 0.07
@@ -318,79 +552,165 @@ export function tick(state: GameState, dt: number): TickResult {
     }
   }
 
-  // Net AP Calculation
   const netApPerSecond = grossApRate * (1.0 - paperworkFriction) - totalUpkeep
-  const netApDelta = netApPerSecond * dt
+  const netApDelta = netApPerSecond * stepDt
   state.ap += netApDelta
 
-  const grossApThisTick = grossApRate * dt
+  const grossApThisTick = grossApRate * stepDt
   state.cumulativeApThisDeadline += grossApThisTick
   state.totalCumulativeAp += grossApThisTick
 
-  // 6. Public Discontent (Unrest) Dynamics
-  let unrestDeltaPerSec = 0
-  if (state.taxRate > 25) {
-    unrestDeltaPerSec += ((state.taxRate - 25) / 10) * 0.05
+  // 6. Public Discontent (Unrest) Dynamics & Dual-Stat Composition
+  let taxUnrestRate = state.taxRate > 25 ? ((state.taxRate - 25) / 10) * 0.05 : 0
+  const prelateCount = state.units.prelate ?? 0
+  if (taxUnrestRate > 0 && prelateCount > 0) {
+    const prelateDiscount = Math.min(0.80, prelateCount * 0.20)
+    taxUnrestRate *= 1.0 - prelateDiscount
   }
-  // Clergy & Prelate continuous pacification
-  unrestDeltaPerSec -= (state.units.clergy ?? 0) * 0.02
-  unrestDeltaPerSec -= (state.units.prelate ?? 0) * 0.15
+  const overcrowdingUnrestRate =
+    initialExcessPop > 0 ? Math.min(1.0, 0.10 * (initialExcessPop / 50)) : 0
+  const baseUnrestGen = taxUnrestRate + overcrowdingUnrestRate
+  const composedGen = Math.max(
+    0,
+    tickStatCache.getOrCompute(
+      'unrest_generation',
+      state.tickIndex,
+      () =>
+        composeStat('unrest_generation', baseUnrestGen, state.activeModifiers, rawState),
+      state
+    )
+  )
 
-  state.unrest = Math.max(0, Math.min(100, state.unrest + unrestDeltaPerSec * dt))
+  const baseUnrestPac =
+    (state.units.clergy ?? 0) * 0.02 + (state.units.prelate ?? 0) * 0.15
+  const composedPac = Math.max(
+    0,
+    tickStatCache.getOrCompute(
+      'unrest_pacification',
+      state.tickIndex,
+      () =>
+        composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
+      state
+    )
+  )
 
-  // Revolution Defeat Check
-  if (state.unrest >= 100) {
-    state.isGameOver = true
-    state.defeatReason = 'revolution'
-    state.phase = 'RUN_DEFEAT'
+  addUnrest(state, (composedGen - composedPac) * stepDt, config)
+
+  // 6b. Military Desertion (§6.5, Arbitrage 1.0 §2)
+  const hasSanctuaryRights =
+    state.activeLaws.includes('law:sanctuary_rights') ||
+    state.activeModifiers.some((m) => m.source === 'law:sanctuary_rights')
+  const isDesertionActive =
+    state.unrest >= 75 && !(hasSanctuaryRights && state.unrest < 90)
+
+  const getEligibleDesertion = (
+    s: GameState
+  ): { unitId: 'soldier' | 'man_at_arms'; threshold: number } | null => {
+    if ((s.units.soldier ?? 0) > 0) return { unitId: 'soldier', threshold: 15.0 }
+    if ((s.units.man_at_arms ?? 0) > 0) return { unitId: 'man_at_arms', threshold: 30.0 }
+    return null
+  }
+
+  let eligible = getEligibleDesertion(state)
+  if (!isDesertionActive || !eligible) {
+    state.desertionTimer = 0
+  } else {
+    state.desertionTimer += stepDt
+    while (eligible && state.desertionTimer >= eligible.threshold) {
+      state.desertionTimer -= eligible.threshold
+      state.units[eligible.unitId] = (state.units[eligible.unitId] ?? 0) - 1
+      state.totalPopulation -= 1
+      eligible = getEligibleDesertion(state)
+    }
+    if (!eligible) {
+      state.desertionTimer = 0
+    }
   }
 
   // 7. Bankruptcy Countdown & Lombard Bailout Offer
   if (state.ap <= 0 && netApPerSecond < 0) {
     if (state.phase === 'ACTIVE_CYCLE') {
-      state.bankruptcyGraceTimer -= dt
-      if (state.bankruptcyGraceTimer <= 20.0 && state.lombardBailoutAvailable) {
+      state.bankruptcyGraceTimer -= stepDt
+      // Lombard bailout offer only available if provinces >= 2 (§14.4, arbitrage 1.0 §11)
+      if (state.bankruptcyGraceTimer <= 20.0 && state.lombardBailoutAvailable && state.provinces >= 2) {
         state.phase = 'LOMBARD_OFFER'
       }
       if (state.bankruptcyGraceTimer <= 0) {
-        state.isGameOver = true
-        state.defeatReason = 'bankruptcy'
-        state.phase = 'RUN_DEFEAT'
+        triggerDefeat(state, 'bankruptcy')
       }
     }
   } else if (state.ap > 0) {
-    state.bankruptcyGraceTimer = 30.0
+    const auditChamberCount = state.units.audit_chamber ?? 0
+    state.bankruptcyGraceTimer = 30.0 + auditChamberCount * 10.0
   }
 
-  // 8. Deadline Timing & Interim Warnings (Active Governance)
+  // 8. Spontaneous Surprise Border Raids (GAME_RULES §8.3)
+  if (
+    state.phase === 'ACTIVE_CYCLE' &&
+    !state.isGameOver &&
+    state.deadline >= 3 &&
+    !state.surpriseRaidTriggeredThisDeadline &&
+    state.totalElapsedSeconds - state.lastSurpriseRaidTime >= 60 &&
+    Math.floor(prevDeadlineTime / 10) < Math.floor(state.deadlineTimeSeconds / 10)
+  ) {
+    const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+    const milPower = calculateMilitaryPower(state)
+    const p =
+      0.02 * (state.ap > 2000 ? 2 : 1) +
+      (milPower < 0.5 * quota.military ? 0.02 : 0) +
+      (state.unrest > 60 ? 0.02 : 0)
+
+    const raidTriggered = withStatePrng(state, 'events', (prng) => prng.next() < p)
+    if (raidTriggered) {
+      state.phase = 'SURPRISE_RAID'
+      state.surpriseRaidTriggeredThisDeadline = true
+      state.lastSurpriseRaidTime = state.totalElapsedSeconds
+    }
+  }
+
+  // 9. Deadline Timing & Interim Warnings (Active Governance)
   let interimWarningTriggered = false
   let deadlineCompleted = false
 
-  if (state.phase === 'ACTIVE_CYCLE') {
-    state.deadlineTimeSeconds += dt
-    state.totalElapsedSeconds += dt
+  if (
+    state.deadlineTimeSeconds >= config.balance.INTERIM_AUDIT_WARNING_SECONDS &&
+    !state.interimWarningShown
+  ) {
+    state.interimWarningShown = true
+    interimWarningTriggered = true
 
-    if (state.deadlineTimeSeconds >= 50.0 && !state.interimWarningShown) {
-      state.interimWarningShown = true
-      interimWarningTriggered = true
-    }
+    // Compute 2-out-of-3 on-track status comparing to deadline quotas
+    const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+    const apOnTrack = grossApRate >= quota.apRate
+    const popOnTrack = state.totalPopulation >= quota.pop
+    const milOnTrack = calculateMilitaryPower(state) >= quota.military
+    const onTrackCount = (apOnTrack ? 1 : 0) + (popOnTrack ? 1 : 0) + (milOnTrack ? 1 : 0)
+    state.interimWarningOnTrack = onTrackCount >= 2
+  }
 
-    if (state.deadlineTimeSeconds >= 100.0) {
-      deadlineCompleted = true
+  if (
+    state.deadlineTimeSeconds >= config.balance.DEADLINE_DURATION_SECONDS ||
+    config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9
+  ) {
+    state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
+    deadlineCompleted = true
+    if (state.phase === 'ACTIVE_CYCLE') {
       state.phase = 'AUDIT_ASSESSMENT'
-      evaluateDeadlineAudit(state)
+      evaluateDeadlineAudit(state, config)
+    } else {
+      // Mid-crisis phase (SURPRISE_RAID, LOMBARD_OFFER): defer audit execution
+      state.pendingDeadlineAudit = true
     }
   }
 
-  // 9. Conquest Defeat Check
+  // 10. Conquest Defeat Check
   if (state.provinces <= 0) {
-    state.isGameOver = true
-    state.defeatReason = 'conquest'
-    state.phase = 'RUN_DEFEAT'
+    triggerDefeat(state, 'conquest')
   }
 
   return {
-    dt,
+    dt: stepDt,
+    consumedDt: stepDt,
     grossApGenerated: grossApThisTick,
     netApDelta,
     netApPerSecond,

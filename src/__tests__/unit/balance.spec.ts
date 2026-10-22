@@ -75,6 +75,11 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
   })
 
   it('exports calibrated biome traits with capacity multipliers and deltaR', () => {
+    expect(BIOMES_DATA.heartland.housingMultiplier).toBe(1.0)
+    expect(BIOMES_DATA.heartland.deltaR).toBe(0)
+    expect(BIOMES_DATA.heartland.taxEfficiencyBonus).toBe(0)
+    expect(BIOMES_DATA.heartland.passiveDefense).toBe(0)
+    expect(BIOMES_DATA.heartland.paperworkReduction).toBe(0)
     expect(BIOMES_DATA.farmlands.housingMultiplier).toBe(1.5)
     expect(BIOMES_DATA.farmlands.deltaR).toBe(0.001)
     expect(BIOMES_DATA.trade_hub.taxEfficiencyBonus).toBe(0.15)
@@ -83,11 +88,11 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
     expect(BIOMES_DATA.wilderness.paperworkReduction).toBe(0.05)
   })
 
-  it('calculates scheduled crown threats dynamically from quotas (80% military, 20% AP)', () => {
+  it('calculates scheduled crown threats dynamically from quotas (80% military, 20s AP rate throughput)', () => {
     expect(getThreatPower(45)).toBe(36)
     expect(getThreatPower(75)).toBe(60)
-    expect(getThreatTributeAp(2800)).toBe(560)
-    expect(getThreatTributeAp(5500)).toBe(1100)
+    expect(getThreatTributeAp(28)).toBe(560)
+    expect(getThreatTributeAp(55)).toBe(1100)
 
     const threatDeadlines = DEADLINE_QUOTAS.filter((q) => q.deadline >= 3)
     expect(threatDeadlines).toHaveLength(8)
@@ -96,7 +101,7 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
       const threat = getDeadlineThreat(quota)
       expect(threat.deadline).toBe(quota.deadline)
       expect(threat.power).toBe(Math.round(quota.military * 0.8))
-      expect(threat.tributeAp).toBe(Math.round(quota.ap * 0.2))
+      expect(threat.tributeAp).toBe(Math.round(20 * quota.apRate))
     }
   })
 
@@ -107,7 +112,7 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
       const prev = DEADLINE_QUOTAS[i - 1]!
       const curr = DEADLINE_QUOTAS[i]!
       expect(curr.deadline).toBe(prev.deadline + 1)
-      expect(curr.ap).toBeGreaterThan(prev.ap)
+      expect(curr.apRate).toBeGreaterThan(prev.apRate)
       expect(curr.pop).toBeGreaterThan(prev.pop)
       expect(curr.military).toBeGreaterThan(prev.military)
     }

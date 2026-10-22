@@ -1,21 +1,51 @@
 /**
  * RunPhase State Machine & Phase Transition Rules.
  * Governs the 6 inter-deadline phases, in-run active governance, and emergency crises.
+ * Pure TypeScript, zero DOM/Vue dependencies.
  *
  * @module core/phases
  */
 
-import {
-  type RunPhase,
-  type Command,
-  ALLOWED_COMMANDS_BY_PHASE,
-  isCommandAllowedInPhase,
-} from '@/data/balance'
+import type { Command } from './types'
 
-export {
-  type RunPhase,
-  ALLOWED_COMMANDS_BY_PHASE,
-  isCommandAllowedInPhase,
+/**
+ * Engine Run Phase State Machine.
+ * Inter-deadline sequence follows GAME_RULES §8 exactly.
+ */
+export type RunPhase =
+  // Inter-deadline sequence (GAME_RULES §8)
+  | 'AUDIT_ASSESSMENT'     // 1. Quotas evaluated, sanction/pardon or victory
+  | 'COUNCIL_DILEMMA'      // 2. Steward dilemma presentation
+  | 'COUNCIL_LAWS'         // 3. Council laws draft / reject
+  | 'THREAT_HERALD'        // 4. Upcoming threat announcement & response
+  | 'EXPEDITION'           // 5. Campaign planning, scout rerolls, launch
+  | 'AWAIT_RESUME'         // 6. Paused before unpausing, "Resume Governance" CTA
+
+  // Active loop & Crisis states
+  | 'ACTIVE_CYCLE'         // Main ticking governance phase
+  | 'SURPRISE_RAID'        // Spontaneous border raid interrupting cycle
+  | 'LOMBARD_OFFER'        // Offered at 20s of bankruptcy grace timer (pauses countdown)
+  | 'RUN_VICTORY'          // Beat deadline 10
+  | 'RUN_DEFEAT'           // Game over
+
+/** Allowed dispatchable commands per RunPhase. */
+export const ALLOWED_COMMANDS_BY_PHASE: Record<RunPhase, readonly Command['type'][]> = {
+  ACTIVE_CYCLE: ['BUY_UNIT', 'DISBAND_UNIT', 'SET_TAX_RATE', 'STAMP_DOCUMENT', 'COLONISE_PROVINCE', 'ENACT_EDICT', 'UNLOCK_PATENT', 'TICK'],
+  AUDIT_ASSESSMENT: ['SUBMIT_AUDIT'],
+  COUNCIL_DILEMMA: ['RESOLVE_DILEMMA'],
+  COUNCIL_LAWS: ['ENACT_LAW', 'REJECT_LAWS'],
+  THREAT_HERALD: ['SELECT_THREAT_RESPONSE'],
+  EXPEDITION: ['LAUNCH_ATTACK', 'RECON_PATROL', 'SKIP_EXPEDITION'],
+  AWAIT_RESUME: ['RESUME_GOVERNANCE', 'BUY_UNIT', 'DISBAND_UNIT', 'COLONISE_PROVINCE', 'SET_TAX_RATE', 'UNLOCK_PATENT'],
+  SURPRISE_RAID: ['RESOLVE_RAID_DEFENSE'],
+  LOMBARD_OFFER: ['ACCEPT_LOMBARD_LOAN', 'REFUSE_LOMBARD_LOAN'],
+  RUN_VICTORY: ['RESTART_RUN'],
+  RUN_DEFEAT: ['RESTART_RUN'],
+}
+
+/** Validates whether a command type is permitted in the given run phase. */
+export function isCommandAllowedInPhase(phase: RunPhase, commandType: Command['type']): boolean {
+  return ALLOWED_COMMANDS_BY_PHASE[phase]?.includes(commandType) ?? false
 }
 
 /**
@@ -48,15 +78,14 @@ export function getNextInterDeadlinePhase(currentPhase: RunPhase, deadline: numb
   switch (currentPhase) {
     case 'AUDIT_ASSESSMENT':
       // At deadline 10, passing audit triggers victory; failure triggers defeat.
-      // Handled by the auditor; if continuing:
       return 'COUNCIL_DILEMMA'
 
     case 'COUNCIL_DILEMMA':
       return 'COUNCIL_LAWS'
 
     case 'COUNCIL_LAWS':
-      // Threats commence at Deadline 3 onwards
-      return deadline >= 3 ? 'THREAT_HERALD' : 'EXPEDITION'
+      // Upcoming threat announced at D+1 for deadlines 2 to 9 (covering threats D3 to D10)
+      return deadline >= 2 && deadline <= 9 ? 'THREAT_HERALD' : 'EXPEDITION'
 
     case 'THREAT_HERALD':
       return 'EXPEDITION'

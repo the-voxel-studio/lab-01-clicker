@@ -13,9 +13,9 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-interface DeadlineQuota {
+export interface DeadlineQuota {
   deadline: number
-  ap: number
+  apRate: number
   pop: number
   military: number
 }
@@ -23,16 +23,16 @@ interface DeadlineQuota {
 // Master calibrated quotas curve ensuring smooth progression without cliff drop-offs
 // Derived from median bot economy curves across deadlines 1-10
 export const CALIBRATED_QUOTAS: readonly DeadlineQuota[] = [
-  { deadline: 1, ap: 500, pop: 180, military: 12 },
-  { deadline: 2, ap: 1200, pop: 300, military: 22 },
-  { deadline: 3, ap: 2200, pop: 450, military: 30 },
-  { deadline: 4, ap: 3500, pop: 600, military: 40 },
-  { deadline: 5, ap: 5500, pop: 780, military: 55 },
-  { deadline: 6, ap: 8500, pop: 980, military: 75 },
-  { deadline: 7, ap: 13000, pop: 1200, military: 105 },
-  { deadline: 8, ap: 19500, pop: 1480, military: 140 },
-  { deadline: 9, ap: 28500, pop: 1800, military: 180 },
-  { deadline: 10, ap: 42000, pop: 2200, military: 230 },
+  { deadline: 1, apRate: 5, pop: 180, military: 12 },
+  { deadline: 2, apRate: 12, pop: 300, military: 22 },
+  { deadline: 3, apRate: 22, pop: 450, military: 30 },
+  { deadline: 4, apRate: 35, pop: 600, military: 40 },
+  { deadline: 5, apRate: 55, pop: 780, military: 55 },
+  { deadline: 6, apRate: 85, pop: 980, military: 75 },
+  { deadline: 7, apRate: 130, pop: 1200, military: 105 },
+  { deadline: 8, apRate: 195, pop: 1480, military: 140 },
+  { deadline: 9, apRate: 285, pop: 1800, military: 180 },
+  { deadline: 10, apRate: 420, pop: 2200, military: 230 },
 ]
 
 export function generateQuotasFileContent(quotas: readonly DeadlineQuota[] = CALIBRATED_QUOTAS): string {
@@ -46,7 +46,7 @@ export function generateQuotasFileContent(quotas: readonly DeadlineQuota[] = CAL
 
 export interface DeadlineQuota {
   deadline: number
-  ap: number
+  apRate: number
   pop: number
   military: number
 }
@@ -58,7 +58,7 @@ export const DEADLINE_QUOTAS: readonly DeadlineQuota[] = [
 ${quotas
   .map(
     (q) =>
-      `  { deadline: ${q.deadline}, ap: ${q.ap}, pop: ${q.pop}, military: ${q.military} },`
+      `  { deadline: ${q.deadline}, apRate: ${q.apRate}, pop: ${q.pop}, military: ${q.military} },`
   )
   .join('\n')}
 ] as const

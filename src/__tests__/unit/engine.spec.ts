@@ -87,11 +87,11 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     state.totalPopulation = 800 // 50 over capacity
     state.freeSerfs = 800
 
-    // Overcrowding bleed rate = 2.5 pop/s, unrest rate = 0.15/s
+    // Overcrowding bleed rate = 2.5 pop/s, proportional unrest rate = 0.10/s per 50 excess pop (§14.3)
     tick(state, 2.0)
 
     expect(state.totalPopulation).toBeCloseTo(800 - 2.5 * 2.0, 1)
-    expect(state.unrest).toBeCloseTo(10 + 0.15 * 2.0, 1)
+    expect(state.unrest).toBeCloseTo(10 + 0.10 * 2.0, 1)
   })
 
   it('applies unrest stage penalties during simulation tick', () => {
@@ -188,22 +188,50 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     expect(state.units.clerk).toBe(1)
   })
 
-  it('executes emergency edicts accurately', () => {
+  it('executes forced_tithe edict in deadline 1', () => {
     const state = createInitialGameState()
+    state.deadline = 1
 
-    // 1. Forced Tithe
     const titheRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'forced_tithe' })
     expect(titheRes.success).toBe(true)
     expect(state.unrest).toBe(45) // 10 + 35
+    expect(state.lastEdictDeadline).toBe(1)
+    expect(state.forcedTitheFreezeTimer).toBe(20)
+  })
 
-    // 2. Church Seizure (+500 AP)
+  it('rejects a second emergency edict within the same deadline', () => {
+    const state = createInitialGameState()
+    state.deadline = 1
+
+    const firstRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'forced_tithe' })
+    expect(firstRes.success).toBe(true)
+
+    const secondRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'church_seizure' })
+    expect(secondRes.success).toBe(false)
+    expect(secondRes.error).toContain('Only one emergency edict is permitted per deadline')
+  })
+
+  it('executes church_seizure in deadline 2', () => {
+    const state = createInitialGameState()
+    state.deadline = 2
+    state.lastEdictDeadline = 1
+
     const churchRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'church_seizure' })
     expect(churchRes.success).toBe(true)
-    expect(state.ap).toBeGreaterThan(500)
+    expect(state.ap).toBeGreaterThan(0)
+    expect(state.activeModifiers.some((m) => m.source === 'edict:church_seizure')).toBe(true)
+  })
 
-    // 3. Grand Festival (-20 Unrest)
+  it('executes grand_festival in deadline 3 when funds are sufficient', () => {
+    const state = createInitialGameState()
+    state.deadline = 3
+    state.lastEdictDeadline = 2
+    state.ap = 2000
+    state.unrest = 40
+
     const festivalRes = dispatch(state, { type: 'ENACT_EDICT', edictId: 'grand_festival' })
     expect(festivalRes.success).toBe(true)
-    expect(state.unrest).toBeLessThan(45)
+    expect(state.unrest).toBe(20) // 40 - 20
+    expect(state.ap).toBeLessThan(2000)
   })
 })

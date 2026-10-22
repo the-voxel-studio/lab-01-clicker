@@ -50,15 +50,47 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.archivePoints).toBe(2)
   })
 
-  it('loads and validates legacy save fixtures (v1-save.json)', () => {
+  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v2 migration pipeline', () => {
     expect(isSerializedSavePayload(fixtureV1)).toBe(true)
-    expect(fixtureV1.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+    expect(fixtureV1.schemaVersion).toBe(1)
+    expect(CURRENT_SCHEMA_VERSION).toBe(2)
 
-    const imported = importSaveFromBase64(exportSaveToBase64(fixtureV1.state as unknown as GameState))
+    // Encode raw v1 fixture directly into save string
+    const jsonStr = JSON.stringify(fixtureV1)
+    const base64Str = Buffer.from(jsonStr, 'utf-8').toString('base64')
+    const encodedV1 = `${SAVE_PREFIX}${base64Str}`
+
+    const imported = importSaveFromBase64(encodedV1)
     expect(imported.runId).toBe('fixture_run_v1')
     expect(imported.ap).toBeCloseTo(320.5, 1)
     expect(imported.units.scribe).toBe(8)
     expect(imported.units.peasant).toBe(5)
+
+    // Verify v2 injected properties
+    expect(imported.provinceBiomes).toEqual(['heartland', 'heartland', 'heartland'])
+    expect(imported.provinceBiomes.length).toBe(imported.provinces)
+    expect(imported.rngStreams).toBeDefined()
+    expect(typeof imported.rngStreams.click).toBe('number')
+    expect(typeof imported.rngStreams.combat).toBe('number')
+    expect(typeof imported.rngStreams.events).toBe('number')
+    expect(typeof imported.rngStreams.council).toBe('number')
+    expect(imported.desertionTimer).toBe(0)
+    expect(imported.forcedTitheFreezeTimer).toBe(0)
+    expect(imported.currentTarget).toBeNull()
+    expect(imported.campaignsLaunchedThisDeadline).toBe(0)
+    expect(imported.lastSurpriseRaidTime).toBe(-60)
+    expect(imported.surpriseRaidTriggeredThisDeadline).toBe(false)
+    expect(imported.disbandedMilitaryHistory).toEqual([])
+    expect(imported.victoriesCount).toBe(0)
+    expect(imported.lastEdictDeadline).toBe(0)
+    expect(imported.edictUsageCounts).toEqual({
+      forced_tithe: 0,
+      church_seizure: 0,
+      grand_festival: 0,
+    })
+    expect(imported.clickTokens).toBe(12)
+    expect(imported.interimWarningOnTrack).toBeNull()
+    expect(imported.pendingDeadlineAudit).toBe(false)
   })
 
   it('rejects corrupt, malformed, or tampered save strings with explicit errors', () => {
@@ -83,5 +115,38 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(() => importSaveFromBase64(`${SAVE_PREFIX}${invalidSchema}`)).toThrow(
       /does not conform to SerializedSavePayload schema/
     )
+  })
+
+  it('rejects unsupported future schema versions (schemaVersion > CURRENT_SCHEMA_VERSION)', () => {
+    const futurePayload = {
+      schemaVersion: CURRENT_SCHEMA_VERSION + 1,
+      timestamp: Date.now(),
+      state: createInitialGameState(),
+    }
+    const encoded = `${SAVE_PREFIX}${Buffer.from(JSON.stringify(futurePayload), 'utf-8').toString('base64')}`
+    expect(() => importSaveFromBase64(encoded)).toThrow(/Unsupported future schema version/)
+  })
+
+  it('rejects invalid schema versions (schemaVersion < 1 or non-integer)', () => {
+    const invalidVersionPayload = {
+      schemaVersion: 0,
+      timestamp: Date.now(),
+      state: createInitialGameState(),
+    }
+    const encoded = `${SAVE_PREFIX}${Buffer.from(JSON.stringify(invalidVersionPayload), 'utf-8').toString('base64')}`
+    expect(() => importSaveFromBase64(encoded)).toThrow(/Invalid schema version/)
+  })
+
+  it('rejects saves containing NaN or non-finite numerical values', () => {
+    const corruptPayload = {
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: Date.now(),
+      state: {
+        ...createInitialGameState(),
+        ap: null as unknown as number,
+      },
+    }
+    const encoded = `${SAVE_PREFIX}${Buffer.from(JSON.stringify(corruptPayload), 'utf-8').toString('base64')}`
+    expect(() => importSaveFromBase64(encoded)).toThrow(/non-finite|invalid/i)
   })
 })

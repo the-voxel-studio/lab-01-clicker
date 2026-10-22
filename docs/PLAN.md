@@ -177,15 +177,33 @@ PHASE V2: PLAYABILITY & PRESENTATION
 >
 > **Numbering:** the "Task X.Y" items below are grouped by Gate and do **not** map one-to-one to the "Tâche X.Y" items of `docs/plan/README.md` (e.g. Task 1.6 here = Greedy bot, Tâche 1.6 there = combat). `docs/plan/README.md` is the execution reference; its **Tâche 1.0** (rule arbitrations in `GAME_RULES.md` / `GUIDE.md`) must be completed before any code change.
 
+#### Préalable : Tâche 1.0 du Plan de Remédiation (`docs/plan/README.md`)
+- [x] **Tâche 1.0 : Arbitrages de Règles & Alignement Documentaire (`GAME_RULES.md`, `GUIDE.md`, `PLAN.md`)**
+  - [x] 1. Révolution immédiate (§6.5) : défaite instantanée dès Unrest = 100 dans toute phase.
+  - [x] 2. Désertion cumulative (§6.5) : s'applique de 75% à 99% d'Unrest ; Sanctuary Rights sous 90% uniquement.
+  - [x] 3. Quota d'AP en débit brut instantané (AP/s, `ApRateQuota`) à l'inspection ; clics et transferts de capital exclus.
+  - [x] 4. Trésor signé : aucune remise à zéro des dettes (`ap < 0`), solvabilité requise pour tout choix coûteux.
+  - [x] 5. Héraut des menaces (§8) : après l'audit $d$ ($2 \le d \le 9$), annonce et résout la menace de $d+1$ ; tribute = $20 \times \text{ApRateQuota}_{d+1}$.
+  - [x] 6. Conquête (§1.2, §7.4.2) : le plancher de 1 province ne protège pas en cas d'effondrement militaire (défaite `conquest` à 0 province).
+  - [x] 7. Biome neutre de départ : biome `heartland` (3 provinces de départ = 750 de capacité) ; perte de province en LIFO.
+  - [x] 8. Achats en vrac (§5.1, §5.3) : tailles maximales d'achat (1, 10, 50, 100) ; validation de toute quantité entière $\le$ max ; Buy Max borné par la taille max.
+  - [x] 9. Salvage défensif (§7.4.2) : formule de récupération $\text{round}(0.25 \times \text{TributeCost} \times \text{Roll}(0.8, 1.2))$ créditée à `state.ap`.
+  - [x] 10. Butin de soldats (§7.4.1) : soldats capturés au-delà du plafond militaire reversés aux serfs libres.
+  - [x] 11. Prêt lombard (§14.4) : conditionné à `provinces >= 2`.
+  - [x] 12. Raids & Mercenaires (§7.5 vs §8.3) : doublement si AP > 2000 généralisé en §8.3 ; Mercenaires = tribut +25% uniquement.
+  - [x] 13. Clic d'amorçage (§2.1, §17) : 50 AP de départ pour le 1er Scribe ; tutoriel axé sur le débit de production.
+  - [x] 14. Format de sauvegarde (§18) : préfixe `GRA-v1:` stable pour le format d'encodage ; `schemaVersion` dans le payload pour le schéma.
+  - [x] 15. Alignement `PLAN.md` et renvoi vers `docs/plan/README.md`.
+
 #### Gate A: Core Economy, 24 Units & Minimal Run Validation
 - [ ] **Task 1.1: Master Balance Single Source of Truth (`src/data/balance.ts` & `src/data/balance.generated.ts`) [V1]**
   - [x] Centralize base constants, dual-tier geometric scaling ratios ($1.07$ / $1.05$), logistic growth $r_0 = 0.005$, base housing $250$/province, colonisation cost ($1500 \times 2^k$), continuous collector yields (`freeSerfs / 100`), biome multipliers, and dynamic threat helpers.
-  - [ ] Replace `'unrest_growth'` in `StatKey` with dual `'unrest_generation' | 'unrest_pacification'` to prevent sign inversion on multiplicative modifiers (`GAME_RULES.md §6.5`).
-  - [ ] Add `DISBAND_UNIT` command contract and allow it in `ACTIVE_CYCLE` and `AWAIT_RESUME`.
-  - [ ] Eliminate the circular import between `src/data/balance.ts` and `src/core/{formulas,modifiers}.ts` by moving engine types (`Command`, `RunPhase`, `Effect`, `Modifier`) to `src/core/types.ts`.
-  - [ ] Introduce an injectable `EngineConfig` (`balance` constants + `quotas`, default `DEFAULT_ENGINE_CONFIG`, never serialized) passed to `tick`, `dispatch` and `evaluateDeadlineAudit`, so the Gate E solver and sensitivity tests can vary quotas, $r_0$, cost ratios and poll tax without rewriting source files.
-  - [ ] Add the neutral `heartland` biome to `BiomeId` / `BIOMES_DATA` (no bonus) so the 3 starting provinces keep the 750 starting capacity.
-  - [ ] Tested in `src/__tests__/unit/balance.spec.ts` (including strict quota monotonicity across Deadlines 1–10).
+  - [x] Replace `'unrest_growth'` in `StatKey` with dual `'unrest_generation' | 'unrest_pacification'` to prevent sign inversion on multiplicative modifiers (`GAME_RULES.md §6.5`).
+  - [x] Add `DISBAND_UNIT` command contract and allow it in `ACTIVE_CYCLE` and `AWAIT_RESUME`.
+  - [x] Eliminate the circular import between `src/data/balance.ts` and `src/core/{formulas,modifiers}.ts` by moving engine types (`Command`, `RunPhase`, `Effect`, `Modifier`) to `src/core/types.ts`.
+  - [x] Introduce an injectable `EngineConfig` (`balance` constants + `quotas`, default `DEFAULT_ENGINE_CONFIG`, never serialized) passed to `tick`, `dispatch` and `evaluateDeadlineAudit`, so the Gate E solver and sensitivity tests can vary quotas, $r_0$, cost ratios and poll tax without rewriting source files.
+  - [x] Add the neutral `heartland` biome to `BiomeId` / `BIOMES_DATA` (no bonus) so the 3 starting provinces keep the 750 starting capacity.
+  - [x] Tested in `src/__tests__/unit/balance.spec.ts` (including strict quota monotonicity across Deadlines 1–10).
 - [ ] **Task 1.2: 24 Units Catalog & Secondary Role Mechanics (`src/data/balance.ts` - `UNITS_DATA`) [V1]**
   - [x] Declare all 24 unit definitions (8 People, 8 Administration, 8 Military across Tier I & Tier II) in `UNITS_DATA`.
   - [ ] Wire all secondary unit mechanics specified in `GAME_RULES.md §4`:
@@ -199,73 +217,73 @@ PHASE V2: PLAYABILITY & PRESENTATION
 - [ ] **Task 1.3: Core Mathematical Models & Ergonomic Clicker (`src/core/formulas.ts`) [V1]**
   - [x] Implement deterministic **Token Bucket clicker** (12 tokens/sec refilled via injected tick delta-time).
   - [x] Implement dual-tier geometric cost scaling, logistic growth, civil colonisation cost ($1500 \times 2^k$), continuous collector yield, and paperwork inertia ($S=220$).
-  - [ ] Fix `calculateMaxAffordableUnits` to `Math.floor(freeSerfs)` and `Math.floor(orderHeadroom)` so Buy Max never returns fractional unit counts when `freeSerfs` is non-integer.
-  - [ ] Implement proportional overcrowding unrest formula from `GAME_RULES.md §14.3`: $+0.10\text{ Unrest/s}$ per 50 excess inhabitants, capped at $+1.0\text{ Unrest/s}$.
-  - [ ] Implement `getMaxBulkSize(deadline, totalPopulation, def)` returning the **maximum** allowed purchase count (`GAME_RULES.md §5.1`: 1, then $\le 10$ at D3 or $\ge 250$ Pop, $\le 50$ at D6 or $\ge 1,000$ Pop, $\le 100$ at D8 for `peasant` and `scribe` only); `BUY_UNIT` rejects any `count` above it (not only exact 10/50/100) and Buy Max is capped by it.
-  - [ ] Fix the Buy Max rounding gap: decrement $K$ while `calculateUnitCost(unitId, n, K) > availableAp` so a Buy Max count is always accepted by `BUY_UNIT`.
+  - [x] Fix `calculateMaxAffordableUnits` to `Math.floor(freeSerfs)` and `Math.floor(orderHeadroom)` so Buy Max never returns fractional unit counts when `freeSerfs` is non-integer.
+  - [x] Implement proportional overcrowding unrest formula from `GAME_RULES.md §14.3`: $+0.10\text{ Unrest/s}$ per 50 excess inhabitants, capped at $+1.0\text{ Unrest/s}$.
+  - [x] Implement `getMaxBulkSize(deadline, totalPopulation, def)` returning the **maximum** allowed purchase count (`GAME_RULES.md §5.1`: 1, then $\le 10$ at D3 or $\ge 250$ Pop, $\le 50$ at D6 or $\ge 1,000$ Pop, $\le 100$ at D8 for `peasant` and `scribe` only); `BUY_UNIT` rejects any `count` above it (not only exact 10/50/100) and Buy Max is capped by it.
+  - [x] Fix the Buy Max rounding gap: decrement $K$ while `calculateUnitCost(unitId, n, K) > availableAp` so a Buy Max count is always accepted by `BUY_UNIT`.
 - [ ] **Task 1.4: Universal Modifier Engine (`src/core/modifiers.ts`) [V1]**
   - [x] Implement `composeStat(statKey, baseValue, modifiers, rawState)` supporting `add`, `addPct`, `mul`, `set` and strongly typed `ResolverKey`.
-  - [ ] Remove legacy untyped dual-signature overload from `composeStat` (always require `statKey: StatKey`).
-  - [ ] Purge expired temporary modifiers (`mod.expiresAt !== undefined && mod.expiresAt <= state.totalElapsedSeconds`) at the start of every `tick()`.
-  - [ ] Instantiate and wire `TickStatCache` into `engine.ts` / stat queries.
-  - [ ] Fix `applyEffect` for `grant_units` (and `instant_resource: 'population'`) so the §3.1 Population Balance Equation (`totalPopulation === freeSerfs + sum(units)`) is strictly preserved.
-  - [ ] Remove the `Math.max(0, …)` clamp on `instant_resource: 'ap'` (it erased debt and made unaffordable costs free) and stop crediting effect AP to the AP quota; costs are validated upstream by `canAffordEffects`.
+  - [x] Remove legacy untyped dual-signature overload from `composeStat` (always require `statKey: StatKey`).
+  - [x] Purge expired temporary modifiers (`mod.expiresAt !== undefined && mod.expiresAt <= state.totalElapsedSeconds`) at the start of every `tick()`.
+  - [x] Instantiate and wire `TickStatCache` into `engine.ts` / stat queries.
+  - [x] Fix `applyEffect` for `grant_units` (and `instant_resource: 'population'`) so the §3.1 Population Balance Equation (`totalPopulation === freeSerfs + sum(units)`) is strictly preserved.
+  - [x] Remove the `Math.max(0, …)` clamp on `instant_resource: 'ap'` (it erased debt and made unaffordable costs free) and stop crediting effect AP to the AP quota; costs are validated upstream by `canAffordEffects`.
 - [ ] **Task 1.5: Minimal Run Core Engine (`src/core/state.ts`, `src/core/commands.ts`, `src/core/engine.ts`) [V1]**
   - [x] Initial state factory (50 AP, 100 Pop, 3 Provinces = 750 Cap, 25% Tax, 10 Unrest) and basic tick loop.
-  - [ ] Enforce the §3.1 **Population Balance Equation** (`totalPopulation === freeSerfs + sum(units)`) across overcrowding bleed, defensive collapse, levy en masse, and unit grants via a shared demographic mutation helper.
-  - [ ] Wire dual `unrest_generation` and `unrest_pacification` composition in `tick()`.
-  - [ ] Route every Unrest mutation through `addUnrest(state, delta)` (`src/core/mutations.ts`) so reaching 100 triggers the `revolution` defeat immediately in any phase (instant spikes were previously cancelled by pacification on the next tick), and never overwrite `RUN_DEFEAT` with a later phase transition.
-  - [ ] Implement cumulative military desertion from 75% to 99% Unrest (1 `soldier` every 15s, or 1 `man_at_arms` every 30s if 0 `soldier` remain; *Sanctuary Rights* only blocks it below 90%), resetting the persisted `desertionTimer` when no eligible unit exists.
-  - [ ] Advance the deadline clock by the integrated step before any mid-tick phase switch (`LOMBARD_OFFER`, `SURPRISE_RAID`, defeat), defer the audit with `pendingDeadlineAudit` if needed, and expose `consumedDt` in `TickResult`.
-  - [ ] Only offer `LOMBARD_OFFER` when `provinces >= 2`.
-  - [ ] Extract shared `calculateGrossApRate(state)`, `calculateNetPaperwork(state)`, and `calculateMaxPopulation(state)` helpers so `STAMP_DOCUMENT`, `BUY_UNIT`, and `tick()` evaluate identical composed stats.
-  - [ ] Fix `SET_TAX_RATE`: validate `Number.isFinite(rate)`, apply **downward** tax adjustments (`targetRate <= currentRate`) **immediately** (0s delay), and apply the 8s promulgation delay only to **upward** adjustments (`GAME_RULES.md §14.2`).
-  - [ ] Validate all command inputs: reject `dt <= 0` or `!Number.isFinite(dt)` in `TICK`, reject non-integer `count` in `BUY_UNIT`, remove exploitable `isCritical` override from `STAMP_DOCUMENT` (use the persisted `rngStreams.click` stream), and return `{ success: false }` on unhandled commands.
-  - [ ] Fix `evaluateDeadlineAudit`: failing **Deadline 10** causes immediate defeat (`quota_failure`) even with 0 strikes; Royal Censure fine applies only to positive AP ($0.50 \times \max(0, \text{ap})$).
-  - [ ] **AP quota as an instantaneous gross rate:** rename `DeadlineQuota.ap` to `apRate` (AP/s) and evaluate `apMet = calculateGrossApRate(state).total >= quota.apRate` at inspection (clicks and capital transfers no longer count). Provisional quotas `5, 12, 22, 35, 55, 85, 130, 195, 285, 420` AP/s (= former cumulative quota / 100) until the Gate E solver; tribute becomes $20 \times \text{ApRateQuota}$ (same amounts as the §8.1 table).
-  - [ ] Compute `interimWarningOnTrack: boolean` at $t = 50\text{s}$ using the 2-out-of-3 rule (`GAME_RULES.md §1.3`), comparing the current gross AP rate to `apRate`.
-  - [ ] Enforce all **Emergency Edict safeguards** (`GAME_RULES.md §11`): max 1 edict per deadline, $+50\%$ escalating penalty per prior use, zero AP quota credit, 20s pop growth freeze on `forced_tithe`, max 2 uses per run & $\max(300, 25 \times \text{Gross AP/s})$ & `unrest_pacification` $\times 0.5$ + 10 Unrest on `church_seizure`, and $\max(100, 0.20 \times \text{ap}, 30 \times \text{Gross AP/s})$ cost check on `grand_festival`.
-  - [ ] Implement `DISBAND_UNIT` command (`GAME_RULES.md §14.1`: return to `freeSerfs`, $50\%$ base cost severance, $+2$ Unrest per unpaid unit if AP insufficient, $+15$ Unrest mutiny spike if $>10\%$ military disbanded within 10s).
+  - [x] Enforce the §3.1 **Population Balance Equation** (`totalPopulation === freeSerfs + sum(units)`) across overcrowding bleed, defensive collapse, levy en masse, and unit grants via a shared demographic mutation helper.
+  - [x] Wire dual `unrest_generation` and `unrest_pacification` composition in `tick()`.
+  - [x] Route every Unrest mutation through `addUnrest(state, delta)` (`src/core/mutations.ts`) so reaching 100 triggers the `revolution` defeat immediately in any phase (instant spikes were previously cancelled by pacification on the next tick), and never overwrite `RUN_DEFEAT` with a later phase transition.
+  - [x] Implement cumulative military desertion from 75% to 99% Unrest (1 `soldier` every 15s, or 1 `man_at_arms` every 30s if 0 `soldier` remain; *Sanctuary Rights* only blocks it below 90%), resetting the persisted `desertionTimer` when no eligible unit exists.
+  - [x] Advance the deadline clock by the integrated step before any mid-tick phase switch (`LOMBARD_OFFER`, `SURPRISE_RAID`, defeat), defer the audit with `pendingDeadlineAudit` if needed, and expose `consumedDt` in `TickResult`.
+  - [x] Only offer `LOMBARD_OFFER` when `provinces >= 2`.
+  - [x] Extract shared `calculateGrossApRate(state)`, `calculateNetPaperwork(state)`, and `calculateMaxPopulation(state)` helpers so `STAMP_DOCUMENT`, `BUY_UNIT`, and `tick()` evaluate identical composed stats.
+  - [x] Fix `SET_TAX_RATE`: validate `Number.isFinite(rate)`, apply **downward** tax adjustments (`targetRate <= currentRate`) **immediately** (0s delay), and apply the 8s promulgation delay only to **upward** adjustments (`GAME_RULES.md §14.2`).
+  - [x] Validate all command inputs: reject `dt <= 0` or `!Number.isFinite(dt)` in `TICK`, reject non-integer `count` in `BUY_UNIT`, remove exploitable `isCritical` override from `STAMP_DOCUMENT` (use the persisted `rngStreams.click` stream), and return `{ success: false }` on unhandled commands.
+  - [x] Fix `evaluateDeadlineAudit`: failing **Deadline 10** causes immediate defeat (`quota_failure`) even with 0 strikes; Royal Censure fine applies only to positive AP ($0.50 \times \max(0, \text{ap})$).
+  - [x] **AP quota as an instantaneous gross rate:** rename `DeadlineQuota.ap` to `apRate` (AP/s) and evaluate `apMet = calculateGrossApRate(state).total >= quota.apRate` at inspection (clicks and capital transfers no longer count). Provisional quotas `5, 12, 22, 35, 55, 85, 130, 195, 285, 420` AP/s (= former cumulative quota / 100) until the Gate E solver; tribute becomes $20 \times \text{ApRateQuota}$ (same amounts as the §8.1 table).
+  - [x] Compute `interimWarningOnTrack: boolean` at $t = 50\text{s}$ using the 2-out-of-3 rule (`GAME_RULES.md §1.3`), comparing the current gross AP rate to `apRate`.
+  - [x] Enforce all **Emergency Edict safeguards** (`GAME_RULES.md §11`): max 1 edict per deadline, $+50\%$ escalating penalty per prior use, zero AP quota credit, 20s pop growth freeze on `forced_tithe`, max 2 uses per run & $\max(300, 25 \times \text{Gross AP/s})$ & `unrest_pacification` $\times 0.5$ + 10 Unrest on `church_seizure`, and $\max(100, 0.20 \times \text{ap}, 30 \times \text{Gross AP/s})$ cost check on `grand_festival`.
+  - [x] Implement `DISBAND_UNIT` command (`GAME_RULES.md §14.1`: return to `freeSerfs`, $50\%$ base cost severance, $+2$ Unrest per unpaid unit if AP insufficient, $+15$ Unrest mutiny spike if $>10\%$ military disbanded within 10s).
   - [ ] Fix `RESTART_RUN` to reset all state properties (`clickTokens`, `rngStreams`, threat fields, timers, counters), make `runId` deterministic from `seed`, and preserve `dt` overflow across the 100s deadline boundary.
 - [ ] **Task 1.6: Early Economic Validation (Greedy ROI Bot v0 & Provisional $c$ Solver) (`scripts/generate-balance-report.ts`) [V1]**
   - [ ] Implement genuine Greedy ROI Bot evaluating marginal payback across AP, Population, and Military without the `state.seed % 2` parity shortcut.
   - [ ] Run bisection solver on coefficient $c$ over 200 fixed seeds and generate `src/data/balance.generated.ts`.
 
 #### Gate B: Complete Run Loop, State Machine & Determinism
-- [ ] **Task 1.7: Deterministic PRNG (`src/core/prng.ts` & `src/core/state.ts`) [V1]**
+- [x] **Task 1.7: Deterministic PRNG (`src/core/prng.ts` & `src/core/state.ts`) [V1]**
   - [x] Implement Mulberry32 algorithm with `next()`, `nextBetween()`, `nextInt()`, `getState()`, `setState()`.
-  - [ ] Ensure `this.state = (this.state + 0x6d2b79f5) >>> 0` stays unsigned 32-bit in `prng.ts`.
-  - [ ] Persist independent PRNG streams `rngStreams: Record<'click' | 'combat' | 'events' | 'council', number>` in `GameState` (seeded via `deriveStreamSeed(seed, stream)`) and route all random rolls through `withStatePrng(state, stream, fn)`, so clicking cannot shift raid or battle outcomes.
-- [ ] **Task 1.8: RunPhase State Machine & Command Permissions (`src/core/phases.ts`) [V1]**
+  - [x] Ensure `this.state = (this.state + 0x6d2b79f5) >>> 0` stays unsigned 32-bit in `prng.ts`.
+  - [x] Persist independent PRNG streams `rngStreams: Record<'click' | 'combat' | 'events' | 'council', number>` in `GameState` (seeded via `deriveStreamSeed(seed, stream)`) and route all random rolls through `withStatePrng(state, stream, fn)`, so clicking cannot shift raid or battle outcomes.
+- [x] **Task 1.8: RunPhase State Machine & Command Permissions (`src/core/phases.ts`) [V1]**
   - [x] Implement `RunPhase` union, inter-deadline progression (`getNextInterDeadlinePhase`), and `assertCommandAllowed(phase, command)` tested in `src/__tests__/unit/phases.spec.ts`.
-  - [ ] Add `DISBAND_UNIT` to `ACTIVE_CYCLE` and `AWAIT_RESUME` in `ALLOWED_COMMANDS_BY_PHASE`.
-  - [ ] Wire `SURPRISE_RAID` transitions from `tick()` and clean up or wire `COMBAT_RESOLUTION`.
-- [ ] **Task 1.9: Constrained Command Dispatch API (`src/core/commands.ts`) [V1]**
+  - [x] Add `DISBAND_UNIT` to `ACTIVE_CYCLE` and `AWAIT_RESUME` in `ALLOWED_COMMANDS_BY_PHASE`.
+  - [x] Wire `SURPRISE_RAID` transitions from `tick()` and clean up or wire `COMBAT_RESOLUTION`.
+- [x] **Task 1.9: Constrained Command Dispatch API (`src/core/commands.ts`) [V1]**
   - [x] Enforce phase permissions via `assertCommandAllowed(state.phase, command)`.
-  - [ ] Fix `SELECT_THREAT_RESPONSE`: if `'tribute'` fails (`state.ap < tributeAp`), do **not** advance `state.phase` out of `THREAT_HERALD` (`GAME_RULES.md §8.2`).
-  - [ ] Allow up to 2 voluntary campaigns in `EXPEDITION` (`campaignsLaunchedThisDeadline < 2`) before transitioning to `AWAIT_RESUME`.
-  - [ ] Guard `RESUME_GOVERNANCE` so `deadline` never exceeds 10.
-  - [ ] Fix the Threat Herald off-by-one: after the audit of deadline $d$ ($2 \le d \le 9$), announce and resolve the threat of deadline $d+1$ (populating `currentThreatPower` / `currentThreatTributeAp`), so all 8 threats D3–D10 are reachable.
-  - [ ] Return `{ success: false }` for orphan commands (`RESOLVE_COMBAT`) and remove or wire `COMBAT_RESOLUTION`.
-- [ ] **Task 1.10: Versioned Save State & Typed Migrations (`src/core/migrations.ts`) [V1]**
+  - [x] Fix `SELECT_THREAT_RESPONSE`: if `'tribute'` fails (`state.ap < tributeAp`), do **not** advance `state.phase` out of `THREAT_HERALD` (`GAME_RULES.md §8.2`).
+  - [x] Allow up to 2 voluntary campaigns in `EXPEDITION` (`campaignsLaunchedThisDeadline < 2`) before transitioning to `AWAIT_RESUME`.
+  - [x] Guard `RESUME_GOVERNANCE` so `deadline` never exceeds 10.
+  - [x] Fix the Threat Herald off-by-one: after the audit of deadline $d$ ($2 \le d \le 9$), announce and resolve the threat of deadline $d+1$ (populating `currentThreatPower` / `currentThreatTributeAp`), so all 8 threats D3–D10 are reachable.
+  - [x] Return `{ success: false }` for orphan commands (`RESOLVE_COMBAT`) and remove or wire `COMBAT_RESOLUTION`.
+- [x] **Task 1.10: Versioned Save State & Typed Migrations (`src/core/migrations.ts`) [V1]**
   - [x] Base64 clipboard export/import with integrity prefix `GRA-v1:` and zero `any`.
-  - [ ] Reject future save schemas (`schemaVersion > CURRENT_SCHEMA_VERSION`) and validate core `GameState` properties against `NaN` / malformed types.
-  - [ ] Bump `CURRENT_SCHEMA_VERSION` to `2` and implement sequential migration `1 -> 2` populating all new `GameState` fields from `v1-save.json`, verified in `src/__tests__/unit/migrations.spec.ts`.
+  - [x] Reject future save schemas (`schemaVersion > CURRENT_SCHEMA_VERSION`) and validate core `GameState` properties against `NaN` / malformed types.
+  - [x] Bump `CURRENT_SCHEMA_VERSION` to `2` and implement sequential migration `1 -> 2` populating all new `GameState` fields from `v1-save.json`, verified in `src/__tests__/unit/migrations.spec.ts`.
 - [ ] **Task 1.11: Replay Journal & Step-Size Invariance Test (`src/core/replay.ts` & `src/__tests__/unit/replay.spec.ts`) [V1]**
-  - [ ] Redesign `ReplayJournal` execution so commands dispatched during paused inter-deadline/crisis phases (`AUDIT_ASSESSMENT`, `COUNCIL_DILEMMA`, `COUNCIL_LAWS`, `THREAT_HERALD`, `EXPEDITION`, `AWAIT_RESUME`, `LOMBARD_OFFER`, `SURPRISE_RAID`) execute deterministically without causing an infinite loop when `totalElapsedSeconds` is frozen.
-  - [ ] Expand `getStateHash(state)` to hash `freeSerfs`, `taxRate`, `units`, `activeLaws`, `activeModifiers`, `phase`, and all `rngStreams`.
+  - [x] Redesign `ReplayJournal` execution so commands dispatched during paused inter-deadline/crisis phases (`AUDIT_ASSESSMENT`, `COUNCIL_DILEMMA`, `COUNCIL_LAWS`, `THREAT_HERALD`, `EXPEDITION`, `AWAIT_RESUME`, `LOMBARD_OFFER`, `SURPRISE_RAID`) execute deterministically without causing an infinite loop when `totalElapsedSeconds` is frozen.
+  - [x] Expand `getStateHash(state)` to hash `freeSerfs`, `taxRate`, `units`, `activeLaws`, `activeModifiers`, `phase`, and all `rngStreams`.
   - [ ] Validate determinism and step-size invariance ($\Delta t = 0.05\text{s}$, $0.5\text{s}$, $1.0\text{s}$) across 20 complete multi-deadline run journals.
 
 #### Gate C: Asymmetric Combat & Dynamic Threats
 - [ ] **Task 1.12: Generalized Asymmetric Combat Engine (`src/core/battle.ts`) [V1]**
   - [x] Asymmetric formula (-10% attacker friction vs +20% defender fortification), Razor-Thin Victory rule ($1.00 \le R \le 1.05 \to$ no province), diverse loot types, and province floor rule (= 1).
-  - [ ] Unify all military power evaluations across `engine.ts`, `commands.ts`, and `battle.ts` via `calculateMilitaryPower(state)`.
-  - [ ] Distribute combat casualties proportionally across `soldier` and `man_at_arms` (with `captain` $-5\%$ mitigation) in offensive and defensive battles; annihilate 100% of all military units on Defensive Collapse while preserving the §3.1 Population Balance Equation.
-  - [ ] Implement prospective `currentTarget` state with Fog of War uncertainty band $M$, `isFalseLedger` (15%), `isAmbush` (10%), Spymaster detection, and `RECON_PATROL` target rerolling via the `rngStreams.combat` stream.
-  - [ ] Trigger `SURPRISE_RAID` in `tick()` following `GAME_RULES.md §8.3` (D3+, every 10s, 2% base chance, $\times 2$ if AP $> 2000$, $+2\%$ if Mil $< 50\%$ quota, $+2\%$ if Unrest $> 60$, max 1/deadline, 60s cooldown, power $= 0.50 \times \text{MilitaryQuota}$).
+  - [x] Unify all military power evaluations across `engine.ts`, `commands.ts`, and `battle.ts` via `calculateMilitaryPower(state)`.
+  - [x] Distribute combat casualties proportionally across `soldier` and `man_at_arms` (with `captain` $-5\%$ mitigation) in offensive and defensive battles; annihilate 100% of all military units on Defensive Collapse while preserving the §3.1 Population Balance Equation.
+  - [x] Implement prospective `currentTarget` state with Fog of War uncertainty band $M$, `isFalseLedger` (15%), `isAmbush` (10%), Spymaster detection, and `RECON_PATROL` target rerolling via the `rngStreams.combat` stream.
+  - [x] Trigger `SURPRISE_RAID` in `tick()` following `GAME_RULES.md §8.3` (D3+, every 10s, 2% base chance, $\times 2$ if AP $> 2000$, $+2\%$ if Mil $< 50\%$ quota, $+2\%$ if Unrest $> 60$, max 1/deadline, 60s cooldown, power $= 0.50 \times \text{MilitaryQuota}$).
   - [ ] Credit `stronghold` biome ($+12$ flat defense) and `man_at_arms` ($+0.5$ flat defense) in `calculateDefenderPower`.
-  - [ ] Defensive Collapse: pillage only positive AP and never clamp the result to 0 (debt was erased), and remove the province floor so losing the last province triggers the `conquest` defeat.
-  - [ ] Cap captured `soldiers` loot to the military order headroom (excess becomes free serfs), add the defensive-victory salvage loot (§7.4.2), and stop crediting campaign loot to the AP quota.
+  - [x] Defensive Collapse: pillage only positive AP and never clamp the result to 0 (debt was erased), and remove the province floor so losing the last province triggers the `conquest` defeat.
+  - [x] Cap captured `soldiers` loot to the military order headroom (excess becomes free serfs), add the defensive-victory salvage loot (§7.4.2), and stop crediting campaign loot to the AP quota.
 
 #### Gate D: Complete Narrative Content, Laws & Events
 - [ ] **Task 2.1: 30 Laws Catalog (`src/data/laws.ts`) [V1]**

@@ -14,6 +14,7 @@ import type {
   Effect,
   GameState,
 } from './types'
+import { addUnrest, applyPopulationLoss } from './mutations'
 
 /**
  * Raw game state inspected by dynamic modifier resolvers.
@@ -113,50 +114,19 @@ export function extractRawEvaluationState(state: GameState): RawEvaluationState 
  * @param rawState - Raw game state snapshot for dynamic resolvers.
  * @returns The final composed numeric value.
  */
-/**
- * Evaluates and composes a numeric game statistic from base value and active modifiers.
- *
- * Supports both signatures:
- * - composeStat(statKey, baseValue, modifiers, rawState?)
- * - composeStat(baseValue, modifiers, rawState?)
- *
- * Composition Pipeline:
- * 1. Base value
- * 2. Sum of all 'add' modifiers: Base' = Base + sum(Add)
- * 3. Percentage additions: Base'' = Base' * (1 + sum(AddPct))
- * 4. Multipliers: Base''' = Base'' * prod(Mul)
- * 5. Override: If any 'set' modifier is active, takes the value of the most recently applied set modifier.
- */
 export function composeStat(
-  arg1: StatKey | number,
-  arg2: number | readonly Modifier[],
-  arg3?: readonly Modifier[] | RawEvaluationState,
-  arg4?: RawEvaluationState
+  statKey: StatKey,
+  baseValue: number,
+  modifiers: readonly Modifier[],
+  rawState?: RawEvaluationState
 ): number {
-  let statKey: StatKey | undefined
-  let baseValue: number
-  let modifiers: readonly Modifier[]
-  let rawState: RawEvaluationState | undefined
-
-  if (typeof arg1 === 'string') {
-    statKey = arg1
-    baseValue = arg2 as number
-    modifiers = (arg3 as readonly Modifier[]) ?? []
-    rawState = arg4
-  } else {
-    statKey = undefined
-    baseValue = arg1
-    modifiers = (arg2 as readonly Modifier[]) ?? []
-    rawState = arg3 as RawEvaluationState | undefined
-  }
-
   let addSum = 0
   let addPctSum = 0
   let mulProduct = 1.0
   let setValue: number | null = null
 
   for (const mod of modifiers) {
-    if (statKey !== undefined && mod.stat !== statKey) continue
+    if (mod.stat !== statKey) continue
 
     let effectiveValue = mod.value
     let isActive = true
@@ -211,8 +181,9 @@ export function composeStat(
  * Avoids recalculating identical stats when tick index and active modifiers have not changed.
  */
 export class TickStatCache {
-  private tickIndex = -1
   private cache = new Map<string, number>()
+  private tickIndex = -1
+  private stateRef: unknown = null
 
   /**
    * Retrieves or computes a stat evaluation with tick-scoped memoization.
@@ -220,16 +191,19 @@ export class TickStatCache {
    * @param statKey - The stat key or identifier to retrieve.
    * @param currentTick - Monotonic engine tick counter.
    * @param computeFn - Evaluation callback invoked on cache miss.
+   * @param stateRef - Optional reference to GameState to ensure cache isolation between instances.
    * @returns Composed stat value.
    */
   public getOrCompute(
     statKey: string,
     currentTick: number,
-    computeFn: () => number
+    computeFn: () => number,
+    stateRef?: unknown
   ): number {
-    if (this.tickIndex !== currentTick) {
+    if (this.tickIndex !== currentTick || (stateRef !== undefined && this.stateRef !== stateRef)) {
       this.cache.clear()
       this.tickIndex = currentTick
+      this.stateRef = stateRef ?? null
     }
 
     const cached = this.cache.get(statKey)
@@ -246,6 +220,7 @@ export class TickStatCache {
   public clear(): void {
     this.cache.clear()
     this.tickIndex = -1
+    this.stateRef = null
   }
 }
 
@@ -264,18 +239,18 @@ export function applyEffect(effect: Effect, state: GameState): void {
     case 'instant_resource':
       switch (effect.resource) {
         case 'ap':
-          state.ap = Math.max(0, state.ap + effect.amount)
-          if (effect.amount > 0) {
-            state.cumulativeApThisDeadline += effect.amount
-            state.totalCumulativeAp += effect.amount
-          }
+          state.ap += effect.amount
           break
         case 'population':
-          state.totalPopulation = Math.max(0, state.totalPopulation + effect.amount)
-          state.freeSerfs = Math.max(0, state.freeSerfs + effect.amount)
+          if (effect.amount < 0) {
+            applyPopulationLoss(state, -effect.amount)
+          } else if (effect.amount > 0) {
+            state.totalPopulation += effect.amount
+            state.freeSerfs += effect.amount
+          }
           break
         case 'unrest':
-          state.unrest = Math.max(0, Math.min(100, state.unrest + effect.amount))
+          addUnrest(state, effect.amount)
           break
         case 'provinces':
           state.provinces = Math.max(1, state.provinces + effect.amount)
@@ -287,8 +262,18 @@ export function applyEffect(effect: Effect, state: GameState): void {
       break
 
     case 'grant_units': {
-      const current = state.units[effect.unitId] ?? 0
-      state.units[effect.unitId] = current + effect.count
+      if (effect.count < 0) {
+        const toRemove = Math.min(-effect.count, state.units[effect.unitId] ?? 0)
+        state.units[effect.unitId] = (state.units[effect.unitId] ?? 0) - toRemove
+        state.totalPopulation = Math.max(0, state.totalPopulation - toRemove)
+      } else if (effect.external) {
+        state.units[effect.unitId] = (state.units[effect.unitId] ?? 0) + effect.count
+        state.totalPopulation += effect.count
+      } else {
+        const grantable = Math.min(effect.count, Math.max(0, Math.floor(state.freeSerfs)))
+        state.units[effect.unitId] = (state.units[effect.unitId] ?? 0) + grantable
+        state.freeSerfs -= grantable
+      }
       break
     }
 
@@ -296,4 +281,51 @@ export function applyEffect(effect: Effect, state: GameState): void {
       // Flags can be tracked in activeModifiers or dedicated state as needed
       break
   }
+}
+
+/**
+ * Verifies whether the player can afford all negative resource/unit costs in an Effect list.
+ * Requires state.ap >= apCost (no deficit spending allowed for choices).
+ *
+ * @param state - The active GameState.
+ * @param effects - The list of effects to validate.
+ * @returns boolean indicating if all costs can be paid.
+ */
+export function canAffordEffects(state: GameState, effects: readonly Effect[]): boolean {
+  let apCost = 0
+  const unitCosts: Partial<Record<UnitId, number>> = {}
+  let serfCost = 0
+
+  for (const effect of effects) {
+    if (effect.type === 'instant_resource') {
+      if (effect.resource === 'ap' && effect.amount < 0) {
+        apCost += -effect.amount
+      } else if (effect.resource === 'population' && effect.amount < 0) {
+        serfCost += -effect.amount
+      }
+    } else if (effect.type === 'grant_units') {
+      if (effect.count < 0) {
+        unitCosts[effect.unitId] = (unitCosts[effect.unitId] ?? 0) + -effect.count
+      } else if (!effect.external) {
+        // internal recruitment requires free serfs
+        serfCost += effect.count
+      }
+    }
+  }
+
+  if (apCost > 0 && state.ap < apCost) {
+    return false
+  }
+
+  if (serfCost > 0 && state.freeSerfs < serfCost) {
+    return false
+  }
+
+  for (const [unitId, count] of Object.entries(unitCosts) as [UnitId, number][]) {
+    if ((state.units[unitId] ?? 0) < count) {
+      return false
+    }
+  }
+
+  return true
 }
