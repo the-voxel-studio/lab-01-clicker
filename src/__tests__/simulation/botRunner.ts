@@ -12,6 +12,7 @@ import { dispatch } from '@/core/commands'
 import { tick, calculateMilitaryPower } from '@/core/engine'
 import { PRNG } from '@/core/prng'
 import { calculateUnitCost, calculateOrderCaps, calculateHousingCapacity } from '@/core/formulas'
+import { getHousingBase } from '@/core/provinces'
 
 /** Result metrics from a completed bot simulation run. */
 export interface BotRunResult {
@@ -157,7 +158,7 @@ function canRecruitUnit(
   if (state.freeSerfs < count) return false
 
   const maxPop = calculateHousingCapacity(
-    state.provinces,
+    getHousingBase(state),
     state.units.notable ?? 0,
     state.units.baron ?? 0,
   )
@@ -249,7 +250,7 @@ export function greedyRoiBotStrategy(state: Readonly<GameState>, _prng: PRNG): C
 
   // Strategic capital saving targets (Patents & Colonisation)
   const maxPop = calculateHousingCapacity(
-    state.provinces,
+    getHousingBase(state),
     state.units.notable ?? 0,
     state.units.baron ?? 0,
   )
@@ -450,7 +451,7 @@ export function expertBotStrategy(state: Readonly<GameState>, _prng: PRNG): Comm
 
   // Strategic capital saving targets (Patents & Colonisation)
   const maxPop = calculateHousingCapacity(
-    state.provinces,
+    getHousingBase(state),
     state.units.notable ?? 0,
     state.units.baron ?? 0,
   )

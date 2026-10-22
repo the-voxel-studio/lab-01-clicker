@@ -12,6 +12,7 @@ import { tick } from '@/core/engine'
 import { dispatch } from '@/core/commands'
 import { createInitialGameState, cloneGameState } from '@/core/state'
 import { calculateUnitCost, calculateHousingCapacity } from '@/core/formulas'
+import { getHousingBase } from '@/core/provinces'
 import { BALANCE, DEADLINE_QUOTAS, BIOMES_DATA } from '@/data/balance'
 
 describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
@@ -70,7 +71,11 @@ describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
       expect(BIOMES_DATA[b].housingMultiplier).toBe(1.0)
     }
 
-    const cap = calculateHousingCapacity(state.provinces, state.units.notable, state.units.baron)
+    const cap = calculateHousingCapacity(
+      getHousingBase(state),
+      state.units.notable,
+      state.units.baron,
+    )
     expect(cap).toBe(750)
   })
 

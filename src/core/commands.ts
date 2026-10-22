@@ -28,6 +28,7 @@ import {
 import { createInitialGameState } from './state'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { addUnrest } from './mutations'
+import { addProvince, removeLastProvince } from './provinces'
 import {
   resolveOffensiveCampaign,
   resolveDefensiveClash,
@@ -359,9 +360,8 @@ function handleColoniseProvince(
   }
 
   state.ap -= cost
-  state.provinces += 1
+  addProvince(state, 'heartland')
   state.colonisedProvincesCount += 1
-  state.provinceBiomes.push('heartland')
 
   return {
     success: true,
@@ -475,10 +475,7 @@ function handleAcceptLombardLoan(
     return { success: false, error: 'Cannot cede your final sovereign seat (Province Floor = 1).' }
   }
 
-  state.provinces -= 1
-  if (state.provinceBiomes.length > 0) {
-    state.provinceBiomes.pop()
-  }
+  removeLastProvince(state)
   state.ap += 2000
   state.lombardBailoutAvailable = false
   state.lombardBailoutAccepted = true
@@ -788,11 +785,8 @@ export function dispatch(
         baseLootAp,
         undefined,
         config,
+        target.biome,
       )
-
-      if (result.provinceWon) {
-        state.provinceBiomes.push(target.biome)
-      }
 
       state.campaignsLaunchedThisDeadline += 1
       if (state.campaignsLaunchedThisDeadline < 2) {

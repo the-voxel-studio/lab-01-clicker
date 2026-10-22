@@ -225,27 +225,22 @@ export function calculateLogisticGrowth(
 }
 
 /**
- * Calculates maximum living population capacity across all controlled provinces.
+ * Calculates maximum living population capacity from the per-province base housing.
  *
- * Formula: MaxPop = 250 * Provinces * [1 + 0.015 * Notables + 0.06 * Barons + Modifiers]
+ * Formula: MaxPop = BaseHousing * [1 + 0.015 * Notables + 0.06 * Barons]
  *
- * @param provinces - Number of controlled provinces.
+ * @param baseHousing - Sum of the per-province base housing (see getHousingBase).
  * @param notables - Count of active Notables (Tier I).
  * @param barons - Count of active Barons (Tier II).
- * @param additionalMultiplier - Additional modifiers (e.g. Farmlands biome x1.5, Wilderness x0.8).
- * @param config - Injected engine configuration.
  * @returns Maximum sustainable population.
  */
 export function calculateHousingCapacity(
-  provinces: number,
+  baseHousing: number,
   notables: number = 0,
   barons: number = 0,
-  additionalMultiplier: number = 1.0,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
-  const baseCap = config.balance.BASE_HOUSING_PER_PROVINCE * Math.max(1, provinces)
   const roleBonus = 1.0 + notables * 0.015 + barons * 0.06
-  return Math.round(baseCap * roleBonus * additionalMultiplier)
+  return Math.round(baseHousing * roleBonus)
 }
 
 /**

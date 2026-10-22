@@ -15,9 +15,10 @@ import {
   calculatePaperworkFriction,
   getUnrestCrisisStage,
 } from './formulas'
+import { getHousingBase, removeLastProvince } from './provinces'
 import { composeStat, extractRawEvaluationState } from './modifiers'
 import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
-import type { GameState, TickResult, AuditOutcome, BiomeId } from './types'
+import type { GameState, TickResult, AuditOutcome } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
 
@@ -122,7 +123,6 @@ export function calculateGrossApRate(
 
 /** Aggregated biome trait bonuses across all controlled provinces. */
 export interface AggregatedBiomeModifiers {
-  housingMultiplier: number
   deltaR: number
   taxEfficiencyBonus: number
   passiveDefense: number
@@ -136,29 +136,20 @@ export interface AggregatedBiomeModifiers {
  * @returns Aggregated biome modifiers.
  */
 export function getBiomeModifiers(state: GameState): AggregatedBiomeModifiers {
-  const biomes =
-    state.provinceBiomes && state.provinceBiomes.length > 0
-      ? state.provinceBiomes
-      : (['heartland'] as BiomeId[])
-
-  let totalHousingMultiplier = 0
   let totalDeltaR = 0
   let totalTaxEfficiency = 0
   let totalPassiveDefense = 0
   let totalPaperworkReduction = 0
 
-  for (const biomeId of biomes) {
-    const def = BIOMES_DATA[biomeId] ?? BIOMES_DATA.heartland
-    totalHousingMultiplier += def.housingMultiplier
+  for (const biomeId of state.provinceBiomes) {
+    const def = BIOMES_DATA[biomeId]
     totalDeltaR += def.deltaR
     totalTaxEfficiency += def.taxEfficiencyBonus
     totalPassiveDefense += def.passiveDefense
     totalPaperworkReduction += def.paperworkReduction
   }
 
-  const count = biomes.length || 1
   return {
-    housingMultiplier: totalHousingMultiplier / count,
     deltaR: totalDeltaR,
     taxEfficiencyBonus: totalTaxEfficiency,
     passiveDefense: totalPassiveDefense,
@@ -177,13 +168,10 @@ export function calculateMaxPopulation(
   state: GameState,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
-  const biomeMods = getBiomeModifiers(state)
   const baseHousing = calculateHousingCapacity(
-    state.provinces,
+    getHousingBase(state, config),
     state.units.notable ?? 0,
     state.units.baron ?? 0,
-    biomeMods.housingMultiplier,
-    config,
   )
   const rawState = extractRawEvaluationState(state)
   return composeStat('housing_capacity', baseHousing, state.activeModifiers, rawState)
@@ -269,10 +257,7 @@ export function evaluateDeadlineAudit(
       // Strike 1 (Deadlines 1-9): Royal Censure
       state.strikes = 1
       if (state.provinces > config.balance.PROVINCE_MIN_FLOOR_FOR_FINES) {
-        state.provinces -= 1
-        if (state.provinceBiomes.length > 0) {
-          state.provinceBiomes.pop()
-        }
+        removeLastProvince(state)
       }
       // Confiscate 50% of POSITIVE AP (never divide a debt by 2)
       if (state.ap > 0) {

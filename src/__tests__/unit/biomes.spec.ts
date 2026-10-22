@@ -24,7 +24,6 @@ describe('Task 2.2: Province Biomes Modeling & System Modifiers', () => {
     expect(state.provinceBiomes).toEqual(['heartland', 'heartland', 'heartland'])
 
     const mods = getBiomeModifiers(state)
-    expect(mods.housingMultiplier).toBe(1.0)
     expect(mods.deltaR).toBe(0)
     expect(mods.taxEfficiencyBonus).toBe(0)
     expect(mods.passiveDefense).toBe(0)

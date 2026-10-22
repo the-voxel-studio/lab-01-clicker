@@ -17,6 +17,7 @@ import { PRNG, withStatePrng } from './prng'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { addUnrest, applyPopulationLoss, triggerDefeat } from './mutations'
 import { calculateMilitaryPower, calculateMaxPopulation } from './engine'
+import { addProvince, removeLastProvince } from './provinces'
 import { calculateOrderCaps } from './formulas'
 import { UNITS_DATA, type UnitId } from '@/data/balance'
 
@@ -287,6 +288,8 @@ export function resolveCampaignLoot(
  * @param lootType - Previewed loot category.
  * @param baseLootAp - Estimated base AP value.
  * @param prng - Deterministic PRNG instance.
+ * @param config - Injected engine configuration.
+ * @param targetBiome - Biome of the province awarded on a win.
  * @returns CampaignClashResult summary.
  */
 export function resolveOffensiveCampaign(
@@ -297,6 +300,7 @@ export function resolveOffensiveCampaign(
   baseLootAp: number = 300,
   prng?: PRNG,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  targetBiome: BiomeId = 'heartland',
 ): CampaignClashResult {
   if (!prng) {
     return withStatePrng(state, 'combat', (p) =>
@@ -308,6 +312,7 @@ export function resolveOffensiveCampaign(
         baseLootAp,
         p,
         config,
+        targetBiome,
       ),
     )
   }
@@ -325,7 +330,7 @@ export function resolveOffensiveCampaign(
 
   // Apply state mutations
   if (outcomeData.provinceWon) {
-    state.provinces += 1
+    addProvince(state, targetBiome)
   }
 
   // Casualties applied proportionally to soldiers and men-at-arms, mitigated by Captains (-5% per Captain, max -50%)
@@ -455,10 +460,7 @@ export function resolveDefensiveClash(
 
   // Defensive Collapse: Devastating breach!
   // 1 Province permanently lost (No floor! Triggers conquest defeat if reduced to 0)
-  state.provinces -= 1
-  if (state.provinceBiomes.length > 0) {
-    state.provinceBiomes.pop()
-  }
+  removeLastProvince(state)
   if (state.provinces <= 0) {
     triggerDefeat(state, 'conquest')
   }

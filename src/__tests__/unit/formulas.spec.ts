@@ -114,19 +114,16 @@ describe('Core Formulas & Mathematical Scaling (Gate A)', () => {
   describe('Demographics, Housing & Colonisation', () => {
     it('calculates housing capacity with Notables, Barons, and Biomes', () => {
       // 3 provinces base = 750
-      expect(calculateHousingCapacity(3, 0, 0)).toBe(750)
+      expect(calculateHousingCapacity(750, 0, 0)).toBe(750)
 
       // With 2 Notables (+1.5% each = +3%): 750 * 1.03 = 772.5 -> 773
-      expect(calculateHousingCapacity(3, 2, 0)).toBe(773)
+      expect(calculateHousingCapacity(750, 2, 0)).toBe(773)
 
       // With 1 Baron (+6%): 750 * 1.06 = 795
-      expect(calculateHousingCapacity(3, 0, 1)).toBe(795)
+      expect(calculateHousingCapacity(750, 0, 1)).toBe(795)
 
-      // Farmlands biome multiplier x1.5: 750 * 1.5 = 1125
-      expect(calculateHousingCapacity(3, 0, 0, 1.5)).toBe(1125)
-
-      // Wilderness biome multiplier x0.8: 750 * 0.8 = 600
-      expect(calculateHousingCapacity(3, 0, 0, 0.8)).toBe(600)
+      // Per-province base already carries the biome multipliers: 250 + 375 + 200
+      expect(calculateHousingCapacity(825, 0, 0)).toBe(825)
     })
 
     it('calculates civil colonisation cost exponentially (1500 * 2^k)', () => {

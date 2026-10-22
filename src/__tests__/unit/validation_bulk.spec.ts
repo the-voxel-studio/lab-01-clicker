@@ -273,7 +273,6 @@ describe('Task 1.5: Strict Validation, Bulk Purchasing & Engine Helper Harmoniza
     it('getBiomeModifiers returns neutral multipliers on initial state (heartland)', () => {
       const state = createInitialGameState()
       const biomes = getBiomeModifiers(state)
-      expect(biomes.housingMultiplier).toBe(1.0)
       expect(biomes.deltaR).toBe(0)
       expect(biomes.taxEfficiencyBonus).toBe(0)
       expect(biomes.passiveDefense).toBe(0)

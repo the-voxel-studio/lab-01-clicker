@@ -7,6 +7,7 @@
  */
 
 import type { UnitId, StatKey, ResolverKey, Modifier, Effect, GameState } from './types'
+import { addProvince, removeLastProvince } from './provinces'
 import { addUnrest, applyPopulationLoss } from './mutations'
 
 /**
@@ -208,7 +209,12 @@ export function applyEffect(effect: Effect, state: GameState): void {
           addUnrest(state, effect.amount)
           break
         case 'provinces':
-          state.provinces = Math.max(1, state.provinces + effect.amount)
+          for (let i = 0; i < effect.amount; i++) {
+            addProvince(state, 'heartland')
+          }
+          for (let i = 0; i > effect.amount && state.provinces > 1; i--) {
+            removeLastProvince(state)
+          }
           break
         case 'archive_points':
           state.archivePoints = Math.max(0, state.archivePoints + effect.amount)
