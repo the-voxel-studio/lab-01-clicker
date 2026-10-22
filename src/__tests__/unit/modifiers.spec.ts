@@ -9,6 +9,10 @@ import { describe, it, expect } from 'vitest'
 import { composeStat, applyEffect, type RawEvaluationState } from '@/core/modifiers'
 import { createInitialGameState } from '@/core/state'
 import type { Modifier } from '@/core/types'
+import { dispatch } from '@/core/commands'
+import { tick } from '@/core/engine'
+import { LAWS_DATA } from '@/data/laws'
+import { DILEMMAS_DATA } from '@/data/dilemmas'
 
 describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
   it('composes stats strictly in arithmetic priority: add -> addPct -> mul -> set', () => {
@@ -118,5 +122,44 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     applyEffect({ type: 'stat_modifier', modifier: mod }, state)
     expect(state.activeModifiers).toHaveLength(1)
     expect(state.activeModifiers[0]?.source).toBe('law:test')
+  })
+
+  it('clones catalog modifiers on apply', () => {
+    const state = createInitialGameState()
+    state.phase = 'COUNCIL_LAWS'
+    state.currentLawDraft = ['law:royal_scriptorium']
+    const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' })
+    expect(res.success).toBe(true)
+    const template = LAWS_DATA['law:royal_scriptorium']!.effects[0]
+    expect(template?.type).toBe('stat_modifier')
+    if (template?.type !== 'stat_modifier') return
+    expect(state.activeModifiers[0]).not.toBe(template.modifier)
+    expect(template.modifier.appliedAt).toBeUndefined()
+  })
+
+  it('keeps a 30 s dilemma modifier for 30 s of active time', () => {
+    const state = createInitialGameState()
+    state.totalElapsedSeconds = 200
+    state.phase = 'COUNCIL_DILEMMA'
+    state.currentDilemmaId = 'dilemma:crowns_forced_loan'
+    state.ap = 10000
+    const choices = DILEMMAS_DATA['dilemma:crowns_forced_loan']!.choices
+    const choiceIndex = choices.findIndex((c) =>
+      c.effects.some((e) => e.type === 'stat_modifier' && e.modifier.durationSeconds === 30),
+    )
+    expect(choiceIndex).toBeGreaterThanOrEqual(0)
+    const res = dispatch(state, {
+      type: 'RESOLVE_DILEMMA',
+      dilemmaId: 'dilemma:crowns_forced_loan',
+      choiceIndex,
+    })
+    expect(res.success).toBe(true)
+    state.phase = 'ACTIVE_CYCLE'
+    const has = () => state.activeModifiers.some((m) => m.source === 'dilemma:crowns_forced_loan')
+    for (let i = 0; i < 299; i++) tick(state, 0.1)
+    expect(has()).toBe(true)
+    tick(state, 0.1)
+    tick(state, 0.1)
+    expect(has()).toBe(false)
   })
 })

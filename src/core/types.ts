@@ -127,6 +127,11 @@ export interface Modifier {
   /** Game timestamp (in seconds) when this modifier expires (undefined = permanent). */
   expiresAt?: number
   /**
+   * Relative lifetime in seconds of active time. On a catalog template it is converted to an
+   * absolute `expiresAt` (application time plus this duration) when the effect is applied.
+   */
+  durationSeconds?: number
+  /**
    * Optional strongly typed resolver key for dynamic conditional modifiers.
    * Evaluated dynamically against current GameState, never serialized as a function.
    */

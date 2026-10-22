@@ -171,15 +171,25 @@ export function composeStat(
 
 /**
  * Applies an Effect payload (from laws, dilemmas, or edicts) directly to GameState.
+ * A `stat_modifier` template is cloned, never pushed by reference: `appliedAt` is stamped with
+ * `totalElapsedSeconds` and `durationSeconds`, when set, becomes `expiresAt` relative to it.
  *
  * @param effect - The effect descriptor.
  * @param state - The game state to mutate.
  */
 export function applyEffect(effect: Effect, state: GameState): void {
   switch (effect.type) {
-    case 'stat_modifier':
-      state.activeModifiers.push(effect.modifier)
+    case 'stat_modifier': {
+      const { modifier } = effect
+      const now = state.totalElapsedSeconds
+      const { durationSeconds, ...rest } = modifier
+      state.activeModifiers.push({
+        ...rest,
+        appliedAt: now,
+        expiresAt: durationSeconds === undefined ? modifier.expiresAt : now + durationSeconds,
+      })
       break
+    }
 
     case 'instant_resource':
       switch (effect.resource) {

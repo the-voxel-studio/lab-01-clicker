@@ -283,7 +283,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               stat: 'tax_efficiency',
               op: 'addPct',
               value: -0.25,
-              expiresAt: 30, // 30s
+              durationSeconds: 30,
             },
           },
           {
@@ -766,7 +766,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
               stat: 'gross_ap_rate',
               op: 'mul',
               value: 0.85,
-              expiresAt: 30,
+              durationSeconds: 30,
             },
           },
         ],
