@@ -170,54 +170,6 @@ export function composeStat(
 }
 
 /**
- * High-performance per-tick cache for stat evaluations.
- * Avoids recalculating identical stats when tick index and active modifiers have not changed.
- */
-export class TickStatCache {
-  private cache = new Map<string, number>()
-  private tickIndex = -1
-  private stateRef: unknown = null
-
-  /**
-   * Retrieves or computes a stat evaluation with tick-scoped memoization.
-   *
-   * @param statKey - The stat key or identifier to retrieve.
-   * @param currentTick - Monotonic engine tick counter.
-   * @param computeFn - Evaluation callback invoked on cache miss.
-   * @param stateRef - Optional reference to GameState to ensure cache isolation between instances.
-   * @returns Composed stat value.
-   */
-  public getOrCompute(
-    statKey: string,
-    currentTick: number,
-    computeFn: () => number,
-    stateRef?: unknown,
-  ): number {
-    if (this.tickIndex !== currentTick || (stateRef !== undefined && this.stateRef !== stateRef)) {
-      this.cache.clear()
-      this.tickIndex = currentTick
-      this.stateRef = stateRef ?? null
-    }
-
-    const cached = this.cache.get(statKey)
-    if (cached !== undefined) {
-      return cached
-    }
-
-    const computed = computeFn()
-    this.cache.set(statKey, computed)
-    return computed
-  }
-
-  /** Clears cached values manually. */
-  public clear(): void {
-    this.cache.clear()
-    this.tickIndex = -1
-    this.stateRef = null
-  }
-}
-
-/**
  * Applies an Effect payload (from laws, dilemmas, or edicts) directly to GameState.
  *
  * @param effect - The effect descriptor.

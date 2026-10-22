@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { composeStat, TickStatCache, applyEffect, type RawEvaluationState } from '@/core/modifiers'
+import { composeStat, applyEffect, type RawEvaluationState } from '@/core/modifiers'
 import { createInitialGameState } from '@/core/state'
 import type { Modifier } from '@/core/types'
 
@@ -91,32 +91,6 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
       resolverKey: 'law:monastic_scriptoria',
     }
     expect(composeStat('gross_ap_rate', 0, [monasticMod], stateSmall)).toBe(4 * 1.5)
-  })
-
-  it('caches evaluations per tick index via TickStatCache', () => {
-    const cache = new TickStatCache()
-    let computeCalls = 0
-    const computeFn = () => {
-      computeCalls++
-      return 42
-    }
-
-    // Tick 1: computes
-    expect(cache.getOrCompute('stat:ap_rate', 1, computeFn)).toBe(42)
-    expect(computeCalls).toBe(1)
-
-    // Tick 1: reuses cache
-    expect(cache.getOrCompute('stat:ap_rate', 1, computeFn)).toBe(42)
-    expect(computeCalls).toBe(1)
-
-    // Tick 2: invalidates and re-evaluates
-    expect(cache.getOrCompute('stat:ap_rate', 2, computeFn)).toBe(42)
-    expect(computeCalls).toBe(2)
-
-    // Manual clear
-    cache.clear()
-    expect(cache.getOrCompute('stat:ap_rate', 2, computeFn)).toBe(42)
-    expect(computeCalls).toBe(3)
   })
 
   it('applies effect taxonomy completely (stat_modifier, instant_resource, grant_units)', () => {

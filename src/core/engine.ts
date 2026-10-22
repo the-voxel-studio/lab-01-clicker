@@ -15,14 +15,11 @@ import {
   calculatePaperworkFriction,
   getUnrestCrisisStage,
 } from './formulas'
-import { composeStat, extractRawEvaluationState, TickStatCache } from './modifiers'
+import { composeStat, extractRawEvaluationState } from './modifiers'
 import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
 import type { GameState, TickResult, AuditOutcome, BiomeId } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
-
-/** High-frequency per-tick cache instance for stat evaluations. */
-export const tickStatCache = new TickStatCache()
 
 /**
  * Calculates current total military combat power across active armed retinues.
@@ -103,11 +100,11 @@ export function calculateGrossApRate(
     (state.units.artisan ?? 0) * 0.005 +
     (state.units.guild ?? 0) * 0.035 +
     biomeMods.taxEfficiencyBonus
-  const taxEfficiencyMultiplier = tickStatCache.getOrCompute(
+  const taxEfficiencyMultiplier = composeStat(
     'tax_efficiency',
-    state.tickIndex,
-    () => composeStat('tax_efficiency', baseArtisanTaxBonus, state.activeModifiers, rawState),
-    state,
+    baseArtisanTaxBonus,
+    state.activeModifiers,
+    rawState,
   )
   const pollTax =
     state.freeSerfs *
@@ -118,12 +115,7 @@ export function calculateGrossApRate(
   grossApRate += pollTax
 
   // Apply global gross_ap_rate modifiers
-  const total = tickStatCache.getOrCompute(
-    'gross_ap_rate',
-    state.tickIndex,
-    () => composeStat('gross_ap_rate', grossApRate, state.activeModifiers, rawState),
-    state,
-  )
+  const total = composeStat('gross_ap_rate', grossApRate, state.activeModifiers, rawState)
 
   return { total, pollTax }
 }
@@ -194,12 +186,7 @@ export function calculateMaxPopulation(
     config,
   )
   const rawState = extractRawEvaluationState(state)
-  return tickStatCache.getOrCompute(
-    'housing_capacity',
-    state.tickIndex,
-    () => composeStat('housing_capacity', baseHousing, state.activeModifiers, rawState),
-    state,
-  )
+  return composeStat('housing_capacity', baseHousing, state.activeModifiers, rawState)
 }
 
 /**
@@ -229,15 +216,7 @@ export function calculateNetPaperwork(
   const rawState = extractRawEvaluationState(state)
   return Math.min(
     0.99,
-    Math.max(
-      0,
-      tickStatCache.getOrCompute(
-        'paperwork_friction',
-        state.tickIndex,
-        () => composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState),
-        state,
-      ),
-    ),
+    Math.max(0, composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState)),
   )
 }
 
@@ -253,7 +232,6 @@ export function evaluateDeadlineAudit(
   state: GameState,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): AuditOutcome {
-  tickStatCache.clear()
   const quotas = config.quotas
   const quota = quotas.find((q) => q.deadline === state.deadline) ?? quotas[quotas.length - 1]!
 
@@ -399,7 +377,6 @@ export function tick(
     }
   }
 
-  tickStatCache.clear()
   state.tickIndex += 1
   const prevDeadlineTime = state.deadlineTimeSeconds
   state.deadlineTimeSeconds += stepDt
@@ -447,11 +424,11 @@ export function tick(
   const farmerRateBonus = (state.units.farmer ?? 0) * 0.003
   const baseGrowthRateR =
     config.balance.BASE_POP_GROWTH_RATE_R + peasantRateBonus + farmerRateBonus + biomeMods.deltaR
-  const effectiveGrowthRateR = tickStatCache.getOrCompute(
+  const effectiveGrowthRateR = composeStat(
     'pop_growth_rate',
-    state.tickIndex,
-    () => composeStat('pop_growth_rate', baseGrowthRateR, state.activeModifiers, rawState),
-    state,
+    baseGrowthRateR,
+    state.activeModifiers,
+    rawState,
   )
 
   let popGrowthThisTick = 0
@@ -524,23 +501,13 @@ export function tick(
   const baseUnrestGen = taxUnrestRate + overcrowdingUnrestRate
   const composedGen = Math.max(
     0,
-    tickStatCache.getOrCompute(
-      'unrest_generation',
-      state.tickIndex,
-      () => composeStat('unrest_generation', baseUnrestGen, state.activeModifiers, rawState),
-      state,
-    ),
+    composeStat('unrest_generation', baseUnrestGen, state.activeModifiers, rawState),
   )
 
   const baseUnrestPac = (state.units.clergy ?? 0) * 0.02 + (state.units.prelate ?? 0) * 0.15
   const composedPac = Math.max(
     0,
-    tickStatCache.getOrCompute(
-      'unrest_pacification',
-      state.tickIndex,
-      () => composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
-      state,
-    ),
+    composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
   )
 
   addUnrest(state, (composedGen - composedPac) * stepDt, config)

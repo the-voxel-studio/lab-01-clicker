@@ -15,7 +15,6 @@ import {
   calculateNetPaperwork,
   calculateGrossApRate,
   getBiomeModifiers,
-  tickStatCache,
 } from '@/core/engine'
 import { UNITS_DATA, type UnitId } from '@/data/balance'
 
@@ -228,7 +227,6 @@ describe('Task 1.5: Strict Validation, Bulk Purchasing & Engine Helper Harmoniza
         op: 'addPct',
         value: 0.2,
       })
-      tickStatCache.clear()
       expect(calculateMaxPopulation(stateWithMod)).toBe(900)
     })
 

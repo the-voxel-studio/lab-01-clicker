@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest'
 import { createInitialGameState } from '@/core/state'
 import { triggerDefeat, addUnrest } from '@/core/mutations'
 import { dispatch } from '@/core/commands'
-import { tick, tickStatCache } from '@/core/engine'
+import { tick } from '@/core/engine'
 import type { Modifier } from '@/core/types'
 
 describe('Task 1.2: Dual Unrest Composition & Immediate Revolution', () => {
@@ -139,24 +139,5 @@ describe('Task 1.2: Dual Unrest Composition & Immediate Revolution', () => {
     expect(sources).not.toContain('temp_mod_expired')
     expect(sources).toContain('temp_mod_active')
     expect(sources).toContain('permanent_mod')
-  })
-
-  it('invalidates tickStatCache whenever a non-TICK command is dispatched', () => {
-    const state = createInitialGameState()
-    state.ap = 500
-    // Populate tickStatCache manually
-    tickStatCache.getOrCompute('test_stat', state.tickIndex, () => 999)
-
-    let recomputed = false
-    // Dispatch a command that mutates state
-    dispatch(state, { type: 'BUY_UNIT', unitId: 'peasant', count: 1 })
-
-    // Querying tickStatCache with the same tickIndex forces recompute because dispatch cleared it
-    const val = tickStatCache.getOrCompute('test_stat', state.tickIndex, () => {
-      recomputed = true
-      return 1000
-    })
-    expect(recomputed).toBe(true)
-    expect(val).toBe(1000)
   })
 })

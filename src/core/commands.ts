@@ -20,7 +20,6 @@ import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import {
   tick,
-  tickStatCache,
   calculateGrossApRate,
   calculateMaxPopulation,
   calculateNetPaperwork,
@@ -620,10 +619,6 @@ export function dispatch(
       success: false,
       error: err instanceof Error ? err.message : String(err),
     }
-  }
-
-  if (command.type !== 'TICK') {
-    tickStatCache.clear()
   }
 
   // Dispatch to specific handler

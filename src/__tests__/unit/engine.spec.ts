@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { tick, evaluateDeadlineAudit } from '@/core/engine'
+import { tick, evaluateDeadlineAudit, calculateMaxPopulation } from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 
@@ -230,5 +230,18 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     expect(festivalRes.success).toBe(true)
     expect(state.unrest).toBe(20) // 40 - 20
     expect(state.ap).toBeLessThan(2000)
+  })
+
+  it('reads fresh housing capacity after buying notables outside ticks', () => {
+    const state = createInitialGameState({
+      phase: 'AWAIT_RESUME',
+      ap: 10_000,
+      deadline: 3,
+      freeSerfs: 300,
+      totalPopulation: 300,
+    })
+    const before = calculateMaxPopulation(state)
+    dispatch(state, { type: 'BUY_UNIT', unitId: 'notable', count: 10 })
+    expect(calculateMaxPopulation(state)).toBeGreaterThan(before)
   })
 })
