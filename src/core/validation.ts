@@ -10,6 +10,7 @@ import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { ALLOWED_COMMANDS_BY_PHASE } from './phases'
+import { canAffordEffects } from './modifiers'
 import { MODIFIER_OPS, RESOLVER_KEYS, STAT_KEYS } from './types'
 import type {
   BiomeId,
@@ -24,6 +25,7 @@ import type {
 /** Tolerance of the population invariant `totalPopulation = freeSerfs + sum(units)`. */
 const POPULATION_EPSILON = 1e-6
 
+/** Tells whether a value is a non-null, non-array object, narrowing it to a string keyed record. */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -237,5 +239,16 @@ export function validateGameState(
   // currentDilemmaId, activeModifiers (stat, op, value, resolverKey), capturedProvincesCount,
   // totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come from createInitialGameState
   // and are not checked.
-  return value as unknown as GameState
+  const state = value as unknown as GameState
+  if (state.phase === 'COUNCIL_DILEMMA') {
+    const drafted =
+      state.currentDilemmaId === null ? undefined : DILEMMAS_DATA[state.currentDilemmaId]
+    if (!drafted || !drafted.choices.some((choice) => canAffordEffects(state, choice.effects))) {
+      return fail(
+        'currentDilemmaId',
+        'COUNCIL_DILEMMA requires a drafted dilemma with an affordable choice',
+      )
+    }
+  }
+  return state
 }

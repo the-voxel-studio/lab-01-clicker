@@ -15,6 +15,7 @@ import {
 } from '@/core/migrations'
 import { createInitialGameState } from '@/core/state'
 import { validateGameState } from '@/core/validation'
+import { DILEMMAS_DATA } from '@/data/dilemmas'
 import fixtureV1 from '../__fixtures__/saves/v1-save.json'
 import fixtureV2 from '../__fixtures__/saves/v2-save.json'
 
@@ -393,5 +394,37 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
         }),
       ),
     ).toThrow(/freeSerfs/)
+  })
+
+  it('rejects a COUNCIL_DILEMMA save without a drafted dilemma', () => {
+    const encoded = encodeCurrent((state) => {
+      state.phase = 'COUNCIL_DILEMMA'
+      state.currentDilemmaId = null
+    })
+    expect(() => importSaveFromBase64(encoded)).toThrow(/currentDilemmaId/)
+  })
+
+  it('rejects a COUNCIL_DILEMMA save whose drafted dilemma has no affordable choice', () => {
+    const silos = DILEMMAS_DATA['dilemma:rotting_grain_silos']!
+    const encoded = encodeCurrent((state) => {
+      state.ap = 100
+      state.freeSerfs = 10
+      state.totalPopulation = 10
+      state.phase = 'COUNCIL_DILEMMA'
+      state.currentDilemmaId = silos.id
+    })
+    expect(() => importSaveFromBase64(encoded)).toThrow(/currentDilemmaId/)
+  })
+
+  it('accepts a COUNCIL_DILEMMA save with a drafted dilemma and an affordable choice', () => {
+    const taxable = DILEMMAS_DATA['dilemma:taxable_windows']!
+    const encoded = encodeCurrent((state) => {
+      state.phase = 'COUNCIL_DILEMMA'
+      state.currentDilemmaId = taxable.id
+      state.ap = 10000
+      state.freeSerfs = 100
+      state.totalPopulation = 100
+    })
+    expect(importSaveFromBase64(encoded).currentDilemmaId).toBe(taxable.id)
   })
 })

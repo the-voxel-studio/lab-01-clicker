@@ -117,6 +117,8 @@ export function migrateV2ToV3(oldData: unknown): unknown {
     i < existing.length ? existing[i] : 'heartland',
   )
 
+  // tickRemainderSeconds is absent from v2 saves: createInitialGameState defaults it to 0, and
+  // validateGameState then checks it.
   const newPayload: unknown = {
     schemaVersion: 3,
     timestamp: oldData.timestamp,

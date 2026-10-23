@@ -380,7 +380,10 @@ export interface DispatchResult {
   events?: string[]
 }
 
-/** Result summary returned after every engine delta-time tick. */
+/**
+ * Result summary returned after every engine delta-time tick. `netApPerSecond` and
+ * `paperworkFriction` come from the last step run, and are 0 when the call ran no step.
+ */
 export interface TickResult {
   /** Effective delta-time integrated in seconds. */
   dt: number
