@@ -11,6 +11,10 @@ import { PRNG } from '@/core/prng'
 import { createInitialGameState } from '@/core/state'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 
+/** Dilemmas drafted for seed 42 with the easy quota config below (probed). */
+const D1_DILEMMA = 'dilemma:cabinet_scarcity'
+const D2_DILEMMA = 'dilemma:cabinet_scarcity'
+
 describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
   it('verifies Mulberry32 PRNG reproducibility and state serialization', () => {
     const prng1 = new PRNG(1337)
@@ -40,8 +44,8 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
       ],
     }
 
-    const runA = executeReplay(sampleJournal, 0.05, 50)
-    const runB = executeReplay(sampleJournal, 0.05, 50)
+    const runA = executeReplay(sampleJournal, 0.05, 50).state
+    const runB = executeReplay(sampleJournal, 0.05, 50).state
 
     const hashA = getStateHash(runA)
     const hashB = getStateHash(runB)
@@ -62,13 +66,13 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
     }
 
     // High frequency UI tick (20 Hz, dt = 0.05s)
-    const runFine = executeReplay(sampleJournal, 0.05, 100)
+    const runFine = executeReplay(sampleJournal, 0.05, 100).state
 
     // Medium frequency tick (dt = 0.5s)
-    const runMedium = executeReplay(sampleJournal, 0.5, 100)
+    const runMedium = executeReplay(sampleJournal, 0.5, 100).state
 
     // Fast simulation tick (dt = 1.0s)
-    const runCoarse = executeReplay(sampleJournal, 1.0, 100)
+    const runCoarse = executeReplay(sampleJournal, 1.0, 100).state
 
     // AP output delta should be strictly under 1.5% across step sizes
     const relativeDeltaMedium = Math.abs(runFine.ap - runMedium.ap) / runFine.ap
@@ -143,7 +147,7 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
       })),
     }
 
-    const finalState = executeReplay(multiDeadlineJournal, 0.05, 250, replayConfig)
+    const finalState = executeReplay(multiDeadlineJournal, 0.05, 250, replayConfig).state
     expect(finalState.deadline).toBe(3)
     expect(finalState.phase).toBe('ACTIVE_CYCLE')
     expect(finalState.totalElapsedSeconds).toBeCloseTo(250, 1)
@@ -158,7 +162,7 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
       entries: [{ timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } }],
     }
 
-    const finalState = executeReplay(stalledJournal, 0.05, 200)
+    const finalState = executeReplay(stalledJournal, 0.05, 200).state
     expect(finalState.phase).toBe('COUNCIL_DILEMMA')
     expect(finalState.totalElapsedSeconds).toBe(100)
   })
@@ -195,8 +199,8 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
       ],
     }
 
-    const fine = executeReplay(multiDeadlineJournal, 0.05, 150, replayConfig)
-    const coarse = executeReplay(multiDeadlineJournal, 0.7, 150, replayConfig)
+    const fine = executeReplay(multiDeadlineJournal, 0.05, 150, replayConfig).state
+    const coarse = executeReplay(multiDeadlineJournal, 0.7, 150, replayConfig).state
 
     expect(fine.deadline).toBe(2)
     expect(coarse.deadline).toBe(2)
@@ -220,8 +224,8 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
       },
     }
 
-    const stateDefault = executeReplay(journal, 0.05, 10)
-    const stateCustom = executeReplay(journal, 0.05, 10, customConfig)
+    const stateDefault = executeReplay(journal, 0.05, 10).state
+    const stateCustom = executeReplay(journal, 0.05, 10, customConfig).state
 
     expect(stateDefault.ap).toBeLessThan(100)
     expect(stateCustom.ap).toBeGreaterThan(200)
@@ -266,5 +270,121 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
     const stateSpymaster = createInitialGameState({ seed: 1234 })
     stateSpymaster.units.spymaster = 1
     expect(getStateHash(stateSpymaster)).not.toBe(baseHash)
+  })
+
+  it('gives the same hash at dt 0.05 and dt 1.0', () => {
+    const replayConfig = {
+      ...DEFAULT_ENGINE_CONFIG,
+      quotas: DEFAULT_ENGINE_CONFIG.quotas.map((q) => ({
+        ...q,
+        apRate: 1,
+        pop: 50,
+        military: 5,
+      })),
+    }
+
+    const journal: ReplayJournal = {
+      seed: 42,
+      entries: [
+        { timeSeconds: 5.0, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 1 } },
+        { timeSeconds: 12.5, command: { type: 'BUY_UNIT', unitId: 'peasant', count: 1 } },
+        { timeSeconds: 33.3, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 1 } },
+
+        // Council after deadline 1 (t = 100)
+        { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
+        {
+          timeSeconds: 100.0,
+          command: { type: 'RESOLVE_DILEMMA', dilemmaId: D1_DILEMMA, choiceIndex: 1 },
+        },
+        { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
+        { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
+        { timeSeconds: 100.0, command: { type: 'RESUME_GOVERNANCE' } },
+
+        // Council after deadline 2 (t = 200)
+        { timeSeconds: 200.0, command: { type: 'SUBMIT_AUDIT' } },
+        {
+          timeSeconds: 200.0,
+          command: { type: 'RESOLVE_DILEMMA', dilemmaId: D2_DILEMMA, choiceIndex: 1 },
+        },
+        { timeSeconds: 200.0, command: { type: 'REJECT_LAWS' } },
+        { timeSeconds: 200.0, command: { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' } },
+        { timeSeconds: 200.0, command: { type: 'SKIP_EXPEDITION' } },
+        { timeSeconds: 200.0, command: { type: 'RESUME_GOVERNANCE' } },
+      ],
+    }
+
+    const fine = executeReplay(journal, 0.05, 205, replayConfig)
+    const coarse = executeReplay(journal, 1.0, 205, replayConfig)
+
+    expect(fine.rejected).toEqual([])
+    expect(coarse.rejected).toEqual([])
+    expect(fine.state.deadline).toBe(3)
+    expect(fine.state.phase).toBe('ACTIVE_CYCLE')
+    expect(fine.state.units.scribe).toBe(2)
+    expect(fine.state.units.peasant).toBe(1)
+    expect(getStateHash(fine.state)).toBe(getStateHash(coarse.state))
+  })
+
+  it('lands an entry off the step grid at the next step boundary for every dt', () => {
+    const journal: ReplayJournal = {
+      seed: 42,
+      entries: [{ timeSeconds: 12.52, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 1 } }],
+    }
+
+    expect(executeReplay(journal, 0.05, 12.5).state.units.scribe).toBe(0)
+    expect(executeReplay(journal, 0.05, 12.55).state.units.scribe).toBe(1)
+
+    const hashes = [0.05, 0.3, 0.7, 1.0].map((dt) => {
+      const result = executeReplay(journal, dt, 20)
+      expect(result.state.totalElapsedSeconds).toBe(20)
+      expect(result.state.tickRemainderSeconds).toBe(0)
+      return getStateHash(result.state)
+    })
+    expect(new Set(hashes).size).toBe(1)
+  })
+
+  it('reports rejected entries', () => {
+    const journal: ReplayJournal = {
+      seed: 42,
+      entries: [
+        { timeSeconds: 1.0, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 0 } },
+        { timeSeconds: 2.0, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 1 } },
+        { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
+        { timeSeconds: 100.0, command: { type: 'STAMP_DOCUMENT' } },
+      ],
+    }
+
+    const result = executeReplay(journal, 0.05, 200)
+
+    expect(result.rejected.map((r) => r.index)).toEqual([0, 3])
+    for (const entry of result.rejected) {
+      expect(entry.error.length).toBeGreaterThan(0)
+    }
+    expect(result.state.units.scribe).toBe(1)
+    expect(result.state.phase).toBe('COUNCIL_DILEMMA')
+    expect(result.state.totalElapsedSeconds).toBe(100)
+  })
+
+  it('hashes the whole state, including timers and modifier contents', () => {
+    const base = createInitialGameState({ seed: 1234 })
+    const baseHash = getStateHash(base)
+
+    const timer = createInitialGameState({ seed: 1234 })
+    timer.taxPromulgationTimer += 1
+    expect(getStateHash(timer)).not.toBe(baseHash)
+
+    const archive = createInitialGameState({ seed: 1234 })
+    archive.archivePoints += 1
+    expect(getStateHash(archive)).not.toBe(baseHash)
+
+    const modA = createInitialGameState({ seed: 1234 })
+    modA.activeModifiers.push({ source: 'test', stat: 'gross_ap_rate', op: 'add', value: 10 })
+    const modB = createInitialGameState({ seed: 1234 })
+    modB.activeModifiers.push({ source: 'test', stat: 'gross_ap_rate', op: 'add', value: 11 })
+    expect(getStateHash(modA)).not.toBe(getStateHash(modB))
+
+    const tiny = createInitialGameState({ seed: 1234 })
+    tiny.ap += 1e-9
+    expect(getStateHash(tiny)).toBe(baseHash)
   })
 })

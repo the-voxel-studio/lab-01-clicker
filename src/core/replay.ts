@@ -5,12 +5,11 @@
  * @module core/replay
  */
 
-import type { GameState, Command, UnitId } from './types'
+import type { GameState, Command } from './types'
 import { createInitialGameState } from './state'
 import { dispatch } from './commands'
-import { tick, calculateMilitaryPower } from './engine'
+import { tick } from './engine'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
-import { isCommandAllowedInPhase } from './phases'
 
 /** Entry in a replay journal with scheduled game timestamp. */
 export interface ReplayEntry {
@@ -28,46 +27,60 @@ export interface ReplayJournal {
   entries: ReplayEntry[]
 }
 
+/** Outcome of a journal replay. */
+export interface ReplayResult {
+  /** Final GameState after the replay. */
+  state: GameState
+  /**
+   * Entries whose dispatch failed, in dispatch order. `index` is the position of the entry in
+   * `journal.entries`; `error` is the message returned by `dispatch`.
+   */
+  rejected: Array<{ index: number; error: string }>
+}
+
+/** Tolerance in seconds under which an entry timestamp counts as reached, and for step counts. */
+const TIME_EPSILON = 1e-9
+
+/** Rounding step applied to every number before hashing. */
+const HASH_NUMBER_PRECISION = 1e6
+
 /**
- * Computes a deterministic string hash of the core state for invariant testing.
- * Includes all essential components: deadline, phase, ap, population, free serfs,
- * military power, provinces, biomes, tax rate, unrest, strikes, PRNG streams, 24 units,
- * active laws, and active modifier counts.
+ * Builds the canonical JSON text of a value: object keys sorted recursively, arrays kept in order,
+ * numbers rounded to 1e-6 (negative zero written as 0), `undefined` object members omitted as in
+ * `JSON.stringify`, and non finite numbers written as the strings `NaN`, `Infinity`, `-Infinity`.
+ */
+function canonicalJson(value: unknown): string {
+  if (value === null || value === undefined) return 'null'
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return JSON.stringify(String(value))
+    const rounded = Math.round(value * HASH_NUMBER_PRECISION) / HASH_NUMBER_PRECISION
+    return JSON.stringify(rounded === 0 ? 0 : rounded)
+  }
+  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value)
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(',')}]`
+  }
+  if (typeof value === 'object') {
+    const members = Object.entries(value)
+      .filter(([, member]) => member !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([key, member]) => `${JSON.stringify(key)}:${canonicalJson(member)}`)
+    return `{${members.join(',')}}`
+  }
+  return 'null'
+}
+
+/**
+ * Computes a deterministic hash of the whole GameState: the FNV-1a 32 bit hash of its canonical
+ * JSON (keys sorted recursively, arrays kept in order, numbers rounded to 1e-6). No field is
+ * excluded, so any difference above the rounding step in any field changes the hash.
  *
- * @param state - The active GameState.
- * @returns Deterministic hash representation.
+ * @param state - The GameState to hash.
+ * @returns The hash as 8 lowercase hexadecimal digits.
  */
 export function getStateHash(state: GameState): string {
-  const milPower = calculateMilitaryPower(state)
-  const unitRoster = (Object.keys(state.units) as UnitId[])
-    .sort()
-    .map((id) => `${id}:${state.units[id]}`)
-    .join(',')
+  const payload = canonicalJson(state)
 
-  const rngStreamStr = `${state.rngStreams.click},${state.rngStreams.combat},${state.rngStreams.events},${state.rngStreams.council}`
-
-  const payload = [
-    state.deadline,
-    state.phase,
-    Math.round(state.ap * 10) / 10,
-    Math.round(state.totalPopulation * 10) / 10,
-    Math.round(state.freeSerfs * 10) / 10,
-    milPower,
-    state.provinces,
-    state.provinceBiomes.join(','),
-    state.taxRate,
-    Math.round(state.unrest * 10) / 10,
-    state.strikes,
-    rngStreamStr,
-    unitRoster,
-    state.activeLaws.join(','),
-    state.activeModifiers.length,
-    state.isGameOver ? 1 : 0,
-    state.isVictory ? 1 : 0,
-    state.defeatReason ?? 'none',
-  ].join(':')
-
-  // FNV-1a 32-bit hash implementation
   let hash = 0x811c9dc5
   for (let i = 0; i < payload.length; i++) {
     hash ^= payload.charCodeAt(i)
@@ -76,102 +89,99 @@ export function getStateHash(state: GameState): string {
   return (hash >>> 0).toString(16).padStart(8, '0')
 }
 
+/** Whether `tick` can advance game time in this state. */
+function canAdvanceTime(state: GameState): boolean {
+  return !state.isPaused && !state.isGameOver && state.phase === 'ACTIVE_CYCLE'
+}
+
 /**
- * Replays a journal deterministically with configurable simulation step size.
+ * Replays a journal deterministically.
+ *
+ * Entries are taken in timestamp order (ties keep their journal order). Each `tick` call covers a
+ * whole number of fixed steps (`config.balance.FIXED_STEP_SECONDS`): at most `dt` rounded up to a
+ * whole step, and never past the first step boundary at or after the next entry's timestamp. Each
+ * entry is therefore dispatched at that boundary (its exact timestamp when it lies on the step
+ * grid, within 1e-9 s), identically for every `dt`. While game time cannot advance
+ * (paused flag or a phase other than `ACTIVE_CYCLE`), the next entry with a timestamp not beyond
+ * `maxDurationSeconds` is dispatched at the current time. Every entry whose dispatch fails,
+ * including one not allowed in the current phase, is listed in `rejected` and the replay goes on.
+ * The replay ends at `maxDurationSeconds`, at game over, or when time cannot advance and no entry
+ * is left within `maxDurationSeconds`.
  *
  * @param journal - Replay journal to evaluate.
- * @param dt - Integration step size (e.g. 0.05 for 20 Hz, 0.5 or 1.0 for fast sim).
- * @param maxDurationSeconds - Maximum simulated run time (default: 1000s = 10 deadlines).
- * @param config - Optional engine configuration overrides.
- * @returns Final GameState after journal execution.
+ * @param dt - Maximum tick size in seconds, rounded up to whole fixed steps (e.g. 0.05, 1.0).
+ * @param maxDurationSeconds - Simulated duration limit in game seconds (default 1000).
+ * @param config - Engine configuration (default DEFAULT_ENGINE_CONFIG).
+ * @returns The final state and the rejected entries.
  */
 export function executeReplay(
   journal: ReplayJournal,
   dt: number = 0.05,
   maxDurationSeconds: number = 1000,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
-): GameState {
+): ReplayResult {
+  if (!Number.isFinite(dt) || dt <= 0) {
+    throw new Error('Replay step dt must be a positive finite number.')
+  }
+
   const state = createInitialGameState({ seed: journal.seed })
+  const rejected: ReplayResult['rejected'] = []
 
-  // Sort entries by time
-  const sortedEntries = [...journal.entries].sort((a, b) => a.timeSeconds - b.timeSeconds)
-  let nextEntryIndex = 0
-  let leftoverDt = 0
+  const order = journal.entries
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => a.entry.timeSeconds - b.entry.timeSeconds || a.index - b.index)
+  let next = 0
 
-  while (state.totalElapsedSeconds < maxDurationSeconds && !state.isGameOver) {
-    const currentTime = state.totalElapsedSeconds
+  const dispatchNext = (): void => {
+    const { entry, index } = order[next]!
+    next++
+    const result = dispatch(state, entry.command, config)
+    if (!result.success) {
+      rejected.push({ index, error: result.error ?? 'Command rejected.' })
+    }
+  }
 
-    // Dispatch all commands scheduled up to currentTime
-    while (
-      nextEntryIndex < sortedEntries.length &&
-      sortedEntries[nextEntryIndex]!.timeSeconds <= currentTime
-    ) {
-      const entry = sortedEntries[nextEntryIndex]!
-      if (!isCommandAllowedInPhase(state.phase, entry.command.type)) {
-        // Command belongs to another phase (e.g. inter-deadline phase); wait until phase transition
-        break
-      }
-      dispatch(state, entry.command, config)
-      nextEntryIndex++
-      if (state.isGameOver) break
+  while (!state.isGameOver) {
+    const now = state.totalElapsedSeconds
+
+    // Dispatch every entry whose timestamp is reached
+    if (next < order.length && order[next]!.entry.timeSeconds <= now + TIME_EPSILON) {
+      dispatchNext()
+      continue
     }
 
-    if (state.isGameOver) break
-
-    // Infinite loop guard when in paused or crisis phases (where tick does not advance totalElapsedSeconds)
-    if (state.phase !== 'ACTIVE_CYCLE') {
-      const canProgress = sortedEntries
-        .slice(nextEntryIndex)
-        .some((entry) => isCommandAllowedInPhase(state.phase, entry.command.type))
-
-      if (!canProgress) {
-        // No remaining entry can exit this paused phase; exit cleanly
-        break
-      }
-
-      // If the immediate next entry is permitted in this phase, allow dispatching it
-      const nextEntry = sortedEntries[nextEntryIndex]
-      if (nextEntry && isCommandAllowedInPhase(state.phase, nextEntry.command.type)) {
-        dispatch(state, nextEntry.command, config)
-        nextEntryIndex++
-        if (state.isGameOver) break
+    if (!canAdvanceTime(state)) {
+      // Game time is frozen: the next entry can only be dispatched now
+      if (
+        next < order.length &&
+        order[next]!.entry.timeSeconds <= maxDurationSeconds + TIME_EPSILON
+      ) {
+        dispatchNext()
         continue
-      } else {
-        // Intermediate blocking command; exit cleanly
-        break
       }
-    }
-
-    // Simulation step in ACTIVE_CYCLE
-    // Re-inject unconsumed reliquat if available, otherwise tick standard dt
-    let stepDt = dt
-    if (leftoverDt > 1e-9) {
-      stepDt = leftoverDt
-      leftoverDt = 0
-    }
-
-    stepDt = Math.min(stepDt, maxDurationSeconds - state.totalElapsedSeconds)
-    if (stepDt <= 0) {
       break
     }
 
-    const tickResult = tick(state, stepDt, config)
-    const consumed = tickResult.consumedDt ?? stepDt
-    if (consumed < stepDt) {
-      leftoverDt += stepDt - consumed
+    // Whole fixed steps only: up to dt (rounded up), up to the first step boundary at or after the
+    // next entry, and never past maxDurationSeconds
+    const step = config.balance.FIXED_STEP_SECONDS
+    let steps = Math.max(1, Math.ceil(dt / step - TIME_EPSILON))
+    if (next < order.length) {
+      const untilEntry = order[next]!.entry.timeSeconds - now
+      steps = Math.min(steps, Math.max(1, Math.ceil(untilEntry / step - TIME_EPSILON)))
+    }
+    steps = Math.min(steps, Math.floor((maxDurationSeconds - now) / step + TIME_EPSILON))
+    if (steps <= 0) {
+      break
+    }
+
+    const phaseBefore = state.phase
+    const result = tick(state, steps * step, config)
+    if ((result.consumedDt ?? 0) <= 0 && state.phase === phaseBefore && !state.isGameOver) {
+      // Guard: tick made no progress and changed nothing
+      break
     }
   }
 
-  // Dispatch any remaining entries scheduled at or before the final elapsed time
-  while (
-    nextEntryIndex < sortedEntries.length &&
-    sortedEntries[nextEntryIndex]!.timeSeconds <= state.totalElapsedSeconds + 1e-6 &&
-    !state.isGameOver
-  ) {
-    const entry = sortedEntries[nextEntryIndex]!
-    dispatch(state, entry.command, config)
-    nextEntryIndex++
-  }
-
-  return state
+  return { state, rejected }
 }

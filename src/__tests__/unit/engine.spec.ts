@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest'
 import { tick, evaluateDeadlineAudit, calculateMaxPopulation } from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
+import { getStateHash } from '@/core/replay'
 
 describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
   it('advances simulation delta-time and calculates exact economic yields', () => {
@@ -17,12 +18,54 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
 
     const tickRes = tick(state, 1.0)
     expect(tickRes.dt).toBe(1.0)
-    expect(state.tickIndex).toBe(1)
+    expect(state.tickIndex).toBe(20) // 20 fixed steps of 0.05 s
     expect(state.totalElapsedSeconds).toBe(1.0)
 
     // Gross AP includes Scribes (5.0 AP/s) + base poll tax (100 serfs * 0.02 * (25/25) = 2.0 AP/s) = 7.0 AP/s
     expect(tickRes.grossApGenerated).toBeCloseTo(7.0, 1)
     expect(state.ap).toBeGreaterThan(50)
+  })
+
+  it('gives the same full state hash for tick(1.0) and 20 x tick(0.05)', () => {
+    const coarse = createInitialGameState({ seed: 7 })
+    coarse.units.scribe = 10
+    const fine = createInitialGameState({ seed: 7 })
+    fine.units.scribe = 10
+
+    tick(coarse, 1.0)
+    for (let i = 0; i < 20; i++) tick(fine, 0.05)
+
+    expect(coarse.tickIndex).toBe(20)
+    expect(fine.tickIndex).toBe(20)
+    expect(coarse.totalElapsedSeconds).toBe(1)
+    expect(fine.totalElapsedSeconds).toBe(1)
+    expect(coarse.tickRemainderSeconds).toBe(0)
+    expect(fine.tickRemainderSeconds).toBe(0)
+    expect(getStateHash(coarse)).toBe(getStateHash(fine))
+  })
+
+  it('runs one step for two tick(0.03) calls and carries 0.01 s', () => {
+    const state = createInitialGameState()
+
+    const first = tick(state, 0.03)
+    expect(first.dt).toBe(0)
+    expect(state.tickIndex).toBe(0)
+    expect(state.tickRemainderSeconds).toBeCloseTo(0.03, 12)
+
+    const second = tick(state, 0.03)
+    expect(second.dt).toBe(0.05)
+    expect(state.tickIndex).toBe(1)
+    expect(state.totalElapsedSeconds).toBe(0.05)
+    expect(state.tickRemainderSeconds).toBeCloseTo(0.01, 12)
+  })
+
+  it('keeps the remainder and runs no step while paused', () => {
+    const state = createInitialGameState()
+    tick(state, 0.03)
+    state.isPaused = true
+    tick(state, 1.0)
+    expect(state.tickIndex).toBe(0)
+    expect(state.tickRemainderSeconds).toBeCloseTo(0.03, 12)
   })
 
   it('triggers mid-deadline interim warning at 50 seconds without phase interruption', () => {

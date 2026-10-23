@@ -243,8 +243,13 @@ export interface GameState {
   deadlineTimeSeconds: number
   /** Cumulative active seconds across the entire run. */
   totalElapsedSeconds: number
-  /** Monotonic simulation tick counter. */
+  /** Monotonic count of fixed simulation steps run. */
   tickIndex: number
+  /**
+   * Seconds passed to `tick` and not yet simulated, always in [0, FIXED_STEP_SECONDS). Carried to
+   * the next `tick` call.
+   */
+  tickRemainderSeconds: number
   /** Whether the mid-deadline 50-second interim warning has been issued. */
   interimWarningShown: boolean
   /** Whether the interim warning was on track at 50s. */

@@ -46,6 +46,8 @@ export interface BalanceConfig {
   readonly SCOUT_UNCERTAINTY_BASE: number
   readonly SCOUT_UNCERTAINTY_MIN: number
   readonly DEADLINE_DURATION_SECONDS: number
+  /** Fixed integration step in seconds; `tick` runs whole steps of this size. */
+  readonly FIXED_STEP_SECONDS: number
   readonly INTERIM_AUDIT_WARNING_SECONDS: number
   readonly TOTAL_DEADLINES: number
   readonly PATENT_COSTS: {

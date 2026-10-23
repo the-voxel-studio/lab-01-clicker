@@ -94,6 +94,7 @@ export const BALANCE = {
 
   // Inter-Deadline Council
   DEADLINE_DURATION_SECONDS: 100,
+  FIXED_STEP_SECONDS: 0.05, // Engine integration step: tick runs whole steps of this size
   INTERIM_AUDIT_WARNING_SECONDS: 50,
   TOTAL_DEADLINES: 10,
 

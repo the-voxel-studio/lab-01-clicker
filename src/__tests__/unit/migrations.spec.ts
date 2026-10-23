@@ -297,6 +297,30 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     ).toThrow(/capturedProvincesCount/)
   })
 
+  it('validates tickRemainderSeconds and defaults it when absent', () => {
+    for (const bad of [-0.01, 0.05, 1]) {
+      expect(() =>
+        importSaveFromBase64(
+          encodeCurrent((s) => {
+            s.tickRemainderSeconds = bad
+          }),
+        ),
+      ).toThrow(/tickRemainderSeconds/)
+    }
+    const kept = importSaveFromBase64(
+      encodeCurrent((s) => {
+        s.tickRemainderSeconds = 0.02
+      }),
+    )
+    expect(kept.tickRemainderSeconds).toBe(0.02)
+    const absent = importSaveFromBase64(
+      encodeCurrent((s) => {
+        delete s.tickRemainderSeconds
+      }),
+    )
+    expect(absent.tickRemainderSeconds).toBe(0)
+  })
+
   it('rejects present fields with a wrong shape instead of defaulting them', () => {
     const cases: Array<[string, unknown, RegExp]> = [
       ['units', null, /units/],

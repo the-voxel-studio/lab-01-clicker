@@ -65,6 +65,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     deadlineTimeSeconds: 0,
     totalElapsedSeconds: 0,
     tickIndex: 0,
+    tickRemainderSeconds: 0,
     interimWarningShown: false,
     interimWarningOnTrack: null,
 

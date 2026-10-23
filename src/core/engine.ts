@@ -295,20 +295,116 @@ export function isFastForwardUnlocked(state: GameState): boolean {
   return state.deadline >= 5
 }
 
+/** Tolerance used when counting whole fixed steps in an accumulated duration. */
+const STEP_EPSILON = 1e-9
+
 /**
- * Advances the simulation by delta-time dt seconds.
- * Pure state mutation, thread-safe, step-size invariant.
+ * Advances the simulation by `dt` seconds in whole fixed steps of
+ * `config.balance.FIXED_STEP_SECONDS`.
+ *
+ * `dt` is added to `state.tickRemainderSeconds`; the number of whole steps in that sum is counted
+ * with a 1e-9 tolerance (so 20 x 0.05 and 1.0 both give 20 steps), the steps run one after the other,
+ * and the part below one step is carried in `tickRemainderSeconds`. Game time, `tickIndex` and every
+ * rate advance only by whole steps, so the result does not depend on how `dt` is split.
+ *
+ * When the state is paused, game over or not in `ACTIVE_CYCLE`, no step runs, `dt` is dropped and
+ * the remainder is kept. When a step ends `ACTIVE_CYCLE` (audit, raid, Lombard offer, defeat), the
+ * steps not yet run are dropped and the remainder is reset to 0. A non finite or non positive `dt`
+ * adds no time.
  *
  * @param state - The active mutable GameState.
  * @param dt - Delta time in seconds (e.g. 0.05 for 20 Hz, 1.0 for fast sim).
  * @param config - Injected engine configuration.
- * @returns TickResult metrics summary.
+ * @returns TickResult summed over the steps run (`dt` and `consumedDt` are the simulated seconds;
+ *   `netApPerSecond`, `paperworkFriction` and `crisisStage` come from the last step).
  */
 export function tick(
   state: GameState,
   dt: number,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): TickResult {
+  const idle: TickResult = {
+    dt: 0,
+    consumedDt: 0,
+    grossApGenerated: 0,
+    netApDelta: 0,
+    netApPerSecond: 0,
+    popGrowth: 0,
+    paperworkFriction: 0,
+    crisisStage: getUnrestCrisisStage(state.unrest),
+    interimWarningTriggered: false,
+    deadlineCompleted: false,
+    isGameOver: state.isGameOver,
+  }
+  if (state.isPaused || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
+    return idle
+  }
+
+  // A deadline already reached (e.g. deferred during a crisis) is audited without waiting a step
+  if (
+    state.pendingDeadlineAudit ||
+    config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < STEP_EPSILON
+  ) {
+    return runFixedStep(state, config.balance.FIXED_STEP_SECONDS, config)
+  }
+
+  const step = config.balance.FIXED_STEP_SECONDS
+  const added = Number.isFinite(dt) && dt > 0 ? dt : 0
+  const available = state.tickRemainderSeconds + added
+  const steps = Math.floor(available / step + STEP_EPSILON)
+  state.tickRemainderSeconds = Math.max(0, available - steps * step)
+  if (state.tickRemainderSeconds < STEP_EPSILON) {
+    state.tickRemainderSeconds = 0
+  }
+
+  const total = { ...idle }
+  for (let i = 0; i < steps; i++) {
+    const result = runFixedStep(state, step, config)
+    total.dt += result.dt
+    total.grossApGenerated += result.grossApGenerated
+    total.netApDelta += result.netApDelta
+    total.popGrowth += result.popGrowth
+    total.netApPerSecond = result.netApPerSecond
+    total.paperworkFriction = result.paperworkFriction
+    total.crisisStage = result.crisisStage
+    total.interimWarningTriggered ||= result.interimWarningTriggered
+    total.deadlineCompleted ||= result.deadlineCompleted
+    if (state.isPaused || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
+      state.tickRemainderSeconds = 0
+      break
+    }
+  }
+  total.dt = snapToStepGrid(total.dt, step)
+  total.consumedDt = total.dt
+  total.isGameOver = state.isGameOver
+  return total
+}
+
+/**
+ * Removes the floating point drift of a value that moves by whole fixed steps: a value within
+ * 1e-6 step of a multiple of the step is set to that multiple (computed as `k / stepsPerSecond`
+ * when the step divides one second, so 666 steps of 0.05 give exactly 33.3). Other values are
+ * returned unchanged.
+ */
+function snapToStepGrid(value: number, step: number): number {
+  const k = Math.round(value / step)
+  if (Math.abs(value / step - k) > 1e-6) return value
+  const stepsPerSecond = Math.round(1 / step)
+  if (stepsPerSecond > 0 && Math.abs(stepsPerSecond * step - 1) < STEP_EPSILON) {
+    return k / stepsPerSecond
+  }
+  return k * step
+}
+
+/**
+ * Runs one simulation step of `dt` seconds (the per-step formulas of `tick`).
+ *
+ * @param state - The active mutable GameState.
+ * @param dt - Step length in seconds, normally `config.balance.FIXED_STEP_SECONDS`.
+ * @param config - Injected engine configuration.
+ * @returns TickResult of this step.
+ */
+function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickResult {
   if (state.isPaused || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
     return {
       dt: 0,
@@ -374,16 +470,14 @@ export function tick(
     }
   }
 
+  const grid = config.balance.FIXED_STEP_SECONDS
   state.tickIndex += 1
   const prevDeadlineTime = state.deadlineTimeSeconds
-  state.deadlineTimeSeconds += stepDt
+  state.deadlineTimeSeconds = snapToStepGrid(state.deadlineTimeSeconds + stepDt, grid)
   if (config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9) {
     state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
   }
-  state.totalElapsedSeconds += stepDt
-  if (Math.abs(Math.round(state.totalElapsedSeconds) - state.totalElapsedSeconds) < 1e-9) {
-    state.totalElapsedSeconds = Math.round(state.totalElapsedSeconds)
-  }
+  state.totalElapsedSeconds = snapToStepGrid(state.totalElapsedSeconds + stepDt, grid)
 
   // 0c. Purge expired modifiers before evaluation
   state.activeModifiers = state.activeModifiers.filter(
@@ -396,7 +490,7 @@ export function tick(
 
   // Tax promulgation delay processing (8s timer)
   if (state.pendingTaxRate !== null) {
-    state.taxPromulgationTimer -= stepDt
+    state.taxPromulgationTimer = snapToStepGrid(state.taxPromulgationTimer - stepDt, grid)
     if (state.taxPromulgationTimer <= 0) {
       state.taxRate = state.pendingTaxRate
       state.pendingTaxRate = null
@@ -410,7 +504,10 @@ export function tick(
 
   // 2b. Forced tithe growth freeze countdown (20s timer)
   if (state.forcedTitheFreezeTimer > 0) {
-    state.forcedTitheFreezeTimer = Math.max(0, state.forcedTitheFreezeTimer - stepDt)
+    state.forcedTitheFreezeTimer = Math.max(
+      0,
+      snapToStepGrid(state.forcedTitheFreezeTimer - stepDt, grid),
+    )
   }
 
   // Demographics: Housing Capacity & Proportional Logistic Growth
@@ -527,7 +624,7 @@ export function tick(
   if (!isDesertionActive || !eligible) {
     state.desertionTimer = 0
   } else {
-    state.desertionTimer += stepDt
+    state.desertionTimer = snapToStepGrid(state.desertionTimer + stepDt, grid)
     while (eligible && state.desertionTimer >= eligible.threshold) {
       state.desertionTimer -= eligible.threshold
       state.units[eligible.unitId] = (state.units[eligible.unitId] ?? 0) - 1
@@ -542,7 +639,7 @@ export function tick(
   // Bankruptcy Countdown & Lombard Bailout Offer
   if (state.ap <= 0 && netApPerSecond < 0) {
     if (state.phase === 'ACTIVE_CYCLE') {
-      state.bankruptcyGraceTimer -= stepDt
+      state.bankruptcyGraceTimer = snapToStepGrid(state.bankruptcyGraceTimer - stepDt, grid)
       // Lombard bailout offer only available if provinces >= 2 (§14.4, arbitrage 1.0 §11)
       if (
         state.bankruptcyGraceTimer <= 20.0 &&

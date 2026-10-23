@@ -262,11 +262,13 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
     const res = tick(state, 1.0, DEFAULT_ENGINE_CONFIG)
 
-    expect(state.bankruptcyGraceTimer).toBe(19.5)
+    // Fixed 0.05 s steps: the offer opens on the step where the timer reaches 20.0 (after 0.5 s);
+    // the rest of the 1.0 s is not simulated
+    expect(state.bankruptcyGraceTimer).toBe(20.0)
     expect(state.phase).toBe('LOMBARD_OFFER')
-    expect(res.consumedDt).toBe(1.0)
-    expect(state.deadlineTimeSeconds).toBe(16.0)
-    expect(state.totalElapsedSeconds).toBe(16.0)
+    expect(res.consumedDt).toBe(0.5)
+    expect(state.deadlineTimeSeconds).toBe(15.5)
+    expect(state.totalElapsedSeconds).toBe(15.5)
   })
 
   // Criterion 9: No Lombard offer when provinces === 1

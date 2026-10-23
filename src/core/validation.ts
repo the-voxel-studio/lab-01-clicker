@@ -6,6 +6,7 @@
  */
 
 import { UNITS_DATA, BIOMES_DATA } from '@/data/balance'
+import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { ALLOWED_COMMANDS_BY_PHASE } from './phases'
@@ -143,13 +144,18 @@ export function assertPresentFieldShapes(state: Record<string, unknown>): void {
  * Validates an untrusted value as a complete GameState.
  * Checks the run phase, unit ids and counts, biomes, active laws, modifiers, the province
  * invariant (`provinces === provinceBiomes.length`), `capturedProvincesCount`, and the population
- * invariant (`|totalPopulation - freeSerfs - sum(units)| < 1e-6`).
+ * invariant (`|totalPopulation - freeSerfs - sum(units)| < 1e-6`), and `tickRemainderSeconds` (finite,
+ * in [0, config.balance.FIXED_STEP_SECONDS)).
  *
  * @param value - Candidate state, typically a migrated save payload.
+ * @param config - Engine configuration that provides `FIXED_STEP_SECONDS`.
  * @returns The same value, typed as GameState.
  * @throws Error naming the first invalid field.
  */
-export function validateGameState(value: unknown): GameState {
+export function validateGameState(
+  value: unknown,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): GameState {
   if (!isRecord(value)) {
     return fail('state', 'expected an object')
   }
@@ -221,8 +227,15 @@ export function validateGameState(value: unknown): GameState {
     return fail('totalPopulation', 'must equal freeSerfs plus the sum of units')
   }
 
+  const remainder = checkFiniteNumber(value, 'tickRemainderSeconds')
+  const step = config.balance.FIXED_STEP_SECONDS
+  if (remainder < 0 || remainder >= step) {
+    return fail('tickRemainderSeconds', `expected a number in [0, ${step})`)
+  }
+
   // Checked above: phase, units, provinces, provinceBiomes, activeLaws, currentLawDraft,
   // currentDilemmaId, activeModifiers (stat, op, value, resolverKey), capturedProvincesCount,
-  // totalPopulation, freeSerfs. Other fields come from createInitialGameState and are not checked.
+  // totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come from createInitialGameState
+  // and are not checked.
   return value as unknown as GameState
 }
