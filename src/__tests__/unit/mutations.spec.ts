@@ -103,9 +103,9 @@ describe('Task 1.2: Dual Unrest Composition & Immediate Revolution', () => {
     // Tick past expiresAt: totalElapsedSeconds = 3.0, modifier expires (2.5 <= 3.0)
     tick(state, 1.0)
     expect(state.activeModifiers).not.toContain(halfPacMod)
-    // Fixed 0.05 s steps: the modifier still applies to the 9 steps ending at 2.05 .. 2.45 s and is
-    // purged from the step ending at 2.5 s, so full pacification (net -0.10/s) runs for 0.55 s
-    expect(state.unrest).toBeCloseTo(beforeUnrest - 0.055, 2)
+    // Fixed 0.05 s steps: the modifier applies to the 10 steps starting at 2.0 .. 2.45 s and is
+    // purged from the step starting at 2.5 s, so full pacification (net -0.10/s) runs for 0.5 s
+    expect(state.unrest).toBeCloseTo(beforeUnrest - 0.05, 9)
   })
 
   it('purges expired modifiers automatically during tick() based on expiresAt', () => {

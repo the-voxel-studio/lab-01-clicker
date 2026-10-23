@@ -161,6 +161,48 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
     expect(state.activeModifiers[0]?.appliedAt).toBe(200)
   })
 
+  it('applies a modifier of duration d to every step of its d seconds, the last one included', () => {
+    const boost = (durationSeconds?: number): Modifier => ({
+      source: 'dilemma:test',
+      stat: 'gross_ap_rate',
+      op: 'add',
+      value: 100,
+      ...(durationSeconds === undefined ? {} : { durationSeconds }),
+    })
+    const timed = createInitialGameState()
+    const permanent = createInitialGameState()
+    applyEffect({ type: 'stat_modifier', modifier: boost(1) }, timed)
+    applyEffect({ type: 'stat_modifier', modifier: boost() }, permanent)
+    tick(timed, 1)
+    tick(permanent, 1)
+    expect(timed.ap).toBeCloseTo(permanent.ap, 9)
+  })
+
+  it('stops a modifier of duration d after d seconds', () => {
+    const timed = createInitialGameState()
+    const baseline = createInitialGameState()
+    applyEffect(
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'dilemma:test',
+          stat: 'gross_ap_rate',
+          op: 'add',
+          value: 100,
+          durationSeconds: 1,
+        },
+      },
+      timed,
+    )
+    tick(timed, 1)
+    tick(baseline, 1)
+    const timedBefore = timed.ap
+    const baselineBefore = baseline.ap
+    tick(timed, 1)
+    tick(baseline, 1)
+    expect(timed.ap - timedBefore).toBeCloseTo(baseline.ap - baselineBefore, 9)
+  })
+
   it('keeps a 30 s dilemma modifier for 30 s of active time', () => {
     const state = createInitialGameState()
     state.totalElapsedSeconds = 200

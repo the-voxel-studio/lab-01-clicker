@@ -477,11 +477,12 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   if (config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds < 1e-9) {
     state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
   }
+  const stepStartSeconds = state.totalElapsedSeconds
   state.totalElapsedSeconds = snapToStepGrid(state.totalElapsedSeconds + stepDt, grid)
 
-  // 0c. Purge expired modifiers before evaluation
+  // 0c. Purge modifiers expired at the step start, so a modifier covers its last step
   state.activeModifiers = state.activeModifiers.filter(
-    (mod) => mod.expiresAt === undefined || mod.expiresAt > state.totalElapsedSeconds,
+    (mod) => mod.expiresAt === undefined || mod.expiresAt > stepStartSeconds,
   )
   const rawState = extractRawEvaluationState(state)
 
