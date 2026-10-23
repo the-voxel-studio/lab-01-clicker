@@ -35,9 +35,10 @@ export function calculateMilitaryPower(state: GameState): number {
   power += (state.units.soldier ?? 0) * 1.0
   power += (state.units.man_at_arms ?? 0) * 7.0
 
-  // Multipliers from Sergeants (+1.5%) and Captains (+7.0%)
-  const sergeantBonus = (state.units.sergeant ?? 0) * 0.015
-  const captainBonus = (state.units.captain ?? 0) * 0.07
+  // Multipliers from Sergeants (+1.5%) and Captains (+7.0%), doubled by Officer Academies
+  const officerFactor = hasRule(state, 'law:officer_academies') ? 2 : 1
+  const sergeantBonus = (state.units.sergeant ?? 0) * 0.015 * officerFactor
+  const captainBonus = (state.units.captain ?? 0) * 0.07 * officerFactor
   power *= 1.0 + sergeantBonus + captainBonus
 
   const rawState = extractRawEvaluationState(state)

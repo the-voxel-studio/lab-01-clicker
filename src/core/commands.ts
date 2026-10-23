@@ -37,6 +37,8 @@ import {
   performScoutReroll,
   resolveScheduledThreat,
   generateCampaignTarget,
+  calculateBaseCampaignLoot,
+  calculateEnemyPower,
 } from './battle'
 import type { Command, GameState, DispatchResult } from './types'
 import type { DilemmaDef } from '@/data/dilemmas'
@@ -533,6 +535,23 @@ export function hasAffordableChoice(
 }
 
 /**
+ * Composes the `threat_power` modifiers (base 1) onto the power of a new threat or raid.
+ *
+ * @param state - Active state that supplies the modifiers.
+ * @param basePower - Threat power before modifiers.
+ * @returns The modified power, rounded and never below 0.
+ */
+function composeThreatPower(state: GameState, basePower: number): number {
+  const factor = composeStat(
+    'threat_power',
+    1,
+    state.activeModifiers,
+    extractRawEvaluationState(state),
+  )
+  return Math.max(0, Math.round(basePower * factor))
+}
+
+/**
  * Transitions to the next inter-deadline phase, populating threat and expedition targets when entering them.
  */
 function transitionToNextInterDeadlinePhase(
@@ -583,7 +602,7 @@ function transitionToNextInterDeadlinePhase(
     const nextQuota =
       config.quotas.find((q) => q.deadline === nextDeadline) ??
       config.quotas[config.quotas.length - 1]!
-    state.currentThreatPower = getThreatPower(nextQuota.military)
+    state.currentThreatPower = composeThreatPower(state, getThreatPower(nextQuota.military))
     state.currentThreatTributeAp = getThreatTributeAp(nextQuota.apRate)
   } else if (nextPhase === 'EXPEDITION') {
     state.campaignsLaunchedThisDeadline = 0
@@ -784,7 +803,7 @@ export function dispatch(
       if (threatPower <= 0 || tributeAp <= 0) {
         const nextQuota = config.quotas.find((q) => q.deadline === state.deadline + 1)
         if (nextQuota) {
-          threatPower = getThreatPower(nextQuota.military)
+          threatPower = composeThreatPower(state, getThreatPower(nextQuota.military))
           tributeAp = getThreatTributeAp(nextQuota.apRate)
         }
       }
@@ -815,9 +834,12 @@ export function dispatch(
 
     case 'LAUNCH_ATTACK': {
       const playerPower = calculateMilitaryPower(state)
+      if (playerPower <= 0) {
+        return { success: false, error: 'Cannot launch an attack without an army.' }
+      }
       const target = state.currentTarget ?? generateCampaignTarget(state, config)
-      const enemyPower = target.isAmbush ? Math.round(target.power * 1.25) : target.power
-      let baseLootAp = 300
+      const enemyPower = calculateEnemyPower(target)
+      let baseLootAp = calculateBaseCampaignLoot(state, config)
       if (target.isFalseLedger) {
         baseLootAp = Math.round(
           baseLootAp * withStatePrng(state, 'combat', (p) => p.nextBetween(0.2, 0.4)),
@@ -868,7 +890,7 @@ export function dispatch(
     case 'RESOLVE_RAID_DEFENSE': {
       const playerPower = calculateMilitaryPower(state)
       const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
-      const raidPower = Math.round(0.5 * quota.military)
+      const raidPower = composeThreatPower(state, Math.round(0.5 * quota.military))
       const strongholdCount = state.provinceBiomes.filter((b) => b === 'stronghold').length
       const tributeCost = getThreatTributeAp(quota.apRate)
       const res = resolveDefensiveClash(

@@ -156,6 +156,38 @@ function checkModifiers(value: unknown): void {
   })
 }
 
+const LOOT_TYPES: readonly string[] = ['ap', 'population', 'soldiers', 'mixed']
+
+function checkCampaignTarget(value: unknown): void {
+  if (value === null) return
+  if (!isRecord(value)) {
+    return fail('currentTarget', 'expected null or an object')
+  }
+  const { power, uncertaintyMargin, perceivedMin, perceivedMax } = value
+  const numbers = { power, uncertaintyMargin, perceivedMin, perceivedMax }
+  for (const [key, entry] of Object.entries(numbers)) {
+    if (typeof entry !== 'number' || !Number.isFinite(entry)) {
+      return fail(`currentTarget.${key}`, 'expected a finite number')
+    }
+  }
+  if (typeof perceivedMin === 'number' && typeof perceivedMax === 'number') {
+    if (perceivedMin > perceivedMax) {
+      return fail('currentTarget.perceivedMin', 'must not exceed perceivedMax')
+    }
+  }
+  if (!isBiomeId(value.biome)) {
+    return fail('currentTarget.biome', 'unknown biome id')
+  }
+  if (typeof value.lootType !== 'string' || !LOOT_TYPES.includes(value.lootType)) {
+    return fail('currentTarget.lootType', 'unknown loot type')
+  }
+  for (const key of ['isFalseLedger', 'isAmbush']) {
+    if (typeof value[key] !== 'boolean') {
+      return fail(`currentTarget.${key}`, 'expected a boolean')
+    }
+  }
+}
+
 const OBJECT_FIELDS = ['units', 'edictUsageCounts', 'unlockedPatents', 'rngStreams'] as const
 const ARRAY_FIELDS = [
   'activeLaws',
@@ -192,7 +224,7 @@ export function assertPresentFieldShapes(state: Record<string, unknown>): void {
 /**
  * Validates an untrusted value as a complete GameState.
  * Checks the run phase, unit ids and counts, biomes, active laws, rule flags, `currentThreatId`,
- * modifiers, the province invariant (`provinces === provinceBiomes.length`),
+ * modifiers, `currentTarget` (null or a complete target), the province invariant (`provinces === provinceBiomes.length`),
  * `capturedProvincesCount`, the population invariant
  * (`|totalPopulation - freeSerfs - sum(units)| < 1e-6`), and `tickRemainderSeconds` (finite,
  * in [0, config.balance.FIXED_STEP_SECONDS)).
@@ -269,6 +301,7 @@ export function validateGameState(
   }
 
   checkModifiers(value.activeModifiers)
+  checkCampaignTarget(value.currentTarget)
 
   const provinces = checkFiniteNumber(value, 'provinces')
   if (provinces !== biomes.length) {
@@ -298,7 +331,7 @@ export function validateGameState(
   }
 
   // Checked above: phase, units, provinces, provinceBiomes, activeLaws, ruleFlags, currentThreatId,
-  // currentLawDraft, currentDilemmaId, activeModifiers (stat, op, value, resolverKey, scope),
+  // currentLawDraft, currentDilemmaId, activeModifiers (stat, op, value, resolverKey, scope), currentTarget,
   // capturedProvincesCount, totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come
   // from createInitialGameState and are not checked.
   const state = value as unknown as GameState

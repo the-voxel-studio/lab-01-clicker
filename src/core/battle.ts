@@ -19,6 +19,8 @@ import { addUnrest, applyPopulationLoss, triggerDefeat } from './mutations'
 import { calculateMilitaryPower, calculateMaxPopulation } from './engine'
 import { addProvince, removeLastProvince } from './provinces'
 import { calculateOrderCaps, recordPeakPopulation } from './formulas'
+import { composeStat, extractRawEvaluationState } from './modifiers'
+import { hasRule } from './rules'
 import { UNITS_DATA, type UnitId } from '@/data/balance'
 
 /**
@@ -94,20 +96,26 @@ export interface DefensiveClashResult {
   events: string[]
 }
 
+/** Combat roll range of the side the player commands under Vanguard Drills (GAME_RULES §10.3). */
+const VANGUARD_ROLL_RANGE: readonly [number, number] = [1.05, 1.2]
+
 /**
- * Calculates attacker effective power with siege friction and roll [0.92, 1.08].
+ * Calculates attacker effective power with siege friction and a combat roll.
  *
  * @param forces - Raw attack combat power.
  * @param prng - Deterministic PRNG instance.
+ * @param config - Injected engine configuration.
+ * @param rollRange - Combat roll range, [0.92, 1.08] by default.
  * @returns Object with roll and effective power.
  */
 export function calculateAttackerPower(
   forces: number,
   prng: PRNG,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  rollRange: readonly [number, number] = [0.92, 1.08],
 ): { roll: number; effectivePower: number } {
   const friction = 1.0 - config.balance.ATTACKER_SIEGE_FRICTION // 0.90
-  const roll = prng.nextBetween(0.92, 1.08)
+  const roll = prng.nextBetween(rollRange[0], rollRange[1])
   const effectivePower = forces * friction * roll
   return { roll, effectivePower }
 }
@@ -119,6 +127,9 @@ export function calculateAttackerPower(
  * @param strongholdCount - Number of Border Stronghold provinces held.
  * @param prng - Deterministic PRNG instance.
  * @param config - Injected engine configuration.
+ * @param manAtArmsCount - Men-at-Arms held, each adding flat defense.
+ * @param strongholdMultiplier - Factor on the stronghold defense, 2 under Guerrilla Border Watch.
+ * @param rollRange - Combat roll range, [0.95, 1.10] by default.
  * @returns Object with roll and effective power.
  */
 export function calculateDefenderPower(
@@ -127,11 +138,14 @@ export function calculateDefenderPower(
   prng: PRNG,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
   manAtArmsCount: number = 0,
+  strongholdMultiplier: number = 1,
+  rollRange: readonly [number, number] = [0.95, 1.1],
 ): { roll: number; effectivePower: number } {
   const fortBonus = 1.0 + config.balance.DEFENDER_FORTIFICATION_BONUS // 1.20
-  const strongholdFlat = strongholdCount * config.balance.BORDER_STRONGHOLD_DEFENSE_FLAT // +12 flat
+  const strongholdFlat =
+    strongholdCount * config.balance.BORDER_STRONGHOLD_DEFENSE_FLAT * strongholdMultiplier // +12 flat
   const manAtArmsFlat = manAtArmsCount * 0.5 // +0.5 flat defense per Man-at-Arms (§4)
-  const roll = prng.nextBetween(0.95, 1.1)
+  const roll = prng.nextBetween(rollRange[0], rollRange[1])
   const effectivePower = (forces * fortBonus + strongholdFlat + manAtArmsFlat) * roll
   return { roll, effectivePower }
 }
@@ -148,21 +162,24 @@ export function calculateClashRatio(
 }
 
 /**
- * Evaluates the offensive campaign outcome matrix according to GAME_RULES §10.1.
+ * Evaluates the offensive campaign outcome matrix according to GAME_RULES §10.1 and §7.4.1.
  *
- * Paliers:
- * - R >= 1.40: Decisive Victory (Province Won, 120% loot, 10% casualties, -5 unrest)
- * - 1.05 < R < 1.40: Clear Victory (Province Won, 100% loot, 25% casualties, 0 unrest)
- * - 1.00 <= R <= 1.05: Razor-Thin Victory (NO PROVINCE WON, 50% loot, 50% casualties, +5 unrest)
- * - 0.80 <= R < 1.00: Pyrrhic Standoff (Defeat, no province, no loot, 75% casualties, +15 unrest)
+ * Paliers (casualties are rolled uniformly in their range):
+ * - R >= 1.40: Decisive Victory (Province Won, 120% loot, 8-12% casualties, -5 unrest)
+ * - 1.05 < R < 1.40: Clear Victory (Province Won, 100% loot, 20-30% casualties, 0 unrest)
+ * - 1.00 <= R <= 1.05: Razor-Thin Victory (NO PROVINCE WON, 50% loot, 45-55% casualties, +5 unrest)
+ * - 0.80 <= R < 1.00: Pyrrhic Standoff (Defeat, no province, no loot, 70-80% casualties, +15 unrest)
  * - R < 0.80: Crushing Defeat (Defeat, no province, no loot, 100% casualties, +25 unrest)
  *
  * @param ratio - Calculated clash ratio.
- * @returns Campaign outcome metrics.
+ * @param config - Injected engine configuration.
+ * @param prng - Deterministic PRNG instance that rolls the casualty rate.
+ * @returns Campaign outcome metrics, with the rolled casualty rate before any modifier.
  */
 export function evaluateCampaignOutcome(
   ratio: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  config: EngineConfig,
+  prng: PRNG,
 ): {
   outcome: CampaignResultType
   provinceWon: boolean
@@ -177,7 +194,7 @@ export function evaluateCampaignOutcome(
       outcome: 'decisive_victory',
       provinceWon: true,
       lootMultiplier: 1.2,
-      casualtyRate: 0.1,
+      casualtyRate: prng.nextBetween(0.08, 0.12),
       unrestDelta: -5,
     }
   }
@@ -187,7 +204,7 @@ export function evaluateCampaignOutcome(
       outcome: 'clear_victory',
       provinceWon: true,
       lootMultiplier: 1.0,
-      casualtyRate: 0.25,
+      casualtyRate: prng.nextBetween(0.2, 0.3),
       unrestDelta: 0,
     }
   }
@@ -198,7 +215,7 @@ export function evaluateCampaignOutcome(
       outcome: 'razor_thin_victory',
       provinceWon: false,
       lootMultiplier: 0.5,
-      casualtyRate: 0.5,
+      casualtyRate: prng.nextBetween(0.45, 0.55),
       unrestDelta: 5,
     }
   }
@@ -208,7 +225,7 @@ export function evaluateCampaignOutcome(
       outcome: 'pyrrhic_standoff',
       provinceWon: false,
       lootMultiplier: 0,
-      casualtyRate: 0.75,
+      casualtyRate: prng.nextBetween(0.7, 0.8),
       unrestDelta: 15,
     }
   }
@@ -223,12 +240,40 @@ export function evaluateCampaignOutcome(
 }
 
 /**
+ * Base AP value of campaign spoils: 10 seconds of the AP rate quota of the current deadline.
+ *
+ * @param state - The active GameState (its deadline picks the quota).
+ * @param config - Injected engine configuration.
+ * @returns Base loot before outcome, variance and modifier multipliers.
+ */
+export function calculateBaseCampaignLoot(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+  return 10 * quota.apRate
+}
+
+/**
+ * Enemy defending power of a campaign target: its real power, or 25% above the highest scouted
+ * estimate when the target is an ambush (GAME_RULES §7.3).
+ *
+ * @param target - The campaign target being attacked.
+ * @returns Rounded enemy power.
+ */
+export function calculateEnemyPower(target: CampaignTarget): number {
+  return target.isAmbush ? Math.round(target.perceivedMax * 1.25) : target.power
+}
+
+/**
  * Computes concrete campaign loot based on loot type and estimation variance (+/-20%).
  *
  * @param lootType - Category of spoils.
  * @param baseValue - Baseline value (typically target preview AP).
- * @param multiplier - Multiplier from campaign outcome (0 to 1.2).
+ * @param multiplier - Multiplier from campaign outcome (0 to 1.2), further scaled by the
+ *   `battle_loot_multiplier` modifiers of `state`.
  * @param prng - Deterministic PRNG instance.
+ * @param state - Active state that supplies the loot bonuses and modifiers.
  * @returns Concrete distributed rewards.
  */
 export function resolveCampaignLoot(
@@ -243,6 +288,15 @@ export function resolveCampaignLoot(
   }
 
   const variance = prng.nextBetween(0.8, 1.2) // +/- 20% variance
+  const lootModifier = state
+    ? composeStat(
+        'battle_loot_multiplier',
+        1,
+        state.activeModifiers,
+        extractRawEvaluationState(state),
+      )
+    : 1
+  multiplier *= Math.max(0, lootModifier)
   const sergeantCount = state?.units.sergeant ?? 0
   const sergeantBonus = 1.0 + sergeantCount * 0.02 // +2% battle loot value per Sergeant (§4)
   const guildCount = state?.units.guild ?? 0
@@ -277,6 +331,26 @@ export function resolveCampaignLoot(
         soldiers: Math.round(prng.nextBetween(2, 6) * multiplier * sergeantBonus),
       }
   }
+}
+
+/** Unrest added by each campaign battle under Sanctioned Plunder (GAME_RULES §10.3). */
+const SANCTIONED_PLUNDER_UNREST = 15
+
+/**
+ * Applies the `battle_casualty_rate` modifiers (base 1) to a casualty rate.
+ *
+ * @param state - Active state that supplies the modifiers.
+ * @param rate - Casualty rate after captain mitigation.
+ * @returns The modified rate, clamped to [0, 1].
+ */
+function modifiedCasualtyRate(state: GameState, rate: number): number {
+  const factor = composeStat(
+    'battle_casualty_rate',
+    1,
+    state.activeModifiers,
+    extractRawEvaluationState(state),
+  )
+  return Math.min(1, Math.max(0, rate * factor))
 }
 
 /**
@@ -316,7 +390,12 @@ export function resolveOffensiveCampaign(
       ),
     )
   }
-  const { effectivePower: attackerEff } = calculateAttackerPower(attackingPower, prng, config)
+  const { effectivePower: attackerEff } = calculateAttackerPower(
+    attackingPower,
+    prng,
+    config,
+    hasRule(state, 'law:vanguard_drills') ? VANGUARD_ROLL_RANGE : undefined,
+  )
   const { effectivePower: defenderEff } = calculateDefenderPower(
     enemyDefendingPower,
     0,
@@ -325,7 +404,7 @@ export function resolveOffensiveCampaign(
   )
 
   const clashRatio = calculateClashRatio(attackerEff, defenderEff)
-  const outcomeData = evaluateCampaignOutcome(clashRatio, config)
+  const outcomeData = evaluateCampaignOutcome(clashRatio, config, prng)
   if (clashRatio >= 1.0) {
     state.victoriesCount += 1
   }
@@ -340,8 +419,10 @@ export function resolveOffensiveCampaign(
   // Casualties applied proportionally to soldiers and men-at-arms, mitigated by Captains (-5% per Captain, max -50%)
   const captainCount = state.units.captain ?? 0
   const captainDiscount = Math.min(0.5, captainCount * 0.05)
-  const effectiveCasualtyRate = outcomeData.casualtyRate * (1.0 - captainDiscount)
-  applyRetinueCasualties(state, effectiveCasualtyRate)
+  applyRetinueCasualties(
+    state,
+    modifiedCasualtyRate(state, outcomeData.casualtyRate * (1.0 - captainDiscount)),
+  )
 
   // Apply loot (Neither cumulativeApThisDeadline nor totalCumulativeAp is credited with spoils of war!)
   state.ap += loot.ap
@@ -352,7 +433,11 @@ export function resolveOffensiveCampaign(
   // Soldier captives capped by military order headroom; excess joins freeSerfs
   if (loot.soldiers > 0) {
     const maxPop = calculateMaxPopulation(state, config)
-    const orderCaps = calculateOrderCaps(maxPop)
+    const orderCaps = calculateOrderCaps(
+      maxPop,
+      state.activeModifiers,
+      extractRawEvaluationState(state),
+    )
     let currentMil = 0
     for (const [id, count] of Object.entries(state.units) as [UnitId, number][]) {
       if (UNITS_DATA[id]?.order === 'military') {
@@ -371,6 +456,9 @@ export function resolveOffensiveCampaign(
 
   // Apply unrest delta
   addUnrest(state, outcomeData.unrestDelta, config)
+  if (hasRule(state, 'law:sanctioned_plunder')) {
+    addUnrest(state, SANCTIONED_PLUNDER_UNREST, config)
+  }
 
   return {
     outcome: outcomeData.outcome,
@@ -422,6 +510,8 @@ export function resolveDefensiveClash(
     prng,
     config,
     state.units.man_at_arms ?? 0,
+    hasRule(state, 'law:guerrilla_border_watch') ? 2 : 1,
+    hasRule(state, 'law:vanguard_drills') ? VANGUARD_ROLL_RANGE : undefined,
   )
   const { effectivePower: attackerEff } = calculateAttackerPower(enemyAttackForces, prng, config)
 
@@ -432,10 +522,9 @@ export function resolveDefensiveClash(
     // Player wins defense! (Casualties mitigated by Captains: -5% per Captain, max -50%)
     const captainCount = state.units.captain ?? 0
     const captainDiscount = Math.min(0.5, captainCount * 0.05)
-    const effectiveCasualtyRate = 0.1 * (1.0 - captainDiscount)
     const { totalCasualties, soldierCasualties } = applyRetinueCasualties(
       state,
-      effectiveCasualtyRate,
+      modifiedCasualtyRate(state, 0.1 * (1.0 - captainDiscount)),
     )
     addUnrest(state, -5, config)
     state.victoriesCount += 1
@@ -541,19 +630,20 @@ export function generateCampaignTarget(
 
   const scoutCount = state.units.scout ?? 0
   const spymasterCount = state.units.spymaster ?? 0
-  const hasSpymasterPerk = state.activeModifiers.some(
-    (m) => m.source === 'archive:spymaster_network',
-  )
-  const perkReduction = hasSpymasterPerk ? 0.12 : 0
-  const marginReduction = scoutCount * 0.12 + spymasterCount * 0.3 + perkReduction
-  const uncertaintyMargin = Math.max(0.05, 0.45 - marginReduction)
+  const rawState = extractRawEvaluationState(state)
+  const baseMargin = composeStat('scout_uncertainty_margin', 0.45, state.activeModifiers, rawState)
+  const marginReduction = scoutCount * 0.12 + spymasterCount * 0.3
+  const uncertaintyMargin = Math.max(0.05, baseMargin - marginReduction)
 
+  const ambushChance = composeStat('ambush_chance', 0.1, state.activeModifiers, rawState)
   const isFalseLedger = prng.next() < 0.15
-  const isAmbush = prng.next() < 0.1
+  const isAmbush = prng.next() < ambushChance
 
   const target: CampaignTarget = {
     power: basePower,
     uncertaintyMargin,
+    perceivedMin: Math.round(basePower * (1 - uncertaintyMargin)),
+    perceivedMax: Math.round(basePower * (1 + uncertaintyMargin)),
     biome,
     lootType,
     isFalseLedger,

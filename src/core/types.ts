@@ -95,7 +95,10 @@ export const STAT_KEYS = [
   'military_power',
   'tax_efficiency',
   'battle_loot_multiplier',
-  'threat_mitigation_rate',
+  'threat_power',
+  'ambush_chance',
+  'battle_casualty_rate',
+  'scout_uncertainty_margin',
   'unit_upkeep',
   'recruit_cost',
   'unit_output',
@@ -259,6 +262,10 @@ export type BiomeId = 'heartland' | 'farmlands' | 'trade_hub' | 'stronghold' | '
 export interface CampaignTarget {
   power: number
   uncertaintyMargin: number
+  /** Lowest scouted estimate of the enemy power. */
+  perceivedMin: number
+  /** Highest scouted estimate of the enemy power; an ambush strikes 25% above it. */
+  perceivedMax: number
   biome: BiomeId
   lootType: 'ap' | 'population' | 'soldiers' | 'mixed'
   isFalseLedger: boolean

@@ -139,10 +139,38 @@ const RESOLVER_RENAMES: Readonly<Record<string, ResolverKey>> = {
 }
 
 /**
+ * Maps a modifier of the removed `threat_mitigation_rate` stat to its replacement, or drops it
+ * (returns undefined) when its source is unknown: the stat was never read by the engine.
+ */
+function migrateThreatMitigation(modifier: Record<string, unknown>): unknown {
+  if (modifier.source === 'archive:spymaster_network') {
+    return { ...modifier, stat: 'scout_uncertainty_margin', op: 'add', value: -0.12 }
+  }
+  if (modifier.source === 'dilemma:princely_cousin') {
+    return { ...modifier, stat: 'threat_power', op: 'mul', value: 1.15 }
+  }
+  return undefined
+}
+
+/** Adds the perceived power band that schema 3 targets lack, centered on the real power. */
+function migrateCampaignTarget(target: unknown): unknown {
+  if (!isRecord(target) || target.perceivedMin !== undefined) return target
+  const { power, uncertaintyMargin } = target
+  if (typeof power !== 'number' || typeof uncertaintyMargin !== 'number') return target
+  return {
+    ...target,
+    perceivedMin: Math.round(power * (1 - uncertaintyMargin)),
+    perceivedMax: Math.round(power * (1 + uncertaintyMargin)),
+  }
+}
+
+/**
  * Migrates a schema v3 save payload to schema v4.
  * Rebuilds `ruleFlags` from the `rule_flag` effects of the laws in `activeLaws` (catalog lookup,
  * deduplicated, unknown law ids skipped for validation to reject), sets `currentThreatId` to
- * null and renames the legacy `resolverKey` of saved `activeModifiers` (`RESOLVER_RENAMES`).
+ * null, renames the legacy `resolverKey` of saved `activeModifiers` (`RESOLVER_RENAMES`), maps or
+ * drops the modifiers of the removed `threat_mitigation_rate` stat and adds the perceived band to
+ * a saved `currentTarget`.
  *
  * @param oldData - Raw v3 payload to migrate.
  * @returns Migrated SerializedSavePayload conforming to schema v4.
@@ -174,13 +202,20 @@ export function migrateV3ToV4(oldData: unknown): unknown {
   const newState: Record<string, unknown> = { ...oldState, ruleFlags, currentThreatId: null }
   const oldModifiers: unknown = oldState.activeModifiers
   if (Array.isArray(oldModifiers)) {
-    newState.activeModifiers = oldModifiers.map((modifier: unknown) => {
-      if (!isRecord(modifier) || typeof modifier.resolverKey !== 'string') return modifier
-      const renamed = Object.hasOwn(RESOLVER_RENAMES, modifier.resolverKey)
-        ? RESOLVER_RENAMES[modifier.resolverKey]
-        : undefined
-      return renamed === undefined ? modifier : { ...modifier, resolverKey: renamed }
-    })
+    newState.activeModifiers = oldModifiers
+      .map((modifier: unknown) => {
+        if (!isRecord(modifier)) return modifier
+        if (modifier.stat === 'threat_mitigation_rate') return migrateThreatMitigation(modifier)
+        if (typeof modifier.resolverKey !== 'string') return modifier
+        const renamed = Object.hasOwn(RESOLVER_RENAMES, modifier.resolverKey)
+          ? RESOLVER_RENAMES[modifier.resolverKey]
+          : undefined
+        return renamed === undefined ? modifier : { ...modifier, resolverKey: renamed }
+      })
+      .filter((modifier: unknown) => modifier !== undefined)
+  }
+  if (oldState.currentTarget !== undefined) {
+    newState.currentTarget = migrateCampaignTarget(oldState.currentTarget)
   }
 
   const newPayload: unknown = {

@@ -127,9 +127,9 @@ export function applyArchivePerks(state: GameState, activePerkIds: ArchivePerkId
       case 'spymaster_network':
         state.activeModifiers.push({
           source: 'archive:spymaster_network',
-          stat: 'threat_mitigation_rate',
+          stat: 'scout_uncertainty_margin',
           op: 'add',
-          value: 0.12,
+          value: -0.12,
         })
         break
 

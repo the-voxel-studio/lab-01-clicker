@@ -16,7 +16,19 @@ import {
   generateCampaignTarget,
 } from '@/core/battle'
 import { getNextInterDeadlinePhase } from '@/core/phases'
-import { getThreatPower, getThreatTributeAp } from '@/data/balance'
+import { UNITS_DATA, getThreatPower, getThreatTributeAp } from '@/data/balance'
+import { DILEMMAS_DATA } from '@/data/dilemmas'
+import { applyEffect } from '@/core/modifiers'
+import { calculateGrossApRate, calculateUpkeep, calculateMilitaryPower } from '@/core/engine'
+import { hasRule } from '@/core/rules'
+import {
+  CURRENT_SCHEMA_VERSION,
+  SAVE_PREFIX,
+  exportSaveToBase64,
+  importSaveFromBase64,
+} from '@/core/migrations'
+import { LAWS_DATA } from '@/data/laws'
+import type { CampaignTarget } from '@/core/types'
 import { PRNG } from '@/core/prng'
 
 describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
@@ -384,7 +396,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
   it('overflows 100% of captured soldiers into freeSerfs when military order headroom is full', () => {
     const state = createInitialGameState()
-    // Set 200 soldiers so that even after decisive victory casualties (10% -> 180)
+    // Set 200 soldiers so that even after decisive victory casualties (8% to 12%)
     // and province gain (cap becomes 120), military count exceeds cap (180 > 120, headroom 0)
     state.units.soldier = 200
     state.freeSerfs = 50
@@ -392,7 +404,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
     const result = resolveOffensiveCampaign(
       state,
-      500, // overwhelmingly beats enemy -> decisive victory (10% casualties)
+      500, // overwhelmingly beats enemy -> decisive victory (8% to 12% casualties)
       10,
       'soldiers',
       300,
@@ -403,12 +415,14 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
     expect(result.provinceWon).toBe(true)
     expect(result.loot.soldiers).toBeGreaterThan(0)
-    // Soldiers suffered 10% casualties (20 dead) and received 0 new recruits because headroom was 0
-    expect(state.units.soldier).toBe(180)
+    // Soldiers suffered 8% to 12% casualties and received 0 new recruits because headroom was 0
+    const dead = 200 - state.units.soldier!
+    expect(dead).toBeGreaterThanOrEqual(16)
+    expect(dead).toBeLessThanOrEqual(24)
     // All captured soldiers diverted to freeSerfs
     expect(state.freeSerfs).toBe(50 + result.loot.soldiers)
     // Total population reflects casualties (-20) plus admitted captives (+result.loot.soldiers)
-    expect(state.totalPopulation).toBe(250 - 20 + result.loot.soldiers)
+    expect(state.totalPopulation).toBe(250 - dead + result.loot.soldiers)
     expect(state.totalPopulation).toBe(state.freeSerfs + state.units.soldier)
   })
 
@@ -493,5 +507,218 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(state.phase).toBe('AUDIT_ASSESSMENT')
     expect(tickAudit.deadlineCompleted).toBe(true)
     expect(tickAudit.consumedDt).toBe(0)
+  })
+
+  it('rejects an attack with no army', () => {
+    const state = createInitialGameState()
+    state.phase = 'EXPEDITION'
+    state.units.soldier = 0
+    state.units.man_at_arms = 0
+    const before = state.campaignsLaunchedThisDeadline
+    const res = dispatch(state, { type: 'LAUNCH_ATTACK' })
+    expect(res.success).toBe(false)
+    expect(state.phase).toBe('EXPEDITION')
+    expect(state.campaignsLaunchedThisDeadline).toBe(before)
+  })
+
+  it('standing garrisons absorbs 60% of threat power', () => {
+    const announce = (law: boolean): number => {
+      const state = createInitialGameState()
+      state.phase = 'COUNCIL_LAWS'
+      state.deadline = 3
+      state.currentLawDraft = ['law:standing_garrisons']
+      const res = law
+        ? dispatch(state, { type: 'ENACT_LAW', lawId: 'law:standing_garrisons' })
+        : dispatch(state, { type: 'REJECT_LAWS' })
+      expect(res.success).toBe(true)
+      expect(state.phase).toBe('THREAT_HERALD')
+      return state.currentThreatPower
+    }
+    const full = announce(false)
+    expect(full).toBe(
+      getThreatPower(DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 4)!.military),
+    )
+    expect(announce(true)).toBe(Math.round(full * 0.4))
+  })
+
+  it('the harsh frontier choice of the princely cousin raises threat power by 15%', () => {
+    const state = createInitialGameState()
+    state.phase = 'COUNCIL_LAWS'
+    state.deadline = 3
+    const choice = DILEMMAS_DATA['dilemma:princely_cousin']!.choices[1]!
+    for (const effect of choice.effects) applyEffect(effect, state)
+    dispatch(state, { type: 'REJECT_LAWS' })
+    const quota = DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 4)!
+    expect(state.currentThreatPower).toBe(Math.round(getThreatPower(quota.military) * 1.15))
+  })
+
+  describe('military laws and saves', () => {
+    function encode(schemaVersion: number, state: unknown): string {
+      return `${SAVE_PREFIX}${Buffer.from(
+        JSON.stringify({ schemaVersion, timestamp: 1, state }),
+        'utf-8',
+      ).toString('base64')}`
+    }
+
+    const target: CampaignTarget = {
+      power: 40,
+      uncertaintyMargin: 0.45,
+      perceivedMin: 22,
+      perceivedMax: 58,
+      biome: 'farmlands',
+      lootType: 'mixed',
+      isFalseLedger: false,
+      isAmbush: true,
+    }
+
+    it('keeps military laws, flags and a campaign target through export and import', () => {
+      const state = createInitialGameState()
+      for (const lawId of [
+        'law:standing_garrisons',
+        'law:scorched_earth',
+        'law:vanguard_drills',
+        'law:officer_academies',
+      ]) {
+        for (const effect of LAWS_DATA[lawId]!.effects) applyEffect(effect, state)
+        state.activeLaws.push(lawId)
+      }
+      state.currentTarget = { ...target }
+      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      expect(imported.activeModifiers).toEqual(state.activeModifiers)
+      expect(imported.ruleFlags).toEqual(state.ruleFlags)
+      expect(hasRule(imported, 'law:vanguard_drills')).toBe(true)
+      expect(imported.currentTarget).toEqual(target)
+    })
+
+    it('rejects a saved target whose perceived band is invalid', () => {
+      const base = { ...createInitialGameState() }
+      const inverted = { ...base, currentTarget: { ...target, perceivedMin: 60, perceivedMax: 50 } }
+      expect(() => importSaveFromBase64(encode(CURRENT_SCHEMA_VERSION, inverted))).toThrow(
+        /currentTarget\.perceivedMin/,
+      )
+      const infinite = {
+        ...base,
+        currentTarget: { ...target, perceivedMax: null },
+      }
+      expect(() => importSaveFromBase64(encode(CURRENT_SCHEMA_VERSION, infinite))).toThrow(
+        /currentTarget\.perceivedMax/,
+      )
+    })
+
+    it('migrates schema 3 threat mitigation modifiers and targets', () => {
+      const legacyTarget = {
+        power: 40,
+        uncertaintyMargin: 0.45,
+        biome: 'farmlands',
+        lootType: 'mixed',
+        isFalseLedger: false,
+        isAmbush: true,
+      }
+      const state = {
+        ...createInitialGameState(),
+        currentTarget: legacyTarget,
+        activeModifiers: [
+          {
+            source: 'archive:spymaster_network',
+            stat: 'threat_mitigation_rate',
+            op: 'add',
+            value: 0.12,
+          },
+          {
+            source: 'dilemma:princely_cousin',
+            stat: 'threat_mitigation_rate',
+            op: 'addPct',
+            value: -0.15,
+          },
+          { source: 'other', stat: 'threat_mitigation_rate', op: 'add', value: 1 },
+          { source: 'kept', stat: 'gross_ap_rate', op: 'add', value: 1 },
+        ],
+      }
+      const imported = importSaveFromBase64(encode(3, state))
+      expect(imported.activeModifiers).toEqual([
+        {
+          source: 'archive:spymaster_network',
+          stat: 'scout_uncertainty_margin',
+          op: 'add',
+          value: -0.12,
+        },
+        { source: 'dilemma:princely_cousin', stat: 'threat_power', op: 'mul', value: 1.15 },
+        { source: 'kept', stat: 'gross_ap_rate', op: 'add', value: 1 },
+      ])
+      expect(imported.currentTarget?.perceivedMin).toBe(22)
+      expect(imported.currentTarget?.perceivedMax).toBe(58)
+    })
+
+    it('composes standing garrisons and merit pay upkeep without overwriting', () => {
+      const state = createInitialGameState()
+      state.units.soldier = 50
+      state.provinces = 3
+      const plain = calculateUpkeep(state, DEFAULT_ENGINE_CONFIG)
+      for (const lawId of ['law:standing_garrisons', 'law:merit_pay']) {
+        for (const effect of LAWS_DATA[lawId]!.effects) applyEffect(effect, state)
+      }
+      const both = calculateUpkeep(state, DEFAULT_ENGINE_CONFIG)
+      const unitUpkeep = 50 * UNITS_DATA.soldier.upkeepAp
+      expect(both).toBeCloseTo(plain, 9)
+      state.provinces = 4
+      state.provinceBiomes = [...state.provinceBiomes, 'heartland']
+      expect(calculateUpkeep(state, DEFAULT_ENGINE_CONFIG) - plain).toBeCloseTo(unitUpkeep * 0.3, 6)
+    })
+
+    it('composes threat power on a surprise raid', () => {
+      const quota = DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 6)!
+      const setup = (law: boolean): ReturnType<typeof createInitialGameState> => {
+        const state = createInitialGameState()
+        state.phase = 'SURPRISE_RAID'
+        state.deadline = 6
+        state.units.soldier = 18
+        state.units.man_at_arms = 0
+        if (law) {
+          for (const effect of LAWS_DATA['law:standing_garrisons']!.effects) {
+            applyEffect(effect, state)
+          }
+        }
+        return state
+      }
+      const state = setup(true)
+      const res = dispatch(state, { type: 'RESOLVE_RAID_DEFENSE' })
+      const raidPower = Math.round(Math.round(0.5 * quota.military) * 0.4)
+      expect(raidPower).toBe(15)
+      const reference = setup(true)
+      const expected = resolveDefensiveClash(
+        reference,
+        calculateMilitaryPower(reference),
+        raidPower,
+        0,
+        undefined,
+        DEFAULT_ENGINE_CONFIG,
+        getThreatTributeAp(quota.apRate),
+      )
+      expect(res.events).toEqual(expected.events)
+      expect(expected.success).toBe(true)
+      const uncomposed = setup(false)
+      const full = resolveDefensiveClash(
+        uncomposed,
+        calculateMilitaryPower(uncomposed),
+        Math.round(0.5 * quota.military),
+        0,
+        undefined,
+        DEFAULT_ENGINE_CONFIG,
+        getThreatTributeAp(quota.apRate),
+      )
+      expect(full.success).toBe(false)
+    })
+
+    it('keeps the officer academies power bonus after a save round trip', () => {
+      const state = createInitialGameState()
+      state.units.soldier = 100
+      state.units.sergeant = 10
+      state.totalPopulation = 110
+      state.freeSerfs = 0
+      for (const effect of LAWS_DATA['law:officer_academies']!.effects) applyEffect(effect, state)
+      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      expect(calculateMilitaryPower(imported)).toBe(calculateMilitaryPower(state))
+      expect(calculateGrossApRate(imported).total).toBe(calculateGrossApRate(state).total)
+    })
   })
 })

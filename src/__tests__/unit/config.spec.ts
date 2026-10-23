@@ -103,6 +103,8 @@ describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
     source.currentTarget = {
       power: 20,
       uncertaintyMargin: 0.45,
+      perceivedMin: 11,
+      perceivedMax: 29,
       biome: 'farmlands',
       lootType: 'ap',
       isFalseLedger: false,

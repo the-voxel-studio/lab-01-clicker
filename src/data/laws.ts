@@ -596,6 +596,15 @@ export const LAWS_DATA: Record<string, LawDef> = {
         },
       },
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:standing_garrisons',
+          stat: 'threat_power',
+          op: 'mul',
+          value: 0.4,
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:standing_garrisons',
       },
@@ -693,6 +702,24 @@ export const LAWS_DATA: Record<string, LawDef> = {
     description: 'Ambush probability 0% | Conquered provinces yield 50% less loot.',
     effects: [
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:scorched_earth',
+          stat: 'ambush_chance',
+          op: 'set',
+          value: 0,
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:scorched_earth',
+          stat: 'battle_loot_multiplier',
+          op: 'mul',
+          value: 0.5,
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:scorched_earth',
       },
@@ -704,6 +731,15 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: 'Vanguard Drills',
     description: 'Combat roll raised to [1.05, 1.20] | Battle casualties +15%.',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:vanguard_drills',
+          stat: 'battle_casualty_rate',
+          op: 'mul',
+          value: 1.15,
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:vanguard_drills',

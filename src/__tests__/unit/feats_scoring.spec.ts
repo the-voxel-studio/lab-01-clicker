@@ -268,6 +268,8 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
       state.currentTarget = {
         power: 1,
         uncertaintyMargin: 0,
+        perceivedMin: 1,
+        perceivedMax: 1,
         biome: 'trade_hub',
         lootType: 'ap',
         isFalseLedger: false,

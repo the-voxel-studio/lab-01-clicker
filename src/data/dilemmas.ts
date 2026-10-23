@@ -158,9 +158,9 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
             type: 'stat_modifier',
             modifier: {
               source: 'dilemma:princely_cousin',
-              stat: 'threat_mitigation_rate',
-              op: 'addPct',
-              value: -0.15,
+              stat: 'threat_power',
+              op: 'mul',
+              value: 1.15,
             },
           },
         ],

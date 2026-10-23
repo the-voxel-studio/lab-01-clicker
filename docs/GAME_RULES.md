@@ -270,7 +270,7 @@ Captured and starting provinces permanently bestow unique systemic modifiers to 
 ### 7.3 Fog of War & Treachery
 - **Uncertainty Margin:** Enemy power sits within $P_{\text{real}} \times [1 - M, 1 + M]$ (Base $M = \pm 45\%$). Each Scout narrows $M$ by 12 percentage points and each Spymaster by 30 percentage points, down to a minimum floor of $\pm 5\%$.
 - **False Ledger (15% base chance):** Actual loot is **60% to 80% lower** than promised (enemy burned stores).
-- **Ambush (10% base chance):** Enemy force is **25% stronger** than the highest scout estimate.
+- **Ambush (10% base chance):** Enemy force is **25% stronger** than the highest scout estimate (`perceivedMax`, the upper edge of the perceived band $P_{\text{real}} \times (1 + M)$).
 - **Spymasters (Tier II):** Having $\ge 1$ active Spymaster detects and flags False Ledgers and Ambushes beforehand on `currentTarget`.
 
 ### 7.4 Generalized Asymmetric Combat Model (Attacker vs Defender)
@@ -284,7 +284,7 @@ $$\text{CombatRatio} = \frac{\text{AttackerPower}}{\text{DefenderPower}}$$
 #### 7.4.1 Offensive Campaigns (Player as Attacker)
 - Player initiates the attack voluntarily; incurs the **Attacker's Siege Friction (-10%)**, while defending enemies enjoy fortification bonuses.
 - **Loot Variance & Diverse Loot Types:**
-  - Previewed spoils have an inherent estimation variance of approximately **$\pm 20\%$**.
+  - Previewed spoils have an inherent estimation variance of approximately **$\pm 20\%$**. Base loot is **10 seconds of the AP rate quota** of the current deadline (D6, 85 AP/s: 850 AP), before outcome, variance and modifiers.
   - Spoils are **not limited to AP**:
     - *Treasury Plunder:* Pure AP ($\pm 20\%$). Credited strictly to `state.ap`; does not modify Gross AP Rate or increment quota tracking counters.
     - *Captive Serf Liberation:* Awards **Living Population** (+25 to +75 Free Serfs) instead of AP!
@@ -450,7 +450,7 @@ Players choose 1 card per Council phase (up to 5 active slots) or reject all for
 4. **Officer Academies:** Sergeants and Captains count double | Soldier cost +20%.
 5. **Feudal Retinue Levy:** +15 Men-at-Arms recruited instantly | Costs 15 Free Serfs and +20 Unrest.
 6. **Scorched Earth:** Ambush probability 0% | Conquered provinces yield 50% less loot.
-7. **Vanguard Drills:** Combat roll raised to $[1.05, 1.20]$ | Battle casualties +15%.
+7. **Vanguard Drills:** Combat roll raised to $[1.05, 1.20]$ (the player's roll, attacking or defending) | Battle casualties +15%.
 8. **Guerrilla Border Watch:** Border Strongholds grant double defense | Military upkeep +10%.
 9. **Mercenary Capitulation:** Hire Men-at-Arms with AP without consuming Serfs | Upkeep doubled ($3.0\text{ AP/s}$).
 10. **Marshal's Carte Blanche:** +25% Military Power | Chancellor laws cannot be enacted (the council still drafts them).
