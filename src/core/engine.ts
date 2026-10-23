@@ -28,17 +28,23 @@ import { withStatePrng } from './prng'
  * Calculates current total military combat power across active armed retinues.
  *
  * @param state - The active GameState.
+ * @param config - Engine configuration (defaults to DEFAULT_ENGINE_CONFIG).
  * @returns Total active military power.
  */
-export function calculateMilitaryPower(state: GameState): number {
+export function calculateMilitaryPower(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
   let power = 0
-  power += (state.units.soldier ?? 0) * 1.0
-  power += (state.units.man_at_arms ?? 0) * 7.0
+  power += (state.units.soldier ?? 0) * UNITS_DATA.soldier.baseValue
+  power += (state.units.man_at_arms ?? 0) * UNITS_DATA.man_at_arms.baseValue
 
-  // Multipliers from Sergeants (+1.5%) and Captains (+7.0%), doubled by Officer Academies
-  const officerFactor = hasRule(state, 'law:officer_academies') ? 2 : 1
-  const sergeantBonus = (state.units.sergeant ?? 0) * 0.015 * officerFactor
-  const captainBonus = (state.units.captain ?? 0) * 0.07 * officerFactor
+  // Multipliers from Sergeants and Captains, scaled by Officer Academies
+  const officerFactor = hasRule(state, 'law:officer_academies')
+    ? config.balance.OFFICER_ACADEMIES_BONUS_FACTOR
+    : 1
+  const sergeantBonus = (state.units.sergeant ?? 0) * UNITS_DATA.sergeant.baseValue * officerFactor
+  const captainBonus = (state.units.captain ?? 0) * UNITS_DATA.captain.baseValue * officerFactor
   power *= 1.0 + sergeantBonus + captainBonus
 
   const rawState = extractRawEvaluationState(state)
@@ -59,19 +65,23 @@ export function calculateGrossApRate(
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): { total: number; pollTax: number } {
   const rawState = extractRawEvaluationState(state)
-  const crisisStage = getUnrestCrisisStage(state.unrest)
+  const crisisStage = getUnrestCrisisStage(state.unrest, config)
 
   let grossApRate = 0
 
   // Scribes & Clerks
   const output = (id: UnitId, base: number): number =>
     composeUnitStat('unit_output', base, UNITS_DATA[id], state.activeModifiers, rawState)
-  const supervisorBonus = (state.units.supervisor ?? 0) * output('supervisor', 0.02)
-  const stewardBonus = (state.units.provincial_steward ?? 0) * output('provincial_steward', 0.09)
+  const supervisorBonus =
+    (state.units.supervisor ?? 0) * output('supervisor', UNITS_DATA.supervisor.baseValue)
+  const stewardBonus =
+    (state.units.provincial_steward ?? 0) *
+    output('provincial_steward', UNITS_DATA.provincial_steward.baseValue)
   const adminMultiplier = 1.0 + supervisorBonus + stewardBonus
 
   // Urban rebellion halves administrative scribe/clerk production
-  const rebellionFriction = crisisStage === 'urban_rebellion' ? 0.5 : 1.0
+  const rebellionFriction =
+    crisisStage === 'urban_rebellion' ? config.balance.URBAN_REBELLION_PRODUCTION_FACTOR : 1.0
 
   grossApRate +=
     (state.units.scribe ?? 0) *
@@ -105,12 +115,15 @@ export function calculateGrossApRate(
 
   // Baseline poll tax from free serfs
   // Fiscal boycott applies whenever Unrest >= 50%
-  const fiscalBoycottPenalty = state.unrest >= 50 ? 0.8 : 1.0
+  const fiscalBoycottPenalty =
+    state.unrest >= config.balance.UNREST_FISCAL_BOYCOTT_THRESHOLD
+      ? config.balance.FISCAL_BOYCOTT_TAX_FACTOR
+      : 1.0
   const biomeMods = getBiomeModifiers(state)
   const baseArtisanTaxBonus =
     1.0 +
-    (state.units.artisan ?? 0) * 0.005 +
-    (state.units.guild ?? 0) * 0.035 +
+    (state.units.artisan ?? 0) * UNITS_DATA.artisan.baseValue +
+    (state.units.guild ?? 0) * UNITS_DATA.guild.baseValue +
     biomeMods.taxEfficiencyBonus
   const taxEfficiencyMultiplier = composeStat(
     'tax_efficiency',
@@ -121,7 +134,7 @@ export function calculateGrossApRate(
   const pollTax =
     state.freeSerfs *
     config.balance.TAX_POLL_RATE *
-    (state.taxRate / 25) *
+    (state.taxRate / config.balance.TAX_REFERENCE_RATE) *
     taxEfficiencyMultiplier *
     fiscalBoycottPenalty
   grossApRate += pollTax
@@ -140,12 +153,12 @@ export function calculateGrossApRate(
  * `flat_upkeep` stat (base 0) is added. The total is clamped at 0.
  *
  * @param state - Current GameState.
- * @param _config - Balance configuration (unused today, kept for the shared signature).
+ * @param config - Balance configuration.
  * @returns Total upkeep in AP per second, never below 0.
  */
 export function calculateUpkeep(
   state: GameState,
-  _config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const rawState = extractRawEvaluationState(state)
   let totalUpkeep = 0
@@ -155,9 +168,12 @@ export function calculateUpkeep(
     if (!def) continue
     let unitUpkeep = def.upkeepAp
     if (def.order === 'military' && unitUpkeep > 0) {
-      const qmDiscount = (state.units.quartermaster ?? 0) * 0.015
-      const gmDiscount = (state.units.grand_marshal ?? 0) * 0.07
-      unitUpkeep *= Math.max(0.2, 1.0 - qmDiscount - gmDiscount)
+      const qmDiscount = (state.units.quartermaster ?? 0) * UNITS_DATA.quartermaster.baseValue
+      const gmDiscount = (state.units.grand_marshal ?? 0) * UNITS_DATA.grand_marshal.baseValue
+      unitUpkeep *= Math.max(
+        config.balance.MILITARY_UPKEEP_MIN_FACTOR,
+        1.0 - qmDiscount - gmDiscount,
+      )
     }
     unitUpkeep = composeUnitStat('unit_upkeep', unitUpkeep, def, state.activeModifiers, rawState)
     if (unitUpkeep > 0) totalUpkeep += count * unitUpkeep
@@ -264,8 +280,8 @@ export function calculateNetPaperwork(
   const output = (id: UnitId, base: number): number =>
     composeUnitStat('unit_output', base, UNITS_DATA[id], state.activeModifiers, rawState)
   const archivistReduction =
-    (state.units.archivist ?? 0) * output('archivist', 0.015) +
-    (state.units.audit_chamber ?? 0) * output('audit_chamber', 0.065) +
+    (state.units.archivist ?? 0) * output('archivist', UNITS_DATA.archivist.baseValue) +
+    (state.units.audit_chamber ?? 0) * output('audit_chamber', UNITS_DATA.audit_chamber.baseValue) +
     biomeMods.paperworkReduction
 
   const basePaperwork = calculatePaperworkFriction(
@@ -276,7 +292,7 @@ export function calculateNetPaperwork(
   )
 
   return Math.min(
-    0.99,
+    config.balance.PAPERWORK_FRICTION_MAX,
     Math.max(0, composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState)),
   )
 }
@@ -329,12 +345,12 @@ export function evaluateDeadlineAudit(
   const { total: grossApRate } = calculateGrossApRate(state, config)
   const apMet = grossApRate >= required.apRate
   const popMet = state.totalPopulation >= required.pop
-  const militaryPower = calculateMilitaryPower(state)
+  const militaryPower = calculateMilitaryPower(state, config)
   const militaryMet = militaryPower >= required.military
   const pardonForfeited = hasRule(state, 'law_effect:pardon_forfeited')
 
   const passedCount = (apMet ? 1 : 0) + (popMet ? 1 : 0) + (militaryMet ? 1 : 0)
-  const passedAudit = passedCount >= 2
+  const passedAudit = passedCount >= config.balance.AUDIT_METRICS_REQUIRED
 
   let royalPardonIssued = false
   let isGameOver = false
@@ -352,9 +368,9 @@ export function evaluateDeadlineAudit(
     }
   } else {
     // Audit failed
-    if (state.strikes >= 1 || state.deadline >= 10 || pardonForfeited) {
+    if (state.strikes >= 1 || state.deadline >= config.balance.TOTAL_DEADLINES || pardonForfeited) {
       // Strike 2, Deadline 10 or forfeited pardon: Royal Execution / Quota Failure
-      state.strikes = Math.min(2, state.strikes + 1)
+      state.strikes = Math.min(config.balance.MAX_STRIKES, state.strikes + 1)
       triggerDefeat(state, 'quota_failure')
       isGameOver = true
     } else {
@@ -365,7 +381,7 @@ export function evaluateDeadlineAudit(
       }
       // Confiscate 50% of POSITIVE AP (never divide a debt by 2)
       if (state.ap > 0) {
-        state.ap -= state.ap * 0.5
+        state.ap -= state.ap * config.balance.ROYAL_CENSURE_AP_CONFISCATION
       }
       royalPardonIssued = true
     }
@@ -394,10 +410,10 @@ function applyAuditAftermath(state: GameState, config: EngineConfig): void {
   state.activeModifiers = state.activeModifiers.filter((mod) => mod.untilNextAudit !== true)
   state.ruleFlags = state.ruleFlags.filter((flag) => flag !== 'law_effect:pardon_forfeited')
   if (hasRule(state, 'law:auditors_inquisition')) {
-    addUnrest(state, 15, config)
+    addUnrest(state, config.balance.AUDITORS_INQUISITION_UNREST, config)
   }
   if (hasRule(state, 'law:exceptional_tithe')) {
-    addUnrest(state, 30, config)
+    addUnrest(state, config.balance.EXCEPTIONAL_TITHE_UNREST, config)
     state.activeLaws = state.activeLaws.filter((id) => id !== 'law:exceptional_tithe')
     state.ruleFlags = state.ruleFlags.filter((flag) => flag !== 'law:exceptional_tithe')
     state.activeModifiers = state.activeModifiers.filter(
@@ -408,13 +424,17 @@ function applyAuditAftermath(state: GameState, config: EngineConfig): void {
 
 /**
  * Reports whether the fast forward control is unlocked for the current deadline.
- * Fast forward unlocks from deadline 5 onward.
+ * Fast forward unlocks from `FAST_FORWARD_MIN_DEADLINE` onward.
  *
  * @param state - The active GameState.
- * @returns True when `state.deadline` is 5 or greater.
+ * @param config - Engine configuration (defaults to DEFAULT_ENGINE_CONFIG).
+ * @returns True when `state.deadline` reaches `FAST_FORWARD_MIN_DEADLINE`.
  */
-export function isFastForwardUnlocked(state: GameState): boolean {
-  return state.deadline >= 5
+export function isFastForwardUnlocked(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): boolean {
+  return state.deadline >= config.balance.FAST_FORWARD_MIN_DEADLINE
 }
 
 /** Tolerance used when counting whole fixed steps in an accumulated duration. */
@@ -453,7 +473,7 @@ export function tick(
     netApPerSecond: 0,
     popGrowth: 0,
     paperworkFriction: 0,
-    crisisStage: getUnrestCrisisStage(state.unrest),
+    crisisStage: getUnrestCrisisStage(state.unrest, config),
     interimWarningTriggered: false,
     deadlineCompleted: false,
     isGameOver: state.isGameOver,
@@ -536,7 +556,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
       netApPerSecond: 0,
       popGrowth: 0,
       paperworkFriction: 0,
-      crisisStage: getUnrestCrisisStage(state.unrest),
+      crisisStage: getUnrestCrisisStage(state.unrest, config),
       interimWarningTriggered: false,
       deadlineCompleted: false,
       isGameOver: state.isGameOver,
@@ -561,7 +581,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
       netApPerSecond: 0,
       popGrowth: 0,
       paperworkFriction: 0,
-      crisisStage: getUnrestCrisisStage(state.unrest),
+      crisisStage: getUnrestCrisisStage(state.unrest, config),
       interimWarningTriggered: false,
       deadlineCompleted: true,
       isGameOver: state.isGameOver,
@@ -585,7 +605,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
       netApPerSecond: 0,
       popGrowth: 0,
       paperworkFriction: 0,
-      crisisStage: getUnrestCrisisStage(state.unrest),
+      crisisStage: getUnrestCrisisStage(state.unrest, config),
       interimWarningTriggered: false,
       deadlineCompleted: true,
       isGameOver: state.isGameOver,
@@ -621,7 +641,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     }
   }
 
-  if (state.taxRate > 15) {
+  if (state.taxRate > config.balance.TAX_PLEDGE_RATE_LIMIT) {
     state.taxRateViolated15 = true
   }
 
@@ -637,8 +657,8 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   const maxPop = calculateMaxPopulation(state, config)
   const biomeMods = getBiomeModifiers(state)
 
-  const peasantRateBonus = (state.units.peasant ?? 0) * 0.0005
-  const farmerRateBonus = (state.units.farmer ?? 0) * 0.003
+  const peasantRateBonus = (state.units.peasant ?? 0) * UNITS_DATA.peasant.baseValue
+  const farmerRateBonus = (state.units.farmer ?? 0) * UNITS_DATA.farmer.baseValue
   const baseGrowthRateR =
     config.balance.BASE_POP_GROWTH_RATE_R + peasantRateBonus + farmerRateBonus + biomeMods.deltaR
   const effectiveGrowthRateR = composeStat(
@@ -649,7 +669,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   )
 
   let popGrowthThisTick = 0
-  const crisisStage = getUnrestCrisisStage(state.unrest)
+  const crisisStage = getUnrestCrisisStage(state.unrest, config)
 
   const isOvercrowded = state.totalPopulation >= maxPop
   const hasParishRelief = hasRule(state, 'law:parish_relief_registers')
@@ -702,14 +722,28 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   state.totalCumulativeAp += grossApThisTick
 
   // Public Discontent (Unrest) Dynamics & Dual-Stat Composition
-  let taxUnrestRate = state.taxRate > 25 ? ((state.taxRate - 25) / 10) * 0.05 : 0
+  const taxReference = config.balance.TAX_REFERENCE_RATE
+  let taxUnrestRate =
+    state.taxRate > taxReference
+      ? ((state.taxRate - taxReference) / config.balance.TAX_UNREST_STEP_PERCENT) *
+        config.balance.TAX_UNREST_PER_STEP
+      : 0
   const prelateCount = state.units.prelate ?? 0
   if (taxUnrestRate > 0 && prelateCount > 0) {
-    const prelateDiscount = Math.min(0.8, prelateCount * 0.2)
+    const prelateDiscount = Math.min(
+      config.balance.PRELATE_TAX_UNREST_DISCOUNT_MAX,
+      prelateCount * config.balance.PRELATE_TAX_UNREST_DISCOUNT,
+    )
     taxUnrestRate *= 1.0 - prelateDiscount
   }
   const overcrowdingUnrestRate =
-    initialExcessPop > 0 ? Math.min(1.0, 0.1 * (initialExcessPop / 50)) : 0
+    initialExcessPop > 0
+      ? Math.min(
+          config.balance.OVERCROWDING_UNREST_MAX,
+          config.balance.OVERCROWDING_UNREST_RATE *
+            (initialExcessPop / config.balance.OVERCROWDING_EXCESS_POP_SCALE),
+        )
+      : 0
   const baseUnrestGen = taxUnrestRate + overcrowdingUnrestRate
   const composedGen = Math.max(
     0,
@@ -717,9 +751,15 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   )
 
   const baseUnrestPac =
-    (state.units.clergy ?? 0) * 0.02 +
+    (state.units.clergy ?? 0) * UNITS_DATA.clergy.baseValue +
     (state.units.prelate ?? 0) *
-      composeUnitStat('unit_output', 0.15, UNITS_DATA.prelate, state.activeModifiers, rawState)
+      composeUnitStat(
+        'unit_output',
+        UNITS_DATA.prelate.baseValue,
+        UNITS_DATA.prelate,
+        state.activeModifiers,
+        rawState,
+      )
   const composedPac = Math.max(
     0,
     composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
@@ -729,13 +769,20 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
 
   // 6b. Military Desertion (§6.5, Arbitrage 1.0 §2)
   const hasSanctuaryRights = hasRule(state, 'law:sanctuary_rights')
-  const isDesertionActive = state.unrest >= 75 && !(hasSanctuaryRights && state.unrest < 90)
+  const isDesertionActive =
+    state.unrest >= config.balance.UNREST_STRIFE_DESERTION_THRESHOLD &&
+    !(hasSanctuaryRights && state.unrest < config.balance.UNREST_URBAN_REBELLION_THRESHOLD)
 
   const getEligibleDesertion = (
     s: GameState,
   ): { unitId: 'soldier' | 'man_at_arms'; threshold: number } | null => {
-    if ((s.units.soldier ?? 0) > 0) return { unitId: 'soldier', threshold: 15.0 }
-    if ((s.units.man_at_arms ?? 0) > 0) return { unitId: 'man_at_arms', threshold: 30.0 }
+    if ((s.units.soldier ?? 0) > 0)
+      return { unitId: 'soldier', threshold: config.balance.DESERTION_INTERVAL_SOLDIER_SECONDS }
+    if ((s.units.man_at_arms ?? 0) > 0)
+      return {
+        unitId: 'man_at_arms',
+        threshold: config.balance.DESERTION_INTERVAL_MAN_AT_ARMS_SECONDS,
+      }
     return null
   }
 
@@ -760,9 +807,9 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
       state.bankruptcyGraceTimer = snapToStepGrid(state.bankruptcyGraceTimer - stepDt, grid)
       // Lombard bailout offer only available if provinces >= 2 (§14.4, arbitrage 1.0 §11)
       if (
-        state.bankruptcyGraceTimer <= 20.0 &&
+        state.bankruptcyGraceTimer <= config.balance.LOMBARD_OFFER_REMAINING_SECONDS &&
         state.lombardBailoutAvailable &&
-        state.provinces >= 2
+        state.provinces >= config.balance.LOMBARD_MIN_PROVINCES
       ) {
         state.phase = 'LOMBARD_OFFER'
       }
@@ -774,7 +821,8 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     const auditChamberCount = state.units.audit_chamber ?? 0
     state.bankruptcyGraceTimer = composeStat(
       'bankruptcy_grace_seconds',
-      30.0 + auditChamberCount * 10.0,
+      config.balance.BANKRUPTCY_GRACE_BASE_SECONDS +
+        auditChamberCount * config.balance.BANKRUPTCY_GRACE_PER_AUDIT_CHAMBER_SECONDS,
       state.activeModifiers,
       rawState,
     )
@@ -784,17 +832,26 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   if (
     state.phase === 'ACTIVE_CYCLE' &&
     !state.isGameOver &&
-    state.deadline >= 3 &&
+    state.deadline >= config.balance.SURPRISE_RAID_MIN_DEADLINE &&
     !state.surpriseRaidTriggeredThisDeadline &&
-    state.totalElapsedSeconds - state.lastSurpriseRaidTime >= 60 &&
-    Math.floor(prevDeadlineTime / 10) < Math.floor(state.deadlineTimeSeconds / 10)
+    state.totalElapsedSeconds - state.lastSurpriseRaidTime >=
+      config.balance.SURPRISE_RAID_COOLDOWN_SECONDS &&
+    Math.floor(prevDeadlineTime / config.balance.SURPRISE_RAID_CHECK_INTERVAL_SECONDS) <
+      Math.floor(state.deadlineTimeSeconds / config.balance.SURPRISE_RAID_CHECK_INTERVAL_SECONDS)
   ) {
     const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
-    const milPower = calculateMilitaryPower(state)
+    const milPower = calculateMilitaryPower(state, config)
     const p =
-      0.02 * (state.ap > 2000 ? 2 : 1) +
-      (milPower < 0.5 * quota.military ? 0.02 : 0) +
-      (state.unrest > 60 ? 0.02 : 0)
+      config.balance.RAID_BASE_PROBABILITY *
+        (state.ap > config.balance.RAID_WEALTH_THRESHOLD_AP
+          ? config.balance.RAID_WEALTH_MULTIPLIER
+          : 1) +
+      (milPower < config.balance.RAID_WEAK_ARMY_RATIO * quota.military
+        ? config.balance.RAID_WEAK_ARMY_PROBABILITY
+        : 0) +
+      (state.unrest > config.balance.RAID_UNREST_THRESHOLD
+        ? config.balance.RAID_UNREST_PROBABILITY
+        : 0)
 
     const raidTriggered = withStatePrng(state, 'events', (prng) => prng.next() < p)
     if (raidTriggered) {
@@ -822,9 +879,9 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     )
     const apOnTrack = grossApRate >= quota.apRate
     const popOnTrack = state.totalPopulation >= quota.pop
-    const milOnTrack = calculateMilitaryPower(state) >= quota.military
+    const milOnTrack = calculateMilitaryPower(state, config) >= quota.military
     const onTrackCount = (apOnTrack ? 1 : 0) + (popOnTrack ? 1 : 0) + (milOnTrack ? 1 : 0)
-    state.interimWarningOnTrack = onTrackCount >= 2
+    state.interimWarningOnTrack = onTrackCount >= config.balance.AUDIT_METRICS_REQUIRED
   }
 
   if (

@@ -9,7 +9,6 @@ import { ARCHIVES_DATA, applyArchivePerks, isArchivePerkId } from '@/data/archiv
 import type { ArchivePerkId } from '@/data/archives'
 import { FEATS_DATA, evaluateFeats } from '@/data/feats'
 import type { FeatId } from '@/data/feats'
-import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { createInitialGameState } from './state'
 import type { DispatchResult, GameState } from './types'
 
@@ -85,15 +84,9 @@ export function resetPerks(archive: ArchiveData): void {
  *
  * @param archive - Archive whose invested perks apply.
  * @param seed - Run seed.
- * @param config - Engine configuration, reserved for perk tuning.
  * @returns The new run state, with `archivePoints` at 0.
  */
-export function startRun(
-  archive: ArchiveData,
-  seed: number,
-  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
-): GameState {
-  void config
+export function startRun(archive: ArchiveData, seed: number): GameState {
   const state = createInitialGameState({ seed })
   applyArchivePerks(state, archive.investedPerks)
   return state

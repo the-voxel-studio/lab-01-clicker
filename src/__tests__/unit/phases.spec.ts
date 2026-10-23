@@ -13,6 +13,7 @@ import {
   isCommandAllowedInPhase,
 } from '@/core/phases'
 import type { RunPhase, Command } from '@/data/balance'
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { dispatch } from '@/core/commands'
 import { isFastForwardUnlocked, tick } from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
@@ -80,20 +81,28 @@ describe('RunPhase State Machine & Permissions Matrix (Gate B)', () => {
 
   it('progresses through inter-deadline phases according to GAME_RULES §8', () => {
     // Deadline 1 (Threat herald inactive, announced at D+1 from D2)
-    expect(getNextInterDeadlinePhase('AUDIT_ASSESSMENT', 1)).toBe('COUNCIL_DILEMMA')
-    expect(getNextInterDeadlinePhase('COUNCIL_DILEMMA', 1)).toBe('COUNCIL_LAWS')
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1)).toBe('EXPEDITION')
-    expect(getNextInterDeadlinePhase('EXPEDITION', 1)).toBe('AWAIT_RESUME')
-    expect(getNextInterDeadlinePhase('AWAIT_RESUME', 1)).toBe('ACTIVE_CYCLE')
+    expect(getNextInterDeadlinePhase('AUDIT_ASSESSMENT', 1, DEFAULT_ENGINE_CONFIG)).toBe(
+      'COUNCIL_DILEMMA',
+    )
+    expect(getNextInterDeadlinePhase('COUNCIL_DILEMMA', 1, DEFAULT_ENGINE_CONFIG)).toBe(
+      'COUNCIL_LAWS',
+    )
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
+    expect(getNextInterDeadlinePhase('EXPEDITION', 1, DEFAULT_ENGINE_CONFIG)).toBe('AWAIT_RESUME')
+    expect(getNextInterDeadlinePhase('AWAIT_RESUME', 1, DEFAULT_ENGINE_CONFIG)).toBe('ACTIVE_CYCLE')
 
     // Deadlines 2 to 9 (Herald announces upcoming threat D+1 for D3..D10)
     for (let deadline = 2; deadline <= 9; deadline++) {
-      expect(getNextInterDeadlinePhase('COUNCIL_LAWS', deadline)).toBe('THREAT_HERALD')
-      expect(getNextInterDeadlinePhase('THREAT_HERALD', deadline)).toBe('EXPEDITION')
+      expect(getNextInterDeadlinePhase('COUNCIL_LAWS', deadline, DEFAULT_ENGINE_CONFIG)).toBe(
+        'THREAT_HERALD',
+      )
+      expect(getNextInterDeadlinePhase('THREAT_HERALD', deadline, DEFAULT_ENGINE_CONFIG)).toBe(
+        'EXPEDITION',
+      )
     }
 
     // Deadline 10 (No further threats beyond D10)
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10)).toBe('EXPEDITION')
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
   })
 
   it('permits patent unlocks in active governance and inter-deadline resume', () => {

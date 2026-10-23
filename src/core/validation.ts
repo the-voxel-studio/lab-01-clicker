@@ -287,8 +287,17 @@ export function validateGameState(
   }
 
   const threatId = value.currentThreatId
-  if (threatId !== null && !(isCount(threatId) && threatId >= 3 && threatId <= 10)) {
-    return fail('currentThreatId', 'expected null or an integer from 3 to 10')
+  // A threat attacks the deadline after the one that heralds it: first herald + 1 up to the last deadline.
+  const firstThreat = config.balance.THREAT_HERALD_FIRST_DEADLINE + 1
+  const lastThreat = config.balance.TOTAL_DEADLINES
+  if (
+    threatId !== null &&
+    !(isCount(threatId) && threatId >= firstThreat && threatId <= lastThreat)
+  ) {
+    return fail(
+      'currentThreatId',
+      `expected null or an integer from ${firstThreat} to ${lastThreat}`,
+    )
   }
 
   const draft = value.currentLawDraft

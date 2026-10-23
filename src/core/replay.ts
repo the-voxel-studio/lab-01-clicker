@@ -116,7 +116,7 @@ function canAdvanceTime(state: GameState): boolean {
  */
 export function executeReplay(
   journal: ReplayJournal,
-  dt: number = 0.05,
+  dt: number = DEFAULT_ENGINE_CONFIG.balance.FIXED_STEP_SECONDS,
   maxDurationSeconds: number = 1000,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): ReplayResult {

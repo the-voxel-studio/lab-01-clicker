@@ -7,6 +7,7 @@
  */
 
 import type { Command } from './types'
+import type { EngineConfig } from './config'
 
 /**
  * Engine Run Phase State Machine.
@@ -90,9 +91,14 @@ export function assertCommandAllowed(phase: RunPhase, command: Command): void {
  *
  * @param currentPhase - The current inter-deadline phase.
  * @param deadline - The deadline index just evaluated (1 to 10).
+ * @param config - Engine configuration that provides the herald window.
  * @returns The next RunPhase in the sequence.
  */
-export function getNextInterDeadlinePhase(currentPhase: RunPhase, deadline: number): RunPhase {
+export function getNextInterDeadlinePhase(
+  currentPhase: RunPhase,
+  deadline: number,
+  config: EngineConfig,
+): RunPhase {
   switch (currentPhase) {
     case 'AUDIT_ASSESSMENT':
       // At deadline 10, passing audit triggers victory; failure triggers defeat.
@@ -102,8 +108,11 @@ export function getNextInterDeadlinePhase(currentPhase: RunPhase, deadline: numb
       return 'COUNCIL_LAWS'
 
     case 'COUNCIL_LAWS':
-      // Upcoming threat announced at D+1 for deadlines 2 to 9 (covering threats D3 to D10)
-      return deadline >= 2 && deadline <= 9 ? 'THREAT_HERALD' : 'EXPEDITION'
+      // Upcoming threat announced at D+1 from THREAT_HERALD_FIRST_DEADLINE to the one before the last
+      return deadline >= config.balance.THREAT_HERALD_FIRST_DEADLINE &&
+        deadline < config.balance.TOTAL_DEADLINES
+        ? 'THREAT_HERALD'
+        : 'EXPEDITION'
 
     case 'THREAT_HERALD':
       return 'EXPEDITION'

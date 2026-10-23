@@ -17,6 +17,9 @@ import type {
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { composeStat, composeUnitStat, type RawEvaluationState } from './modifiers'
 
+/** Thousandths per unit, the integer scale used to keep housing shares exact. */
+const THOUSANDTHS = 1000
+
 /**
  * Refills the ergonomic click token bucket based on elapsed delta-time.
  * Strictly deterministic; relies exclusively on injected delta-time, never system clocks.
@@ -54,7 +57,7 @@ export function calculateClickValue(
   isCritical: boolean = false,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
-  const baseValue = 1.0 + Math.max(0, grossApRate * 0.035)
+  const baseValue = 1.0 + Math.max(0, grossApRate * config.balance.CLICK_GROSS_RATE_SHARE)
   const critMultiplier = isCritical ? config.balance.CLICK_CRITICAL_MULTIPLIER : 1.0
   return baseValue * sealMultiplier * critMultiplier
 }
@@ -111,22 +114,28 @@ export function calculateUnitCost(
  * @param deadline - Current deadline index (1 to 10).
  * @param totalPopulation - Total living population.
  * @param def - Target unit balance definition.
- * @param _config - Injected engine configuration.
+ * @param config - Injected engine configuration.
  * @returns Maximum allowable purchase count (1, 10, 50, or 100).
  */
 export function getMaxBulkSize(
   deadline: number,
   totalPopulation: number,
   def: UnitBalanceDef,
-  _config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): 1 | 10 | 50 | 100 {
-  if (deadline >= 8 && def.allowsBulk100) {
+  if (deadline >= config.balance.BULK_100_MIN_DEADLINE && def.allowsBulk100) {
     return 100
   }
-  if (deadline >= 6 || totalPopulation >= 1000) {
+  if (
+    deadline >= config.balance.BULK_50_MIN_DEADLINE ||
+    totalPopulation >= config.balance.BULK_50_MIN_POPULATION
+  ) {
     return 50
   }
-  if (deadline >= 3 || totalPopulation >= 250) {
+  if (
+    deadline >= config.balance.BULK_10_MIN_DEADLINE ||
+    totalPopulation >= config.balance.BULK_10_MIN_POPULATION
+  ) {
     return 10
   }
   return 1
@@ -204,11 +213,18 @@ export function calculateMaxAffordableUnits(
  * Formula: FiscalFactor = max(0.1, 1 - max(0, TaxRate - 25) / 50)
  *
  * @param taxRate - Active promulgated tax rate percentage [0, 60].
+ * @param config - Injected engine configuration.
  * @returns Scalar multiplier on demographic growth [0.1, 1.0].
  */
-export function calculateFiscalFactor(taxRate: number): number {
-  const excessTax = Math.max(0, taxRate - 25)
-  return Math.max(0.1, 1.0 - excessTax / 50)
+export function calculateFiscalFactor(
+  taxRate: number,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  const excessTax = Math.max(0, taxRate - config.balance.TAX_REFERENCE_RATE)
+  return Math.max(
+    config.balance.FISCAL_FACTOR_MIN,
+    1.0 - excessTax / config.balance.FISCAL_FACTOR_TAX_SPAN,
+  )
 }
 
 /**
@@ -236,7 +252,7 @@ export function calculateLogisticGrowth(
 
   const r = growthRateR ?? config.balance.BASE_POP_GROWTH_RATE_R
   const t = taxRate ?? config.balance.STARTING_TAX_RATE
-  const fiscalFactor = calculateFiscalFactor(t)
+  const fiscalFactor = calculateFiscalFactor(t, config)
   const saturationRatio = 1.0 - population / maxPopulation
   return r * population * saturationRatio * fiscalFactor
 }
@@ -257,7 +273,11 @@ export function calculateHousingCapacity(
   barons: number = 0,
 ): number {
   // Integer thousandths: floating point 1 + 0.015 x n is inexact and broke .5 rounding.
-  return Math.round((baseHousing * (1000 + notables * 15 + barons * 60)) / 1000)
+  const notableMille = Math.round(UNITS_DATA.notable.baseValue * THOUSANDTHS)
+  const baronMille = Math.round(UNITS_DATA.baron.baseValue * THOUSANDTHS)
+  return Math.round(
+    (baseHousing * (THOUSANDTHS + notables * notableMille + barons * baronMille)) / THOUSANDTHS,
+  )
 }
 
 /**
@@ -330,19 +350,25 @@ export function calculatePaperworkFriction(
     if (!def) continue
 
     if (id === 'soldier') {
-      size += count * 0.5
+      size += count * config.balance.PAPERWORK_SIZE_SOLDIER
     } else if (def.tier === 1) {
-      size += count * 1.0
+      size += count * config.balance.PAPERWORK_SIZE_TIER_I
     } else {
-      size += count * 2.0
+      size += count * config.balance.PAPERWORK_SIZE_TIER_II
     }
   }
 
-  size += provinces * 10
+  size += provinces * config.balance.PAPERWORK_SIZE_PER_PROVINCE
 
   const rawPaperwork = size / (size + config.balance.BUREAUCRACY_SCALE_S)
-  const clampedReduction = Math.min(0.95, Math.max(0, archivistReduction))
-  return Math.max(0, Math.min(0.99, rawPaperwork * (1 - clampedReduction)))
+  const clampedReduction = Math.min(
+    config.balance.PAPERWORK_REDUCTION_MAX,
+    Math.max(0, archivistReduction),
+  )
+  return Math.max(
+    0,
+    Math.min(config.balance.PAPERWORK_FRICTION_MAX, rawPaperwork * (1 - clampedReduction)),
+  )
 }
 
 /**
@@ -359,12 +385,14 @@ export function calculatePaperworkFriction(
  * @param maxPopulation - Total housing capacity.
  * @param modifiers - Active modifiers.
  * @param raw - Raw state for dynamic resolvers; without it, resolver modifiers are skipped.
+ * @param config - Injected engine configuration.
  * @returns Max allowable units per order category.
  */
 export function calculateOrderCaps(
   maxPopulation: number,
   modifiers: readonly Modifier[] = [],
   raw?: RawEvaluationState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): Record<UnitOrder, number> {
   const cap = (order: UnitOrder, share: number): number => {
     const matching = modifiers.filter(
@@ -378,9 +406,9 @@ export function calculateOrderCaps(
     return Math.floor(Math.max(0, composeStat('order_cap', base, matching, raw)) + 1e-9)
   }
   return {
-    admin: cap('admin', 0.15),
-    military: cap('military', 0.12),
-    people: cap('people', 0.25),
+    admin: cap('admin', config.balance.ORDER_CAP_SHARE_ADMIN),
+    military: cap('military', config.balance.ORDER_CAP_SHARE_MILITARY),
+    people: cap('people', config.balance.ORDER_CAP_SHARE_PEOPLE),
   }
 }
 
@@ -388,13 +416,17 @@ export function calculateOrderCaps(
  * Evaluates the active unrest crisis stage according to GAME_RULES §6.5.
  *
  * @param unrest - Current public discontent level [0, 100].
+ * @param config - Injected engine configuration.
  * @returns Active crisis classification.
  */
-export function getUnrestCrisisStage(unrest: number): UnrestCrisisStage {
+export function getUnrestCrisisStage(
+  unrest: number,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): UnrestCrisisStage {
   if (unrest >= 100) return 'total_revolution'
-  if (unrest >= 90) return 'urban_rebellion'
-  if (unrest >= 75) return 'strife_desertion'
-  if (unrest >= 50) return 'fiscal_boycott'
+  if (unrest >= config.balance.UNREST_URBAN_REBELLION_THRESHOLD) return 'urban_rebellion'
+  if (unrest >= config.balance.UNREST_STRIFE_DESERTION_THRESHOLD) return 'strife_desertion'
+  if (unrest >= config.balance.UNREST_FISCAL_BOYCOTT_THRESHOLD) return 'fiscal_boycott'
   return 'tranquility'
 }
 
@@ -405,14 +437,18 @@ export function getUnrestCrisisStage(unrest: number): UnrestCrisisStage {
  * Score = (TotalCumulativeAp * 0.01) + (PeakPopulation * 2) + (Provinces * 500) + (Victories * 200) - (Strikes * 1000)
  *
  * @param state - The active or terminal GameState.
+ * @param config - Injected engine configuration.
  * @returns Integer score representing sovereign dynasty prestige.
  */
-export function calculateRunScore(state: GameState): number {
-  const apScore = (state.totalCumulativeAp ?? 0) * 0.01
-  const popScore = (state.peakPopulation ?? 0) * 2
-  const provScore = (state.provinces ?? 0) * 500
-  const victoryScore = (state.victoriesCount ?? 0) * 200
-  const penalty = (state.strikes ?? 0) * 1000
+export function calculateRunScore(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  const apScore = (state.totalCumulativeAp ?? 0) * config.balance.SCORE_PER_CUMULATIVE_AP
+  const popScore = (state.peakPopulation ?? 0) * config.balance.SCORE_PER_PEAK_POPULATION
+  const provScore = (state.provinces ?? 0) * config.balance.SCORE_PER_PROVINCE
+  const victoryScore = (state.victoriesCount ?? 0) * config.balance.SCORE_PER_VICTORY
+  const penalty = (state.strikes ?? 0) * config.balance.SCORE_PENALTY_PER_STRIKE
   return Math.round(apScore + popScore + provScore + victoryScore - penalty)
 }
 
@@ -431,9 +467,14 @@ export function recordPeakPopulation(state: GameState): void {
  *
  * @param state - The active or terminal GameState.
  * @param score - Optional precomputed run score.
+ * @param config - Injected engine configuration.
  * @returns Dynastic nobility title string.
  */
-export function getDynasticTitle(state: GameState, score?: number): string {
+export function getDynasticTitle(
+  state: GameState,
+  score?: number,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): string {
   // Defeat outcomes
   if (!state.isVictory && state.isGameOver) {
     switch (state.defeatReason) {
@@ -451,15 +492,22 @@ export function getDynasticTitle(state: GameState, score?: number): string {
 
   // Victory outcomes
   if (state.isVictory) {
-    if (state.capturedProvincesCount >= 8) {
+    if (state.capturedProvincesCount >= config.balance.TITLE_CONQUEROR_CAPTURED_PROVINCES) {
       return 'The Bloodied Conqueror'
     }
-    if (state.totalPopulation >= 4000 && (state.starvationLosses ?? 0) === 0) {
+    if (
+      state.totalPopulation >= config.balance.TITLE_NATION_FATHER_POPULATION &&
+      (state.starvationLosses ?? 0) === 0
+    ) {
       return 'Father of the Nation'
     }
-    const finalScore = score ?? calculateRunScore(state)
-    const adminContribution = (state.totalCumulativeAp ?? 0) * 0.01
-    if (finalScore > 0 && adminContribution > 0.6 * finalScore) {
+    const finalScore = score ?? calculateRunScore(state, config)
+    const adminContribution =
+      (state.totalCumulativeAp ?? 0) * config.balance.SCORE_PER_CUMULATIVE_AP
+    if (
+      finalScore > 0 &&
+      adminContribution > config.balance.TITLE_TREASURER_ADMIN_SHARE * finalScore
+    ) {
       return 'Grand Treasurer of the Crown'
     }
     return 'Universal Sovereign'

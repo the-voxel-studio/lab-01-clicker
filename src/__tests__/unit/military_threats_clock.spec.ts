@@ -221,7 +221,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     const heraldedThreats: { heraldAtDeadline: number; targetDeadline: number }[] = []
 
     for (let d = 1; d <= 10; d++) {
-      const nextPhase = getNextInterDeadlinePhase('COUNCIL_LAWS', d)
+      const nextPhase = getNextInterDeadlinePhase('COUNCIL_LAWS', d, DEFAULT_ENGINE_CONFIG)
       if (nextPhase === 'THREAT_HERALD') {
         heraldedThreats.push({
           heraldAtDeadline: d,
@@ -236,10 +236,10 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(heraldedThreats[7]).toEqual({ heraldAtDeadline: 9, targetDeadline: 10 })
 
     // Verify D1 skips herald and goes straight to EXPEDITION
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1)).toBe('EXPEDITION')
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
 
     // Verify D10 skips herald
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10)).toBe('EXPEDITION')
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
   })
 
   it('automatically initializes currentThreatPower and currentThreatTributeAp when transitioning to THREAT_HERALD via ENACT_LAW / REJECT_LAWS', () => {

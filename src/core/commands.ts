@@ -82,7 +82,7 @@ function handleBuyUnit(
   if (def.tier === 2 && !state.unlockedPatents[def.order]) {
     return {
       success: false,
-      error: `Order '${def.order}' Tier II patent is locked. Reached Deadline 4, 12 Tier I units, and charter fee required.`,
+      error: `Order '${def.order}' Tier II patent is locked. Reached Deadline ${config.balance.PATENT_MIN_DEADLINE}, ${config.balance.PATENT_MIN_TIER_I_UNITS} Tier I units, and charter fee required.`,
     }
   }
 
@@ -100,6 +100,7 @@ function handleBuyUnit(
     maxPop,
     state.activeModifiers,
     extractRawEvaluationState(state),
+    config,
   )
   const currentOrderCount = Object.entries(state.units).reduce((sum, [id, qty]) => {
     return UNITS_DATA[id as UnitId]?.order === def.order ? sum + qty : sum
@@ -200,7 +201,7 @@ function handleSetTaxRate(
     return { success: false, error: 'Tax rate must be a finite number.' }
   }
 
-  const targetRate = Math.max(0, Math.min(60, Math.round(command.rate)))
+  const targetRate = Math.max(0, Math.min(config.balance.TAX_RATE_MAX, Math.round(command.rate)))
   const currentRate = state.taxRate
 
   const events: string[] = []
@@ -224,7 +225,9 @@ function handleSetTaxRate(
 
   state.pendingTaxRate = targetRate
   state.taxPromulgationTimer = config.balance.TAX_PROMULGATION_DELAY_SECONDS
-  events.push(`Tax rate adjustment to ${targetRate}% initiated (promulgation delay: 8s).`)
+  events.push(
+    `Tax rate adjustment to ${targetRate}% initiated (promulgation delay: ${config.balance.TAX_PROMULGATION_DELAY_SECONDS}s).`,
+  )
 
   return { success: true, events }
 }
@@ -263,7 +266,7 @@ function handleDisbandUnit(
   }, 0)
 
   // Severance pay per unit = 50% base AP cost
-  const severancePerUnit = 0.5 * def.baseCost
+  const severancePerUnit = config.balance.DISBAND_SEVERANCE_SHARE * def.baseCost
   const maxPaid = Math.floor(Math.max(0, state.ap) / severancePerUnit)
   const paidUnits = Math.min(count, maxPaid)
   const unpaidUnits = count - paidUnits
@@ -273,7 +276,7 @@ function handleDisbandUnit(
 
   // Unpaid veterans inflict +2 Unrest each
   if (unpaidUnits > 0) {
-    addUnrest(state, 2 * unpaidUnits, config)
+    addUnrest(state, config.balance.DISBAND_UNPAID_UNREST * unpaidUnits, config)
   }
 
   // Return disbanded units to free serf pool (total population remains invariant)
@@ -282,14 +285,17 @@ function handleDisbandUnit(
 
   const events: string[] = [
     `Disbanded ${count}x ${unitId} (${paidUnits} paid severance of ${paidUnits * severancePerUnit} AP${
-      unpaidUnits > 0 ? `, ${unpaidUnits} unpaid causing +${2 * unpaidUnits} Unrest` : ''
+      unpaidUnits > 0
+        ? `, ${unpaidUnits} unpaid causing +${config.balance.DISBAND_UNPAID_UNREST * unpaidUnits} Unrest`
+        : ''
     }).`,
   ]
 
   // Mutiny detection for military orders: > 10% within 10s rolling window
   if (def.order === 'military') {
     state.disbandedMilitaryHistory = state.disbandedMilitaryHistory.filter(
-      (entry) => state.totalElapsedSeconds - entry.timeSeconds <= 10,
+      (entry) =>
+        state.totalElapsedSeconds - entry.timeSeconds <= config.balance.MUTINY_WINDOW_SECONDS,
     )
     state.disbandedMilitaryHistory.push({
       timeSeconds: state.totalElapsedSeconds,
@@ -301,11 +307,11 @@ function handleDisbandUnit(
       0,
     )
 
-    if (totalDisbandedIn10s > 0.1 * totalActiveMilitaryBefore) {
-      addUnrest(state, 15, config)
+    if (totalDisbandedIn10s > config.balance.MUTINY_THRESHOLD_SHARE * totalActiveMilitaryBefore) {
+      addUnrest(state, config.balance.MUTINY_UNREST, config)
       state.disbandedMilitaryHistory = []
       events.push(
-        'Mutiny! Rapid demobilization exceeding 10% of military forces stirred +15 Unrest.',
+        `Mutiny! Rapid demobilization exceeding ${Math.round(config.balance.MUTINY_THRESHOLD_SHARE * 100)}% of military forces stirred +${config.balance.MUTINY_UNREST} Unrest.`,
       )
     }
   }
@@ -324,7 +330,7 @@ function handleStampDocument(
   if (state.clickTokens < 1) {
     return {
       success: false,
-      error: 'The ink on your previous decree has not yet dried... (click ceiling: 12/s).',
+      error: `The ink on your previous decree has not yet dried... (click ceiling: ${config.balance.CLICK_MAX_TOKENS_PER_SECOND}/s).`,
     }
   }
 
@@ -385,7 +391,7 @@ function handleColoniseProvince(
   return {
     success: true,
     events: [
-      `Colonised province #${state.provinces} for ${cost} AP. Housing capacity expanded by +250.`,
+      `Colonised province #${state.provinces} for ${cost} AP. Housing capacity expanded by +${config.balance.BASE_HOUSING_PER_PROVINCE}.`,
     ],
   }
 }
@@ -507,22 +513,27 @@ function handleAcceptLombardLoan(
   }
 
   removeLastProvince(state)
-  state.ap += 2000
+  state.ap += config.balance.LOMBARD_BAILOUT_AP
   state.lombardBailoutAvailable = false
   state.lombardBailoutAccepted = true
-  state.bankruptcyGraceTimer = 30.0
+  state.bankruptcyGraceTimer = config.balance.BANKRUPTCY_GRACE_BASE_SECONDS
   state.phase = 'ACTIVE_CYCLE'
 
   return {
     success: true,
-    events: ['Lombard Bailout accepted: Ceded 1 Province for +2,000 AP. Bankruptcy averted.'],
+    events: [
+      `Lombard Bailout accepted: Ceded 1 Province for +${config.balance.LOMBARD_BAILOUT_AP.toLocaleString('en-US')} AP. Bankruptcy averted.`,
+    ],
   }
 }
 
 /**
  * Handles the Lombard Bailout refusal (REFUSE_LOMBARD_LOAN).
  */
-function handleRefuseLombardLoan(state: GameState): DispatchResult {
+function handleRefuseLombardLoan(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): DispatchResult {
   if (state.phase !== 'LOMBARD_OFFER') {
     return { success: false, error: "Lombard offer is only valid during 'LOMBARD_OFFER' phase." }
   }
@@ -532,7 +543,9 @@ function handleRefuseLombardLoan(state: GameState): DispatchResult {
 
   return {
     success: true,
-    events: ['Lombard Bailout refused. Bankruptcy countdown resumes from 20 seconds.'],
+    events: [
+      `Lombard Bailout refused. Bankruptcy countdown resumes from ${config.balance.LOMBARD_OFFER_REMAINING_SECONDS} seconds.`,
+    ],
   }
 }
 
@@ -614,12 +627,12 @@ function forecastThreatTrait(
 ): FactionTraitResult {
   const quota =
     config.quotas.find((q) => q.deadline === deadline) ?? config.quotas[config.quotas.length - 1]!
-  const basePower = getThreatPower(quota.military)
-  const baseTribute = getThreatTributeAp(quota.apRate)
+  const basePower = getThreatPower(quota.military, config.balance.THREAT_POWER_QUOTA_SHARE)
+  const baseTribute = getThreatTributeAp(quota.apRate, config.balance.THREAT_TRIBUTE_QUOTA_SECONDS)
   const def = SCHEDULED_THREATS_DATA.find((t) => t.deadline === deadline)
   return def
     ? FACTIONS_DATA[def.factionId].applyReactiveTrait(state, basePower, baseTribute, {
-        militaryPower: calculateMilitaryPower(state),
+        militaryPower: calculateMilitaryPower(state, config),
         militaryQuota: effectiveQuota(state, quota).military,
       })
     : neutralTrait(basePower, baseTribute)
@@ -636,7 +649,7 @@ function transitionToNextInterDeadlinePhase(
   if (state.isGameOver) return
   if (state.phase === 'COUNCIL_DILEMMA') state.currentDilemmaId = null
   if (state.phase === 'COUNCIL_LAWS') state.currentLawDraft = []
-  const nextPhase = getNextInterDeadlinePhase(state.phase, state.deadline)
+  const nextPhase = getNextInterDeadlinePhase(state.phase, state.deadline, config)
   state.phase = nextPhase
 
   if (nextPhase === 'COUNCIL_DILEMMA') {
@@ -686,12 +699,18 @@ function transitionToNextInterDeadlinePhase(
 /**
  * Handles moving to the next inter-deadline phase or advancing governance (RESUME_GOVERNANCE).
  */
-function handleResumeGovernance(state: GameState): DispatchResult {
+function handleResumeGovernance(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): DispatchResult {
   if (state.phase !== 'AWAIT_RESUME') {
     return { success: false, error: "Cannot resume governance outside of 'AWAIT_RESUME' phase." }
   }
-  if (state.deadline >= 10) {
-    return { success: false, error: 'Cannot resume governance beyond Deadline 10.' }
+  if (state.deadline >= config.balance.TOTAL_DEADLINES) {
+    return {
+      success: false,
+      error: `Cannot resume governance beyond Deadline ${config.balance.TOTAL_DEADLINES}.`,
+    }
   }
 
   state.deadline += 1
@@ -785,10 +804,10 @@ export function dispatch(
       return handleAcceptLombardLoan(state, config)
 
     case 'REFUSE_LOMBARD_LOAN':
-      return handleRefuseLombardLoan(state)
+      return handleRefuseLombardLoan(state, config)
 
     case 'RESUME_GOVERNANCE':
-      return handleResumeGovernance(state)
+      return handleResumeGovernance(state, config)
 
     case 'SUBMIT_AUDIT': {
       transitionToNextInterDeadlinePhase(state, config)
@@ -836,9 +855,9 @@ export function dispatch(
       if (state.activeLaws.includes(command.lawId)) {
         return { success: false, error: `Law ${command.lawId} is already active.` }
       }
-      let maxLawSlots = 5
+      let maxLawSlots = config.balance.LAW_SLOTS_BASE
       if (state.activeModifiers.some((m) => m.source === 'archive:sixth_law_slot')) {
-        maxLawSlots = 6
+        maxLawSlots = config.balance.LAW_SLOTS_EXTENDED
       }
       if (hasRule(state, 'law:papal_concordat') && command.lawId !== 'law:papal_concordat') {
         maxLawSlots -= 1
@@ -909,16 +928,22 @@ export function dispatch(
     }
 
     case 'LAUNCH_ATTACK': {
-      const playerPower = calculateMilitaryPower(state)
+      const playerPower = calculateMilitaryPower(state, config)
       if (playerPower <= 0) {
         return { success: false, error: 'Cannot launch an attack without an army.' }
       }
       const target = state.currentTarget ?? generateCampaignTarget(state, config)
-      const enemyPower = calculateEnemyPower(target)
+      const enemyPower = calculateEnemyPower(target, config)
       let baseLootAp = calculateBaseCampaignLoot(state, config)
       if (target.isFalseLedger) {
         baseLootAp = Math.round(
-          baseLootAp * withStatePrng(state, 'combat', (p) => p.nextBetween(0.2, 0.4)),
+          baseLootAp *
+            withStatePrng(state, 'combat', (p) =>
+              p.nextBetween(
+                config.balance.FALSE_LEDGER_LOOT_MIN,
+                config.balance.FALSE_LEDGER_LOOT_MAX,
+              ),
+            ),
         )
       }
 
@@ -934,11 +959,11 @@ export function dispatch(
       )
 
       state.campaignsLaunchedThisDeadline += 1
-      if (state.campaignsLaunchedThisDeadline < 2) {
+      if (state.campaignsLaunchedThisDeadline < config.balance.CAMPAIGNS_PER_DEADLINE) {
         generateCampaignTarget(state, config)
       } else {
         if (!state.isGameOver) {
-          state.phase = getNextInterDeadlinePhase(state.phase, state.deadline)
+          state.phase = getNextInterDeadlinePhase(state.phase, state.deadline, config)
         }
       }
 
@@ -958,17 +983,23 @@ export function dispatch(
 
     case 'SKIP_EXPEDITION': {
       if (!state.isGameOver) {
-        state.phase = getNextInterDeadlinePhase(state.phase, state.deadline)
+        state.phase = getNextInterDeadlinePhase(state.phase, state.deadline, config)
       }
       return { success: true }
     }
 
     case 'RESOLVE_RAID_DEFENSE': {
-      const playerPower = calculateMilitaryPower(state)
+      const playerPower = calculateMilitaryPower(state, config)
       const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
-      const raidPower = composeThreatPower(state, Math.round(0.5 * quota.military))
+      const raidPower = composeThreatPower(
+        state,
+        Math.round(config.balance.RAID_POWER_QUOTA_SHARE * quota.military),
+      )
       const strongholdCount = state.provinceBiomes.filter((b) => b === 'stronghold').length
-      const tributeCost = getThreatTributeAp(quota.apRate)
+      const tributeCost = getThreatTributeAp(
+        quota.apRate,
+        config.balance.THREAT_TRIBUTE_QUOTA_SECONDS,
+      )
       const res = resolveDefensiveClash(
         state,
         playerPower,

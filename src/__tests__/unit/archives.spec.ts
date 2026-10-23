@@ -34,7 +34,7 @@ describe('National Archives meta progression', () => {
     expect(investPerk(archive, 'starting_treasury').success).toBe(true)
 
     const bare = createInitialGameState({ seed: 7 })
-    const perked = startRun(archive, 7, DEFAULT_ENGINE_CONFIG)
+    const perked = startRun(archive, 7)
     expect(perked.ap).toBe(bare.ap + 150)
     expect(perked.seed).toBe(7)
     expect(perked.archivePoints).toBe(0)
@@ -56,7 +56,7 @@ describe('National Archives meta progression', () => {
     resetPerks(archive)
     expect(archive.points).toBe(4)
     expect(archive.investedPerks).toEqual([])
-    expect(startRun(archive, 1, DEFAULT_ENGINE_CONFIG).units.soldier).toBe(0)
+    expect(startRun(archive, 1).units.soldier).toBe(0)
   })
 
   it('concluding a pacifist victory unlocks Royal Pacifist once and adds 0.5 point', () => {
@@ -92,7 +92,7 @@ describe('National Archives meta progression', () => {
   it('burning a record at run start costs 1 archive point at conclusion', () => {
     const archive = createArchiveData()
     archive.points = 3
-    const state = startRun(archive, 4, DEFAULT_ENGINE_CONFIG)
+    const state = startRun(archive, 4)
     const burn = DILEMMAS_DATA['dilemma:cabinet_scarcity']!.choices[1]!
     for (const effect of burn.effects) applyEffect(effect, state)
     expect(state.archivePoints).toBe(-1)
@@ -106,7 +106,7 @@ describe('National Archives meta progression', () => {
 
   it('clamps the archive total at 0 when a run ends with negative points', () => {
     const archive = createArchiveData()
-    const state = startRun(archive, 4, DEFAULT_ENGINE_CONFIG)
+    const state = startRun(archive, 4)
     state.archivePoints = -2
     expect(concludeRun(archive, state).pointsEarned).toBe(-2)
     expect(archive.points).toBe(0)
@@ -117,7 +117,7 @@ describe('National Archives meta progression', () => {
     archive.points = 12.5
     investPerk(archive, 'sixth_law_slot')
     archive.unlockedFeats.push('scout_butcher')
-    const state = startRun(archive, 11, DEFAULT_ENGINE_CONFIG)
+    const state = startRun(archive, 11)
     state.archivePoints = 2
 
     const imported = importSaveFromBase64(exportSaveToBase64(state, archive))
@@ -182,7 +182,7 @@ describe('Feats tracked over the whole run', () => {
     const archive = createArchiveData()
     archive.points = 10
     investPerk(archive, 'sixth_law_slot')
-    const state = startRun(archive, 1, DEFAULT_ENGINE_CONFIG)
+    const state = startRun(archive, 1)
     state.phase = 'COUNCIL_LAWS'
     state.activeLaws = [
       'law:royal_scriptorium',

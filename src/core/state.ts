@@ -94,7 +94,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     forcedTitheFreezeTimer: 0,
 
     // Failsafes & Crises
-    bankruptcyGraceTimer: 30.0,
+    bankruptcyGraceTimer: BALANCE.BANKRUPTCY_GRACE_BASE_SECONDS,
     lombardBailoutAvailable: true,
     strikes: 0,
     lastAuditOutcome: null,
@@ -104,7 +104,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     currentThreatTributeAp: 0,
     currentTarget: null,
     campaignsLaunchedThisDeadline: 0,
-    lastSurpriseRaidTime: -60,
+    lastSurpriseRaidTime: -BALANCE.SURPRISE_RAID_COOLDOWN_SECONDS,
     surpriseRaidTriggeredThisDeadline: false,
     disbandedMilitaryHistory: [],
     victoriesCount: 0,
