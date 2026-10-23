@@ -308,11 +308,25 @@ describe('Task 4: rolled casualties and campaign details', () => {
     expect(calculateEnemyPower({ ...target, isAmbush: false })).toBe(100)
   })
 
-  it('stores the perceived band on a generated target', () => {
-    const state = createInitialGameState()
-    const target = generateCampaignTarget(state, config, new PRNG(3))
-    expect(target.perceivedMin).toBe(Math.round(target.power * (1 - target.uncertaintyMargin)))
-    expect(target.perceivedMax).toBe(Math.round(target.power * (1 + target.uncertaintyMargin)))
+  it('stores a perceived band of width 2M that contains the real power', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const target = generateCampaignTarget(createInitialGameState(), config, new PRNG(seed))
+      const width = target.perceivedMax - target.perceivedMin
+      expect(Math.abs(width - 2 * target.uncertaintyMargin * target.power)).toBeLessThanOrEqual(1)
+      expect(target.perceivedMin).toBeLessThanOrEqual(target.power)
+      expect(target.perceivedMax).toBeGreaterThanOrEqual(target.power)
+    }
+  })
+
+  it('places the real power at a random position inside the perceived band', () => {
+    const positions: number[] = []
+    for (let seed = 1; seed <= 200; seed++) {
+      const target = generateCampaignTarget(createInitialGameState(), config, new PRNG(seed))
+      const width = target.perceivedMax - target.perceivedMin
+      positions.push((target.power - target.perceivedMin) / width)
+    }
+    expect(Math.min(...positions)).toBeLessThan(0.2)
+    expect(Math.max(...positions)).toBeGreaterThan(0.8)
   })
 
   it('vanguard drills raise the player attack roll to [1.05, 1.20]', () => {

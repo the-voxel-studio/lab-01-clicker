@@ -268,9 +268,9 @@ Captured and starting provinces permanently bestow unique systemic modifiers to 
 - **Biome Distribution & Lifecycle:** The 3 starting provinces are `heartland` (preserving the 750 starting capacity). Civil colonisation always yields a `heartland` province. Conquered provinces inherit the specific biome of `currentTarget`. When a province is lost (Royal Censure, Lombard Loan, Defensive Collapse), the **last acquired province is removed** (LIFO stack order).
 
 ### 7.3 Fog of War & Treachery
-- **Uncertainty Margin:** Enemy power sits within $P_{\text{real}} \times [1 - M, 1 + M]$ (Base $M = \pm 45\%$). Each Scout narrows $M$ by 12 percentage points and each Spymaster by 30 percentage points, down to a minimum floor of $\pm 5\%$.
+- **Uncertainty Margin:** Scouts report a band of width $2M \times P_{\text{real}}$ that always contains the real power at a random position: $[P_{\text{real}} (1 - 2Mt), P_{\text{real}} (1 + 2M(1 - t))]$ with $t$ drawn uniformly in $[0, 1)$ on the `combat` stream, so the band midpoint does not reveal the real power (Base $M = \pm 45\%$). Each Scout narrows $M$ by 12 percentage points and each Spymaster by 30 percentage points, down to a minimum floor of $\pm 5\%$.
 - **False Ledger (15% base chance):** Actual loot is **60% to 80% lower** than promised (enemy burned stores).
-- **Ambush (10% base chance):** Enemy force is **25% stronger** than the highest scout estimate (`perceivedMax`, the upper edge of the perceived band $P_{\text{real}} \times (1 + M)$).
+- **Ambush (10% base chance):** Enemy force is **25% stronger** than the highest scout estimate (`perceivedMax`, the upper edge of the perceived band).
 - **Spymasters (Tier II):** Having $\ge 1$ active Spymaster detects and flags False Ledgers and Ambushes beforehand on `currentTarget`.
 
 ### 7.4 Generalized Asymmetric Combat Model (Attacker vs Defender)

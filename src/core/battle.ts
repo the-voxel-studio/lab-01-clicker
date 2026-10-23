@@ -711,6 +711,27 @@ export function resolveDefensiveClash(
 }
 
 /**
+ * Places a perceived power band of width `2 x margin x power` with the real power at a drawn
+ * position inside it, so the band midpoint no longer reveals the real power.
+ *
+ * @param power - Real enemy power.
+ * @param margin - Uncertainty margin M (ratio).
+ * @param position - Uniform draw in [0, 1): 0 puts the real power on the lower edge.
+ * @returns Rounded lower and upper estimates; the real power is always inside.
+ */
+function perceivedBand(
+  power: number,
+  margin: number,
+  position: number,
+): { perceivedMin: number; perceivedMax: number } {
+  const width = 2 * margin
+  return {
+    perceivedMin: Math.round(power * (1 - width * position)),
+    perceivedMax: Math.round(power * (1 + width * (1 - position))),
+  }
+}
+
+/**
  * Generates a deterministic prospective campaign target for the Expedition phase.
  *
  * @param state - The active GameState.
@@ -786,12 +807,13 @@ export function generateCampaignTarget(
   )
   const isFalseLedger = prng.next() < config.balance.FALSE_LEDGER_CHANCE
   const isAmbush = prng.next() < ambushChance
+  // Drawn last so the earlier draws of a target keep their sequence.
+  const bandPosition = prng.next()
 
   const target: CampaignTarget = {
     power: basePower,
     uncertaintyMargin,
-    perceivedMin: Math.round(basePower * (1 - uncertaintyMargin)),
-    perceivedMax: Math.round(basePower * (1 + uncertaintyMargin)),
+    ...perceivedBand(basePower, uncertaintyMargin, bandPosition),
     biome,
     lootType,
     factionId,
