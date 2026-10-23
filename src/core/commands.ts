@@ -14,7 +14,7 @@ import {
   calculateOrderCaps,
   getMaxBulkSize,
 } from './formulas'
-import { withStatePrng } from './prng'
+import { deriveSeed, withStatePrng } from './prng'
 import { composeStat, extractRawEvaluationState, canAffordEffects, applyEffect } from './modifiers'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
@@ -594,6 +594,7 @@ function handleResumeGovernance(state: GameState): DispatchResult {
   state.interimWarningShown = false
   state.campaignsLaunchedThisDeadline = 0
   state.surpriseRaidTriggeredThisDeadline = false
+  state.interimWarningOnTrack = null
   state.phase = 'ACTIVE_CYCLE'
 
   return {
@@ -609,7 +610,7 @@ function handleRestartRun(
   state: GameState,
   command: Extract<Command, { type: 'RESTART_RUN' }>,
 ): DispatchResult {
-  const seed = command.seed ?? 1337
+  const seed = command.seed ?? deriveSeed(state.seed, 'restart')
   const initial = createInitialGameState({ seed, archivePoints: state.archivePoints })
   Object.assign(state, initial)
   return { success: true, events: [`Run restarted with seed ${seed}.`] }
@@ -652,6 +653,10 @@ export function dispatch(
         return { success: false, error: 'Tick delta time dt must be a positive finite number.' }
       }
       tick(state, command.dt, config)
+      return { success: true }
+
+    case 'SET_PAUSED':
+      state.isPaused = command.paused
       return { success: true }
 
     case 'UNLOCK_PATENT':

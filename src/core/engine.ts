@@ -285,6 +285,17 @@ export function evaluateDeadlineAudit(
 }
 
 /**
+ * Reports whether the fast forward control is unlocked for the current deadline.
+ * Fast forward unlocks from deadline 5 onward.
+ *
+ * @param state - The active GameState.
+ * @returns True when `state.deadline` is 5 or greater.
+ */
+export function isFastForwardUnlocked(state: GameState): boolean {
+  return state.deadline >= 5
+}
+
+/**
  * Advances the simulation by delta-time dt seconds.
  * Pure state mutation, thread-safe, step-size invariant.
  *

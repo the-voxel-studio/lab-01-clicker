@@ -9,21 +9,33 @@
 export type RngStream = 'click' | 'combat' | 'events' | 'council'
 
 /**
- * Derives a deterministic 32-bit unsigned seed for an independent stream from a master seed.
- * Uses 32-bit FNV-1a hashing over `${seed}:${stream}`.
+ * Derives a deterministic 32-bit unsigned seed from a master seed and a label.
+ * Uses 32-bit FNV-1a hashing over `${seed}:${label}`.
  *
  * @param seed - Master run seed.
- * @param stream - Target stream identifier.
+ * @param label - Label naming the derived seed.
  * @returns Deterministic 32-bit unsigned integer seed.
  */
-export function deriveStreamSeed(seed: number, stream: RngStream): number {
-  const payload = `${seed}:${stream}`
+export function deriveSeed(seed: number, label: string): number {
+  const payload = `${seed}:${label}`
   let hash = 0x811c9dc5
   for (let i = 0; i < payload.length; i++) {
     hash ^= payload.charCodeAt(i)
     hash = Math.imul(hash, 0x01000193)
   }
   return hash >>> 0
+}
+
+/**
+ * Derives a deterministic 32-bit unsigned seed for an independent stream from a master seed.
+ * Delegates to {@link deriveSeed} with the stream identifier as the label.
+ *
+ * @param seed - Master run seed.
+ * @param stream - Target stream identifier.
+ * @returns Deterministic 32-bit unsigned integer seed.
+ */
+export function deriveStreamSeed(seed: number, stream: RngStream): number {
+  return deriveSeed(seed, stream)
 }
 
 /**

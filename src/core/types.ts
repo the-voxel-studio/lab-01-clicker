@@ -166,6 +166,7 @@ export type Command =
   | { type: 'ENACT_EDICT'; edictId: 'forced_tithe' | 'church_seizure' | 'grand_festival' }
   | { type: 'UNLOCK_PATENT'; order: UnitOrder }
   | { type: 'TICK'; dt: number }
+  | { type: 'SET_PAUSED'; paused: boolean }
 
   // Inter-deadline sequence commands
   | { type: 'SUBMIT_AUDIT' }
