@@ -172,7 +172,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     id: 'dilemma:great_archive_fire',
     name: 'The Great Archive Fire',
     description: 'A candle has fallen in the registry tower. Thousands of tax rolls are burning.',
-    trigger: (state, config) => calculateNetPaperwork(state, config) > 0.4,
+    trigger: (state, config) => calculateNetPaperwork(state, config) > 0.45,
     choices: [
       {
         text: 'Let them burn! (-20% paperwork, +20 Unrest)',
@@ -333,7 +333,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
         ],
       },
       {
-        text: 'Grant them free tenures (-10% tax efficiency, +0.001 pop growth rate)',
+        text: 'Grant them free tenures (-10% tax efficiency, +0.10 pop growth/s)',
         effects: [
           {
             type: 'stat_modifier',
@@ -348,9 +348,9 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
             type: 'stat_modifier',
             modifier: {
               source: 'dilemma:runaway_serfs',
-              stat: 'pop_growth_rate',
+              stat: 'pop_growth_flat',
               op: 'add',
-              value: 0.001,
+              value: 0.1,
             },
           },
         ],
@@ -659,8 +659,12 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
         ],
       },
       {
-        text: 'Politely refuse the nepotism (+1 Archive Point)',
+        text: 'Politely refuse the nepotism (no Royal Pardon at the next audit, +1 Archive Point)',
         effects: [
+          {
+            type: 'rule_flag',
+            flag: 'law_effect:pardon_forfeited',
+          },
           {
             type: 'instant_resource',
             resource: 'archive_points',
@@ -768,12 +772,22 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     trigger: (state) => state.ap > 5000,
     choices: [
       {
-        text: 'Pay the Imperial war subsidy (-2,000 AP)',
+        text: 'Pay the Imperial war subsidy (-2,000 AP, next quota -15%)',
         effects: [
           {
             type: 'instant_resource',
             resource: 'ap',
             amount: -2000,
+          },
+          {
+            type: 'stat_modifier',
+            modifier: {
+              source: 'dilemma:crowns_forced_loan',
+              stat: 'quota_requirement',
+              op: 'mul',
+              value: 0.85,
+              untilNextAudit: true,
+            },
           },
         ],
       },

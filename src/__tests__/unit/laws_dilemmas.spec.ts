@@ -207,7 +207,7 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
         'law:standing_garrisons',
       ]
 
-      // Grand Kermesse costs 400 AP
+      // Grand Kermesse costs 40 s of net income, more than 50 AP here
       const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:grand_kermesse' })
       expect(res.success).toBe(false)
       expect(res.error).toContain('Cannot afford')

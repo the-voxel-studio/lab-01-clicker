@@ -25,6 +25,7 @@ import {
   calculateMaxPopulation,
   calculateNetPaperwork,
   calculateMilitaryPower,
+  calculateNetApRate,
 } from './engine'
 import { createInitialGameState } from './state'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
@@ -85,7 +86,11 @@ function handleBuyUnit(
 
   // Check Order Headroom
   const maxPop = calculateMaxPopulation(state, config)
-  const orderCaps = calculateOrderCaps(maxPop)
+  const orderCaps = calculateOrderCaps(
+    maxPop,
+    state.activeModifiers,
+    extractRawEvaluationState(state),
+  )
   const currentOrderCount = Object.entries(state.units).reduce((sum, [id, qty]) => {
     return UNITS_DATA[id as UnitId]?.order === def.order ? sum + qty : sum
   }, 0)
@@ -515,10 +520,16 @@ function handleRefuseLombardLoan(state: GameState): DispatchResult {
  *
  * @param state - The current game state.
  * @param dilemma - The dilemma definition to evaluate.
+ * @param config - Balance configuration (net AP rate of income priced costs).
  * @returns True when a choice has all its costs payable.
  */
-export function hasAffordableChoice(state: GameState, dilemma: DilemmaDef): boolean {
-  return dilemma.choices.some((choice) => canAffordEffects(state, choice.effects))
+export function hasAffordableChoice(
+  state: GameState,
+  dilemma: DilemmaDef,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): boolean {
+  const netApRate = calculateNetApRate(state, config)
+  return dilemma.choices.some((choice) => canAffordEffects(state, choice.effects, netApRate))
 }
 
 /**
@@ -536,7 +547,7 @@ function transitionToNextInterDeadlinePhase(
 
   if (nextPhase === 'COUNCIL_DILEMMA') {
     const pool = Object.values(DILEMMAS_DATA).filter(
-      (d) => d.trigger(state, config) && hasAffordableChoice(state, d),
+      (d) => d.trigger(state, config) && hasAffordableChoice(state, d, config),
     )
     if (pool.length === 0) {
       // Nothing qualifies: skip the dilemma step so the run cannot deadlock.
@@ -707,14 +718,15 @@ export function dispatch(
           error: `Invalid choice index ${command.choiceIndex} for dilemma ${dilemmaId}.`,
         }
       }
-      if (!canAffordEffects(state, choice.effects)) {
+      const dilemmaNetApRate = calculateNetApRate(state, config)
+      if (!canAffordEffects(state, choice.effects, dilemmaNetApRate)) {
         return {
           success: false,
           error: `Cannot afford choice: ${choice.text}.`,
         }
       }
       for (const eff of choice.effects) {
-        applyEffect(eff, state)
+        applyEffect(eff, state, dilemmaNetApRate)
       }
       transitionToNextInterDeadlinePhase(state, config)
       return { success: true, events: [`Resolved dilemma '${dilemma.name}': ${choice.text}`] }
@@ -738,14 +750,21 @@ export function dispatch(
       if (hasRule(state, 'law:papal_concordat') && command.lawId !== 'law:papal_concordat') {
         maxLawSlots -= 1
       }
+      if (law.order === 'chancellor' && hasRule(state, 'law:marshals_carte_blanche')) {
+        return {
+          success: false,
+          error: `Chancellor laws cannot be enacted while Marshal's Carte Blanche is active.`,
+        }
+      }
       if (state.activeLaws.length >= maxLawSlots) {
         return { success: false, error: `Maximum active law capacity (${maxLawSlots}) reached.` }
       }
-      if (!canAffordEffects(state, law.effects)) {
+      const lawNetApRate = calculateNetApRate(state, config)
+      if (!canAffordEffects(state, law.effects, lawNetApRate)) {
         return { success: false, error: `Cannot afford requirements to enact law ${law.name}.` }
       }
       for (const eff of law.effects) {
-        applyEffect(eff, state)
+        applyEffect(eff, state, lawNetApRate)
       }
       state.activeLaws.push(command.lawId)
       transitionToNextInterDeadlinePhase(state, config)

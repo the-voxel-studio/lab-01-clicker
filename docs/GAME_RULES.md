@@ -22,6 +22,7 @@ Failing a quota early in a run shouldn't arbitrarily kill a good attempt without
   - **The Hard Province Floor Rule:** Fines and bailouts (Royal Censure, Lombard Loan) enforce a **strict floor of 1 province**. The Crown never strips the sovereign's last seat through administrative censure. However, this floor **does not protect against military conquest**: a defensive collapse in battle when holding only 1 province seizes that final province and immediately triggers defeat by conquest (`conquest`).
   - The run continues into the next deadline.
 - **Second Failure or Final Inspection (Deadline 10) Failure:** Failing a second audit—or failing the **Deadline 10 Grand Audit** even with zero prior strikes—results in immediate public execution of the Lord (Game Over, `quota_failure`).
+- **Forfeited Pardon:** after The Auditor's Nephew choice B (§9), the Royal Censure is not available at the next audit only: failing it is a `quota_failure` defeat even with zero strikes.
 
 ### 1.3 Mid-Deadline Interim Inspection (50-Second Warning)
 At exactly the **50-second mark** of each 100-second deadline, the Steward computes a deterministic interim projection (`interimWarningOnTrack: boolean`):
@@ -405,10 +406,10 @@ Occurs once at the end of each deadline, responding dynamically to player state.
 12. **The Deserting Mercenaries** (AP $\le 0$ / Bankruptcy countdown): A) Melt reliquaries (+400 AP, +15 Unrest) | B) Disband 10 Soldiers (cancels bankruptcy).
 13. **The Ghost Scribes** (Scribes $\ge 20$): A) Claw back wages (+500 AP, +15 Unrest) | B) Reallocate to supervisors (+10% Supervisor output).
 14. **The Inquisitor's Demand** (Unrest $\ge 70\%$): A) Hand over heretics (-25 Pop, -30 Unrest) | B) Deny Church (+10 Unrest, +2 Archives).
-15. **The Auditor's Nephew** (Deadline $\ge 5$): A) Appoint Crown Bailiff (+1 Bailiff, +15% paperwork) | B) Refuse post (-1 strike safety margin, +1 Archive).
+15. **The Auditor's Nephew** (Deadline $\ge 5$): A) Appoint Crown Bailiff (+1 Bailiff, +15% paperwork) | B) Refuse post (Royal Pardon forfeited at the next audit only: a failed audit there is a `quota_failure` defeat even with 0 strikes; +1 Archive).
 16. **The Smugglers' Cove** (Trade Hub held): A) Take 20% cut (+15% gross AP, +10 Unrest) | B) Hang ringleaders (+15 Military Power, +1 Archive).
 17. **The Boundary Dispute** (Deadline $\ge 4$): A) Annex land for Crown (+50 housing capacity, +10 Unrest) | B) Arbitrate for fee (+400 AP, -5 Unrest).
-18. **The Crown's Forced Loan** (Treasury $> 5,000\text{ AP}$): A) Pay loan (-2,000 AP, next quota -15%) | B) Hide coin (-15% gross AP for 30s).
+18. **The Crown's Forced Loan** (Treasury $> 5,000\text{ AP}$): A) Pay loan (-2,000 AP, the three quotas of the next audit -15%) | B) Hide coin (-15% gross AP for 30s).
 19. **The Mutinous Quartermaster** (Military units $\ge 25$): A) Hang publicly (-1 Quartermaster, -10 Unrest) | B) Enforce double bookkeeping (+300 AP, +5% military upkeep).
 20. **The Astrologer's Comet** (Deadline 8 or 9): A) Imperial sign (+10% military power, +10 Unrest) | B) Mass prayers (-500 AP, -25 Unrest).
 
@@ -421,12 +422,12 @@ Players choose 1 card per Council phase (up to 5 active slots) or reject all for
 ### 10.1 The Chancellor (Administration & Fiscal)
 1. **Royal Scriptorium:** +50% Scribe AP output | +20% paperwork.
 2. **General Cadastre:** -25% paperwork | +2.0 AP/s upkeep per province.
-3. **Exceptional Tithe:** +80% AP output during deadline | +30 Unrest upon audit.
+3. **Exceptional Tithe:** +80% gross AP output until the next audit | +30 Unrest at that audit, then the law is repealed (it leaves its slot).
 4. **Single Window Bureaucracy:** Archivists grant double reduction | Supervisors -50% efficiency.
 5. **Stamp Duty Monopoly:** Clicks yield +100% AP | Free serf tax yield -15%.
 6. **Crown Monopolies:** +25% gross AP output | Tier I unit recruit cost +25%.
 7. **Chancery Red Tape:** Bankruptcy grace extended to 50s | Base paperwork +15%.
-8. **Corvée Exemption Tax:** +30% tax efficiency | Peasant pop growth -25%.
+8. **Corvée Exemption Tax:** +30% tax efficiency | Peasant pop growth -25% (logistic growth rate r x0.75).
 9. **Auditors' Inquisition:** Audit Chamber grants double reduction | +15 Unrest at each audit.
 10. **Imperial Bond Floating:** +3,000 AP instantly | -10% gross AP/s debt service.
 
@@ -434,7 +435,7 @@ Players choose 1 card per Council phase (up to 5 active slots) or reject all for
 1. **Census Edict:** +25% pop capacity | Admin order cap reduced by 20%.
 2. **Holy Days & Vigils:** -0.20 Unrest/s pacification | -10% AP output.
 3. **Primogeniture Decrees:** +20% province pop capacity | -20% demographic growth.
-4. **Grand Kermesse:** -25 Unrest immediately | Costs 40s net AP income.
+4. **Grand Kermesse:** -25 Unrest immediately | Costs 40 s of the current net AP income (nothing when net income is not positive; refused when AP is below the cost).
 5. **Sanctuary Rights:** Prevents soldier desertion below 90% Unrest only (desertions resume at 90%–99% Unrest) | Military recruit costs +30%.
 6. **Monastic Granaries:** +0.08 pop growth/s per 100 serfs | 10% poll tax evasion.
 7. **Tithe Commutation:** Priests and Prelates have zero upkeep | Tax efficiency -10%.
@@ -452,7 +453,7 @@ Players choose 1 card per Council phase (up to 5 active slots) or reject all for
 7. **Vanguard Drills:** Combat roll raised to $[1.05, 1.20]$ | Battle casualties +15%.
 8. **Guerrilla Border Watch:** Border Strongholds grant double defense | Military upkeep +10%.
 9. **Mercenary Capitulation:** Hire Men-at-Arms with AP without consuming Serfs | Upkeep doubled ($3.0\text{ AP/s}$).
-10. **Marshal's Carte Blanche:** +25% Military Power | Chancellor laws cost double AP.
+10. **Marshal's Carte Blanche:** +25% Military Power | Chancellor laws cannot be enacted (the council still drafts them).
 
 ## 11. The Lord's Emergency Edicts (Last Resort Buttons)
 

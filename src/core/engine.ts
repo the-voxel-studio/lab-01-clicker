@@ -280,9 +280,38 @@ export function calculateNetPaperwork(
   )
 }
 
+/** Quotas checked against a deadline quota: the three targets times `quota_requirement`. */
+interface EffectiveQuota {
+  apRate: number
+  pop: number
+  military: number
+}
+
+/**
+ * Scales a deadline quota by the `quota_requirement` stat (base 1, clamped at 0), as read by the
+ * audit and by the 50 s interim projection.
+ */
+function effectiveQuota(state: GameState, quota: EffectiveQuota): EffectiveQuota {
+  const requirement = Math.max(
+    0,
+    composeStat('quota_requirement', 1, state.activeModifiers, extractRawEvaluationState(state)),
+  )
+  return {
+    apRate: quota.apRate * requirement,
+    pop: quota.pop * requirement,
+    military: quota.military * requirement,
+  }
+}
+
 /**
  * Evaluates the tri-metric Crown Audit at the conclusion of a deadline.
  * Enforces the Two-Out-Of-Three rule and the single Royal Pardon grace rule.
+ *
+ * The three quotas are multiplied by the `quota_requirement` stat (base 1, clamped at 0). With
+ * `law_effect:pardon_forfeited` raised, a failed audit is a `quota_failure` defeat even with 0
+ * strikes. After the outcome: `untilNextAudit` modifiers are removed, the pardon forfeiture flag is
+ * cleared, Auditors' Inquisition adds 15 Unrest, and Exceptional Tithe adds 30 Unrest and leaves
+ * the active laws and rule flags.
  *
  * @param state - The active GameState.
  * @param config - Optional engine configuration (defaults to DEFAULT_ENGINE_CONFIG).
@@ -295,11 +324,13 @@ export function evaluateDeadlineAudit(
   const quotas = config.quotas
   const quota = quotas.find((q) => q.deadline === state.deadline) ?? quotas[quotas.length - 1]!
 
+  const required = effectiveQuota(state, quota)
   const { total: grossApRate } = calculateGrossApRate(state, config)
-  const apMet = grossApRate >= quota.apRate
-  const popMet = state.totalPopulation >= quota.pop
+  const apMet = grossApRate >= required.apRate
+  const popMet = state.totalPopulation >= required.pop
   const militaryPower = calculateMilitaryPower(state)
-  const militaryMet = militaryPower >= quota.military
+  const militaryMet = militaryPower >= required.military
+  const pardonForfeited = hasRule(state, 'law_effect:pardon_forfeited')
 
   const passedCount = (apMet ? 1 : 0) + (popMet ? 1 : 0) + (militaryMet ? 1 : 0)
   const passedAudit = passedCount >= 2
@@ -320,8 +351,8 @@ export function evaluateDeadlineAudit(
     }
   } else {
     // Audit failed
-    if (state.strikes >= 1 || state.deadline >= 10) {
-      // Strike 2 or Deadline 10: Royal Execution / Quota Failure
+    if (state.strikes >= 1 || state.deadline >= 10 || pardonForfeited) {
+      // Strike 2, Deadline 10 or forfeited pardon: Royal Execution / Quota Failure
       state.strikes = Math.min(2, state.strikes + 1)
       triggerDefeat(state, 'quota_failure')
       isGameOver = true
@@ -339,6 +370,8 @@ export function evaluateDeadlineAudit(
     }
   }
 
+  applyAuditAftermath(state, config)
+
   const outcome: AuditOutcome = {
     deadline: state.deadline,
     apMet,
@@ -347,12 +380,29 @@ export function evaluateDeadlineAudit(
     passedCount,
     success: passedAudit,
     royalPardonIssued,
-    isGameOver,
+    isGameOver: isGameOver || state.isGameOver,
     victory,
     grossApRate,
   }
   state.lastAuditOutcome = outcome
   return outcome
+}
+
+/** Audit scoped effects resolved right after an audit, whatever its outcome. */
+function applyAuditAftermath(state: GameState, config: EngineConfig): void {
+  state.activeModifiers = state.activeModifiers.filter((mod) => mod.untilNextAudit !== true)
+  state.ruleFlags = state.ruleFlags.filter((flag) => flag !== 'law_effect:pardon_forfeited')
+  if (hasRule(state, 'law:auditors_inquisition')) {
+    addUnrest(state, 15, config)
+  }
+  if (hasRule(state, 'law:exceptional_tithe')) {
+    addUnrest(state, 30, config)
+    state.activeLaws = state.activeLaws.filter((id) => id !== 'law:exceptional_tithe')
+    state.ruleFlags = state.ruleFlags.filter((flag) => flag !== 'law:exceptional_tithe')
+    state.activeModifiers = state.activeModifiers.filter(
+      (mod) => mod.source !== 'law:exceptional_tithe',
+    )
+  }
 }
 
 /**
@@ -600,8 +650,10 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   let popGrowthThisTick = 0
   const crisisStage = getUnrestCrisisStage(state.unrest)
 
+  const isOvercrowded = state.totalPopulation >= maxPop
+  const hasParishRelief = hasRule(state, 'law:parish_relief_registers')
   const canGrow =
-    state.totalPopulation < maxPop &&
+    (!isOvercrowded || hasParishRelief) &&
     crisisStage !== 'strife_desertion' &&
     crisisStage !== 'urban_rebellion' &&
     crisisStage !== 'total_revolution' &&
@@ -617,10 +669,23 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
       state.taxRate,
       config,
     )
-    popGrowthThisTick = growthPerSec * stepDt
+    // Flat growth stops at the housing cap, except under Parish Relief Registers
+    const flatPerSec = Math.max(
+      0,
+      composeStat('pop_growth_flat', 0, state.activeModifiers, rawState),
+    )
+    let flatGrowth = flatPerSec * stepDt
+    if (!hasParishRelief) {
+      flatGrowth = Math.min(
+        flatGrowth,
+        Math.max(0, maxPop - state.totalPopulation - growthPerSec * stepDt),
+      )
+    }
+    popGrowthThisTick = growthPerSec * stepDt + flatGrowth
     state.totalPopulation += popGrowthThisTick
     state.freeSerfs += popGrowthThisTick
-  } else if (initialExcessPop > 0) {
+  }
+  if (initialExcessPop > 0) {
     // Housing crisis overcrowding bleed
     const bleed = Math.min(initialExcessPop, config.balance.OVERCROWDING_BLEED_RATE * stepDt)
     applyPopulationLoss(state, bleed, true)
@@ -751,7 +816,10 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     interimWarningTriggered = true
 
     // Compute 2-out-of-3 on-track status comparing to deadline quotas
-    const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+    const quota = effectiveQuota(
+      state,
+      config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!,
+    )
     const apOnTrack = grossApRate >= quota.apRate
     const popOnTrack = state.totalPopulation >= quota.pop
     const milOnTrack = calculateMilitaryPower(state) >= quota.military

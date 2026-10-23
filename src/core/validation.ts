@@ -11,6 +11,7 @@ import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { ALLOWED_COMMANDS_BY_PHASE } from './phases'
 import { canAffordEffects } from './modifiers'
+import { calculateNetApRate } from './engine'
 import { isRuleFlag } from './rules'
 import { MODIFIER_OPS, RESOLVER_KEYS, STAT_KEYS } from './types'
 import type {
@@ -136,9 +137,19 @@ function checkModifiers(value: unknown): void {
     if (modifier.resolverKey !== undefined && !isResolverKey(modifier.resolverKey)) {
       return fail(`${field}.resolverKey`, 'unknown resolver key')
     }
+    if (modifier.untilNextAudit !== undefined && modifier.untilNextAudit !== true) {
+      return fail(`${field}.untilNextAudit`, 'expected true when present')
+    }
     if (modifier.scope !== undefined) {
-      if (!UNIT_SCOPED_STATS.some((stat) => stat === modifier.stat)) {
-        return fail(`${field}.scope`, 'scope is only allowed on a unit scoped stat')
+      if (modifier.stat === 'order_cap') {
+        if (
+          isRecord(modifier.scope) &&
+          (modifier.scope.tier !== undefined || modifier.scope.unitId !== undefined)
+        ) {
+          return fail(`${field}.scope`, 'an order_cap scope accepts only an order')
+        }
+      } else if (!UNIT_SCOPED_STATS.some((stat) => stat === modifier.stat)) {
+        return fail(`${field}.scope`, 'scope is only allowed on a unit scoped stat or order_cap')
       }
       checkScope(modifier.scope, `${field}.scope`)
     }
@@ -292,9 +303,13 @@ export function validateGameState(
   // from createInitialGameState and are not checked.
   const state = value as unknown as GameState
   if (state.phase === 'COUNCIL_DILEMMA') {
+    const netApRate = calculateNetApRate(state, config)
     const drafted =
       state.currentDilemmaId === null ? undefined : DILEMMAS_DATA[state.currentDilemmaId]
-    if (!drafted || !drafted.choices.some((choice) => canAffordEffects(state, choice.effects))) {
+    if (
+      !drafted ||
+      !drafted.choices.some((choice) => canAffordEffects(state, choice.effects, netApRate))
+    ) {
       return fail(
         'currentDilemmaId',
         'COUNCIL_DILEMMA requires a drafted dilemma with an affordable choice',

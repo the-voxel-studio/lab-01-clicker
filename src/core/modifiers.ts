@@ -211,14 +211,28 @@ export function composeUnitStat(
 }
 
 /**
+ * AP cost of an `ap_cost_income_seconds` effect: `seconds` times the net AP rate, or 0 when that
+ * rate is not positive. Throws when the caller did not supply the net rate.
+ */
+function incomeSecondsCost(seconds: number, netApRate: number | undefined): number {
+  if (netApRate === undefined) {
+    throw new Error('ap_cost_income_seconds needs the net AP rate (calculateNetApRate).')
+  }
+  return Math.max(0, seconds) * Math.max(0, netApRate)
+}
+
+/**
  * Applies an Effect payload (from laws, dilemmas, or edicts) directly to GameState.
  * A `stat_modifier` template is cloned, never pushed by reference: `appliedAt` is stamped with
  * `totalElapsedSeconds` and `durationSeconds`, when set, becomes `expiresAt` relative to it.
  *
  * @param effect - The effect descriptor.
  * @param state - The game state to mutate.
+ * @param netApRate - Net AP rate per second (`calculateNetApRate`), required by
+ *   `ap_cost_income_seconds`.
+ * @throws Error when an `ap_cost_income_seconds` effect is applied without `netApRate`.
  */
-export function applyEffect(effect: Effect, state: GameState): void {
+export function applyEffect(effect: Effect, state: GameState, netApRate?: number): void {
   switch (effect.type) {
     case 'stat_modifier': {
       const { modifier } = effect
@@ -288,24 +302,38 @@ export function applyEffect(effect: Effect, state: GameState): void {
         state.ruleFlags.push(effect.flag)
       }
       break
+
+    case 'ap_cost_income_seconds':
+      state.ap -= incomeSecondsCost(effect.seconds, netApRate)
+      break
   }
 }
 
 /**
  * Verifies whether the player can afford all negative resource/unit costs in an Effect list.
- * Requires state.ap >= apCost (no deficit spending allowed for choices).
+ * Requires state.ap >= apCost (no deficit spending allowed for choices); an
+ * `ap_cost_income_seconds` effect counts its cost at `netApRate`.
  *
  * @param state - The active GameState.
  * @param effects - The list of effects to validate.
+ * @param netApRate - Net AP rate per second (`calculateNetApRate`), required by
+ *   `ap_cost_income_seconds`.
  * @returns boolean indicating if all costs can be paid.
+ * @throws Error when an `ap_cost_income_seconds` effect is checked without `netApRate`.
  */
-export function canAffordEffects(state: GameState, effects: readonly Effect[]): boolean {
+export function canAffordEffects(
+  state: GameState,
+  effects: readonly Effect[],
+  netApRate?: number,
+): boolean {
   let apCost = 0
   const unitCosts: Partial<Record<UnitId, number>> = {}
   let serfCost = 0
 
   for (const effect of effects) {
-    if (effect.type === 'instant_resource') {
+    if (effect.type === 'ap_cost_income_seconds') {
+      apCost += incomeSecondsCost(effect.seconds, netApRate)
+    } else if (effect.type === 'instant_resource') {
       if (effect.resource === 'ap' && effect.amount < 0) {
         apCost += -effect.amount
       } else if (effect.resource === 'population' && effect.amount < 0) {

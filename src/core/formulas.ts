@@ -15,7 +15,7 @@ import type {
   Modifier,
 } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
-import { composeUnitStat } from './modifiers'
+import { composeStat, composeUnitStat, type RawEvaluationState } from './modifiers'
 
 /**
  * Refills the ergonomic click token bucket based on elapsed delta-time.
@@ -348,19 +348,39 @@ export function calculatePaperworkFriction(
 /**
  * Calculates dynamic order allocation caps based on current maximum population.
  *
- * Thresholds:
+ * Thresholds (before modifiers):
  * - Administration: <= 15% of MaxPop
  * - The Military: <= 12% of MaxPop
  * - The People (Specialized): <= 25% of MaxPop
  *
+ * Each cap is composed with the `order_cap` modifiers whose `scope.order` is that order (an empty
+ * scope matches every order, a modifier without scope is ignored), clamped at 0, then floored.
+ *
  * @param maxPopulation - Total housing capacity.
+ * @param modifiers - Active modifiers.
+ * @param raw - Raw state for dynamic resolvers; without it, resolver modifiers are skipped.
  * @returns Max allowable units per order category.
  */
-export function calculateOrderCaps(maxPopulation: number): Record<UnitOrder, number> {
+export function calculateOrderCaps(
+  maxPopulation: number,
+  modifiers: readonly Modifier[] = [],
+  raw?: RawEvaluationState,
+): Record<UnitOrder, number> {
+  const cap = (order: UnitOrder, share: number): number => {
+    const matching = modifiers.filter(
+      (mod) =>
+        mod.stat === 'order_cap' &&
+        mod.scope !== undefined &&
+        (mod.scope.order === undefined || mod.scope.order === order),
+    )
+    const base = maxPopulation * share
+    if (matching.length === 0) return Math.floor(base)
+    return Math.floor(Math.max(0, composeStat('order_cap', base, matching, raw)) + 1e-9)
+  }
   return {
-    admin: Math.floor(maxPopulation * 0.15),
-    military: Math.floor(maxPopulation * 0.12),
-    people: Math.floor(maxPopulation * 0.25),
+    admin: cap('admin', 0.15),
+    military: cap('military', 0.12),
+    people: cap('people', 0.25),
   }
 }
 

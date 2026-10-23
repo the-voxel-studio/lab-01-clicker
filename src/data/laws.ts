@@ -86,7 +86,8 @@ export const LAWS_DATA: Record<string, LawDef> = {
     id: 'law:exceptional_tithe',
     order: 'chancellor',
     name: 'Exceptional Tithe',
-    description: '+80% AP output during deadline | +30 Unrest upon audit.',
+    description:
+      '+80% AP output until the next audit | +30 Unrest upon that audit, then the law is repealed.',
     effects: [
       {
         type: 'stat_modifier',
@@ -95,6 +96,7 @@ export const LAWS_DATA: Record<string, LawDef> = {
           stat: 'gross_ap_rate',
           op: 'addPct',
           value: 0.8,
+          untilNextAudit: true,
         },
       },
       {
@@ -238,6 +240,15 @@ export const LAWS_DATA: Record<string, LawDef> = {
         },
       },
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:corvee_exemption_tax',
+          stat: 'pop_growth_rate',
+          op: 'mul',
+          value: 0.75,
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:corvee_exemption_tax',
       },
@@ -307,6 +318,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
         },
       },
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:census_edict',
+          stat: 'order_cap',
+          op: 'mul',
+          value: 0.8,
+          scope: { order: 'admin' },
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:census_edict',
       },
@@ -368,12 +389,11 @@ export const LAWS_DATA: Record<string, LawDef> = {
     id: 'law:grand_kermesse',
     order: 'prelate',
     name: 'Grand Kermesse',
-    description: '-25 Unrest immediately | Costs 400 AP.',
+    description: '-25 Unrest immediately | Costs 40 s of net AP income.',
     effects: [
       {
-        type: 'instant_resource',
-        resource: 'ap',
-        amount: -400,
+        type: 'ap_cost_income_seconds',
+        seconds: 40,
       },
       {
         type: 'instant_resource',
@@ -414,7 +434,7 @@ export const LAWS_DATA: Record<string, LawDef> = {
         type: 'stat_modifier',
         modifier: {
           source: 'law:monastic_granaries',
-          stat: 'pop_growth_rate',
+          stat: 'pop_growth_flat',
           op: 'add',
           value: 0.08,
           resolverKey: 'per_100_free_serfs',
@@ -738,7 +758,7 @@ export const LAWS_DATA: Record<string, LawDef> = {
     id: 'law:marshals_carte_blanche',
     order: 'marshal',
     name: "Marshal's Carte Blanche",
-    description: '+25% Military Power | Chancellor laws cost double AP.',
+    description: '+25% Military Power | Chancellor laws cannot be enacted.',
     effects: [
       {
         type: 'stat_modifier',

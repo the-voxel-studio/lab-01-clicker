@@ -102,6 +102,9 @@ export const STAT_KEYS = [
   'flat_upkeep',
   'click_critical_chance',
   'bankruptcy_grace_seconds',
+  'pop_growth_flat',
+  'order_cap',
+  'quota_requirement',
 ] as const
 
 /** Stat keys that can be dynamically altered by Modifiers. */
@@ -163,9 +166,15 @@ export interface Modifier {
   resolverKey?: ResolverKey
   /**
    * Units targeted by a unit scoped stat (`unit_upkeep`, `recruit_cost`, `unit_output`), read by
-   * `composeUnitStat`; a modifier without scope never applies to a unit scoped stat.
+   * `composeUnitStat`, or the order targeted by `order_cap` (only `order` is allowed there); a
+   * modifier without scope never applies to these stats.
    */
   scope?: ModifierScope
+  /**
+   * When true, the modifier stays active until the next deadline audit, counts for that audit,
+   * and is removed right after it resolves, whatever its outcome.
+   */
+  untilNextAudit?: true
 }
 
 /** Typed rule flag raised by a law effect and read through `hasRule`. */
@@ -207,6 +216,8 @@ export type Effect =
     }
   | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
   | { type: 'rule_flag'; flag: RuleFlag }
+  /** AP cost of `seconds` times the current net AP rate (no cost when that rate is not positive). */
+  | { type: 'ap_cost_income_seconds'; seconds: number }
 
 /**
  * Command Interface Taxonomy:

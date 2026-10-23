@@ -245,12 +245,12 @@ During the Inter-Deadline Council phase, the player receives 3 cards (1 from the
 ### 6.1 The Chancellor's Decrees (Administration & Treasury – 10 Laws)
 1. **Royal Scriptorium:** +50% Scribe gross AP production | +20% paperwork inertia.
 2. **General Cadastre:** -25% paperwork inertia | +2.0 AP/s maintenance upkeep per owned province.
-3. **Exceptional Tithe:** +80% gross AP production during current deadline | +30 immediate Unrest upon audit.
+3. **Exceptional Tithe:** +80% gross AP production until the next audit | +30 immediate Unrest at that audit, then the law is repealed and frees its slot.
 4. **Single Window Bureaucracy:** Archivists reduce paperwork at double efficiency | Supervisors production multiplier cut by 50%.
 5. **Stamp Duty Monopoly:** Executive clicks generate +100% more AP | Free serf tax yield reduced by -15%.
 6. **Crown Trade Monopolies:** +25% gross AP output across all sources | All Tier I unit recruitment costs increased by +25%.
 7. **Chancery Red Tape:** Bankruptcy grace countdown extended from 30s to 50s | Base paperwork inertia increased by +15%.
-8. **Corvée Exemption Tax:** +30% tax revenue efficiency | Peasant demographic growth reduced by -25%.
+8. **Corvée Exemption Tax:** +30% tax revenue efficiency | Peasant demographic growth reduced by -25% (logistic growth rate r x0.75).
 9. **Auditors' Inquisition:** Audit Chamber units grant double paperwork mitigation | Generates +15 Unrest at each deadline audit.
 10. **Imperial Bond Floating:** Instantly grants +3,000 AP treasury | Siphons -10% gross AP/s continuously to service imperial debt.
 
@@ -258,7 +258,7 @@ During the Inter-Deadline Council phase, the player receives 3 cards (1 from the
 1. **Census Edict:** +25% maximum population capacity | Administration order cap reduced by 20%.
 2. **Holy Days & Vigils:** -0.20 Unrest/s continuous pacification | -10% AP production across all sources.
 3. **Primogeniture Decrees:** +20% province population capacity | Base demographic growth rate reduced by -20%.
-4. **Grand Kermesse:** -25 Unrest immediately upon enactment | Costs 40 seconds of current net AP income.
+4. **Grand Kermesse:** -25 Unrest immediately upon enactment | Costs 40 seconds of current net AP income (nothing when net income is not positive; refused when AP is below the cost).
 5. **Sanctuary Rights:** Prevents soldier desertions when Unrest is below 90% only (desertions resume at 90%–99%) | Military unit recruit costs increased by +30%.
 6. **Monastic Granaries:** +0.08 pop growth/s per 100 free serfs | Free serfs evade 10% of baseline poll taxes.
 7. **Tithe Commutation:** Village Priests and Prelates have zero ongoing upkeep | Total realm tax revenue efficiency reduced by -10%.
@@ -276,7 +276,7 @@ During the Inter-Deadline Council phase, the player receives 3 cards (1 from the
 7. **Vanguard Drills:** Player battle roll bounds raised from $[0.92, 1.08]$ to $[1.05, 1.20]$ | Soldier casualties in battle increased by +15%.
 8. **Guerrilla Border Watch:** Border Stronghold defensive traits provide double value | Passive military upkeep increased by +10%.
 9. **Mercenary Capitulation:** Men-at-Arms can be recruited with AP without consuming Free Serfs | Their ongoing upkeep is doubled ($3.0\text{ AP/s}$).
-10. **Marshal's Carte Blanche:** +25% total Military Power across the realm | Chancellor law cards cost double AP to enact.
+10. **Marshal's Carte Blanche:** +25% total Military Power across the realm | Chancellor law cards cannot be enacted while it is active (the council still drafts them).
 
 ---
 
@@ -372,7 +372,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 - **Trigger:** Deadline $\ge 5$.
 - **Narrative:** *"The King's Chief Auditor sends a letter recommending his dull-witted nephew for a lucrative provincial post."*
 - **Choice A:** Make him a Crown Bailiff (+1 Crown Bailiff, +15% paperwork).
-- **Choice B:** Send him a polite refusal (-1 strike margin penalty on next audit, +1 Archive Point).
+- **Choice B:** Send him a polite refusal (Royal Pardon forfeited at the next audit only: a failed audit there is a `quota_failure` defeat even with 0 strikes; +1 Archive Point).
 
 ### 16. The Smugglers' Cove
 - **Trigger:** Realm controls at least 1 Trade Hub province.
@@ -389,7 +389,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 ### 18. The Crown's Forced Loan
 - **Trigger:** Current AP Treasury $> 5,000\text{ AP}$.
 - **Narrative:** *"His Majesty has heard of your bulging chests and 'requests' a patriotic loan for his foreign wars."*
-- **Choice A:** Comply gladly (-2,000 AP, next deadline quota reduced by 15%).
+- **Choice A:** Comply gladly (-2,000 AP, the three quotas of the next audit reduced by 15%).
 - **Choice B:** Plead poverty and hide gold (-15% gross AP for 30s in accounting tricks).
 
 ### 19. The Mutinous Quartermaster
@@ -658,7 +658,8 @@ export interface Modifier {
   appliedAt?: number      // Application timestamp in seconds or tick
   expiresAt?: number      // Expiration timestamp in seconds
   resolverKey?: ResolverKey // Strongly typed literal union identifier (e.g. 'max_3_provinces')
-  scope?: ModifierScope   // { order?, tier?, unitId? }: units targeted by unit_upkeep, recruit_cost, unit_output
+  scope?: ModifierScope   // { order?, tier?, unitId? }: units targeted by unit_upkeep, recruit_cost, unit_output (order only on order_cap)
+  untilNextAudit?: true   // Active until the next audit (counts for it), removed right after it whatever its outcome
 }
 
 export type Effect =
@@ -666,6 +667,7 @@ export type Effect =
   | { type: 'instant_resource'; resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'; amount: number }
   | { type: 'grant_units'; unitId: UnitId; count: number }
   | { type: 'rule_flag'; flag: RuleFlag } // recorded once in GameState.ruleFlags, read through hasRule
+  | { type: 'ap_cost_income_seconds'; seconds: number } // costs seconds x max(0, net AP/s)
 ```
 
 ### 16.1 Dynamic Conditional Modifiers
