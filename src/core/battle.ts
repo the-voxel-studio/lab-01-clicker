@@ -18,7 +18,7 @@ import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { addUnrest, applyPopulationLoss, triggerDefeat } from './mutations'
 import { calculateMilitaryPower, calculateMaxPopulation } from './engine'
 import { addProvince, removeLastProvince } from './provinces'
-import { calculateOrderCaps } from './formulas'
+import { calculateOrderCaps, recordPeakPopulation } from './formulas'
 import { UNITS_DATA, type UnitId } from '@/data/balance'
 
 /**
@@ -326,11 +326,15 @@ export function resolveOffensiveCampaign(
 
   const clashRatio = calculateClashRatio(attackerEff, defenderEff)
   const outcomeData = evaluateCampaignOutcome(clashRatio, config)
+  if (clashRatio >= 1.0) {
+    state.victoriesCount += 1
+  }
   const loot = resolveCampaignLoot(lootType, baseLootAp, outcomeData.lootMultiplier, prng, state)
 
   // Apply state mutations
   if (outcomeData.provinceWon) {
     addProvince(state, targetBiome)
+    state.capturedProvincesCount += 1
   }
 
   // Casualties applied proportionally to soldiers and men-at-arms, mitigated by Captains (-5% per Captain, max -50%)
@@ -363,6 +367,7 @@ export function resolveOffensiveCampaign(
     state.freeSerfs += excessToFreeSerfs
     state.totalPopulation += loot.soldiers
   }
+  recordPeakPopulation(state)
 
   // Apply unrest delta
   addUnrest(state, outcomeData.unrestDelta, config)
@@ -433,6 +438,7 @@ export function resolveDefensiveClash(
       effectiveCasualtyRate,
     )
     addUnrest(state, -5, config)
+    state.victoriesCount += 1
 
     // Defensive salvage: 25% of the repelled threat's tribute cost with [0.8, 1.2] roll
     const salvage =

@@ -380,6 +380,16 @@ export function calculateRunScore(state: GameState): number {
 }
 
 /**
+ * Raises the recorded peak population to the current population when it is higher.
+ * @param state - Game state to update.
+ */
+export function recordPeakPopulation(state: GameState): void {
+  if (state.totalPopulation > state.peakPopulation) {
+    state.peakPopulation = state.totalPopulation
+  }
+}
+
+/**
  * Derives the dynastic nobility title awarded upon victory or defeat (GAME_RULES §13.2).
  *
  * @param state - The active or terminal GameState.
@@ -404,7 +414,7 @@ export function getDynasticTitle(state: GameState, score?: number): string {
 
   // Victory outcomes
   if (state.isVictory) {
-    if (state.provinces >= 8) {
+    if (state.capturedProvincesCount >= 8) {
       return 'The Bloodied Conqueror'
     }
     if (state.totalPopulation >= 4000 && (state.starvationLosses ?? 0) === 0) {

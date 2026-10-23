@@ -14,6 +14,7 @@ import {
   calculateCollectorYield,
   calculatePaperworkFriction,
   getUnrestCrisisStage,
+  recordPeakPopulation,
 } from './formulas'
 import { getHousingBase, removeLastProvince } from './provinces'
 import { composeStat, extractRawEvaluationState } from './modifiers'
@@ -611,6 +612,8 @@ export function tick(
   if (state.provinces <= 0) {
     triggerDefeat(state, 'conquest')
   }
+
+  recordPeakPopulation(state)
 
   return {
     dt: stepDt,

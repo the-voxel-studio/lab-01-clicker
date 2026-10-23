@@ -105,6 +105,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     surpriseRaidTriggeredThisDeadline: false,
     disbandedMilitaryHistory: [],
     victoriesCount: 0,
+    capturedProvincesCount: 0,
 
     // Roster, Patents & Decrees
     units: createEmptyUnitRoster(),

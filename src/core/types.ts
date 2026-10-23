@@ -257,6 +257,8 @@ export interface GameState {
   provinceBiomes: BiomeId[]
   /** Number of provinces colonised peacefully via executive decree. */
   colonisedProvincesCount: number
+  /** Number of provinces taken by offensive conquest during this run. */
+  capturedProvincesCount: number
   /** Peak historical population achieved during this run. */
   peakPopulation: number
   /** Cumulative citizens lost to starvation/overcrowding bleed. */

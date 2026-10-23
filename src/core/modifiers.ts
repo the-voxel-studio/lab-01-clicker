@@ -9,6 +9,7 @@
 import type { UnitId, StatKey, ResolverKey, Modifier, Effect, GameState } from './types'
 import { addProvince, removeLastProvince } from './provinces'
 import { addUnrest, applyPopulationLoss } from './mutations'
+import { recordPeakPopulation } from './formulas'
 
 /**
  * Raw game state inspected by dynamic modifier resolvers.
@@ -205,6 +206,7 @@ export function applyEffect(effect: Effect, state: GameState): void {
           } else if (effect.amount > 0) {
             state.totalPopulation += effect.amount
             state.freeSerfs += effect.amount
+            recordPeakPopulation(state)
           }
           break
         case 'unrest':
@@ -233,6 +235,7 @@ export function applyEffect(effect: Effect, state: GameState): void {
       } else if (effect.external) {
         state.units[effect.unitId] = (state.units[effect.unitId] ?? 0) + effect.count
         state.totalPopulation += effect.count
+        recordPeakPopulation(state)
       } else {
         const grantable = Math.min(effect.count, Math.max(0, Math.floor(state.freeSerfs)))
         state.units[effect.unitId] = (state.units[effect.unitId] ?? 0) + grantable

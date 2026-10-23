@@ -8,6 +8,7 @@ import { EDICTS_DATA } from '@/data/edicts'
 import { FACTIONS_DATA, SCHEDULED_THREATS_DATA } from '@/data/threats'
 import { performScoutReroll } from '@/core/battle'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { tick } from '@/core/engine'
 
 describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () => {
   describe('Catalogs Completeness', () => {
@@ -218,10 +219,11 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
       state.isVictory = true
 
       // The Bloodied Conqueror (provinces >= 8)
-      state.provinces = 8
+      state.capturedProvincesCount = 8
       expect(getDynasticTitle(state)).toBe('The Bloodied Conqueror')
 
       // Father of the Nation (pop >= 4000, 0 starvation)
+      state.capturedProvincesCount = 0
       state.provinces = 5
       state.totalPopulation = 4200
       state.starvationLosses = 0
@@ -242,6 +244,51 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
       state.provinces = 4 // 2000 pts
       state.victoriesCount = 5 // 1000 pts
       expect(getDynasticTitle(state)).toBe('Universal Sovereign')
+    })
+  })
+
+  describe('Run statistics', () => {
+    it('tracks peak population while growing', () => {
+      const state = createInitialGameState({ seed: 3 })
+      let peak = state.peakPopulation
+      for (let i = 0; i < 900; i++) {
+        tick(state, 0.1)
+        peak = Math.max(peak, state.totalPopulation)
+        expect(state.peakPopulation).toBe(Math.max(peak, state.peakPopulation))
+        expect(state.peakPopulation).toBeGreaterThanOrEqual(state.totalPopulation)
+      }
+      expect(state.peakPopulation).toBe(peak)
+      expect(state.peakPopulation).toBeGreaterThan(100)
+    })
+
+    it('counts a campaign win as a victory', () => {
+      const state = createInitialGameState({ seed: 3 })
+      state.phase = 'EXPEDITION'
+      state.units.man_at_arms = 50
+      state.currentTarget = {
+        power: 1,
+        uncertaintyMargin: 0,
+        biome: 'trade_hub',
+        lootType: 'ap',
+        isFalseLedger: false,
+        isAmbush: false,
+      }
+      const res = dispatch(state, { type: 'LAUNCH_ATTACK' })
+      expect(res.success).toBe(true)
+      expect(state.provinces).toBe(4)
+      expect(state.victoriesCount).toBe(1)
+      expect(state.capturedProvincesCount).toBe(1)
+    })
+
+    it('titles The Bloodied Conqueror on 8 captured provinces, not 8 held', () => {
+      const state = createInitialGameState()
+      state.isGameOver = true
+      state.isVictory = true
+      state.provinces = 11
+      state.capturedProvincesCount = 3
+      expect(getDynasticTitle(state)).not.toBe('The Bloodied Conqueror')
+      state.capturedProvincesCount = 8
+      expect(getDynasticTitle(state)).toBe('The Bloodied Conqueror')
     })
   })
 })
