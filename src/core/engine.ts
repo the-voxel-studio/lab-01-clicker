@@ -320,6 +320,46 @@ export function effectiveQuota(state: GameState, quota: EffectiveQuota): Effecti
   }
 }
 
+/** Quota of one upcoming deadline, as the audit will check it. */
+export interface ForesightQuota extends EffectiveQuota {
+  deadline: number
+}
+
+/**
+ * Reads the quotas of the next upcoming deadlines for the royal chronicle (GAME_RULES §15).
+ *
+ * The count is the `quota_foresight_deadlines` stat (base 0, rounded down, 0 without the perk).
+ * Upcoming deadlines start at the current one while it is not audited yet (active play, raid,
+ * Lombard offer) and at the next one during the inter-deadline sequence; they stop at the last
+ * deadline. Each quota is scaled by `quota_requirement` as the audit will read it now.
+ *
+ * @param state - Current GameState.
+ * @param config - Engine configuration (quotas).
+ * @returns The upcoming quotas in deadline order, empty without the perk.
+ */
+export function getForesightQuotas(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): ForesightQuota[] {
+  const count = Math.floor(
+    composeStat(
+      'quota_foresight_deadlines',
+      0,
+      state.activeModifiers,
+      extractRawEvaluationState(state),
+    ) + 1e-9,
+  )
+  if (count <= 0 || state.isGameOver) return []
+  const unaudited =
+    state.phase === 'ACTIVE_CYCLE' ||
+    state.phase === 'SURPRISE_RAID' ||
+    state.phase === 'LOMBARD_OFFER'
+  const first = unaudited ? state.deadline : state.deadline + 1
+  return config.quotas
+    .filter((quota) => quota.deadline >= first && quota.deadline < first + count)
+    .map((quota) => ({ deadline: quota.deadline, ...effectiveQuota(state, quota) }))
+}
+
 /**
  * Evaluates the tri-metric Crown Audit at the conclusion of a deadline.
  * Enforces the Two-Out-Of-Three rule and the single Royal Pardon grace rule.

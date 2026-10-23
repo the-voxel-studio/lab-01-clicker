@@ -406,7 +406,7 @@ Occurs once at the end of each deadline, responding dynamically to player state.
 12. **The Deserting Mercenaries** (AP $\le 0$ / Bankruptcy countdown): A) Melt reliquaries (+400 AP, +15 Unrest) | B) Disband 10 Soldiers (cancels bankruptcy).
 13. **The Ghost Scribes** (Scribes $\ge 20$): A) Claw back wages (+500 AP, +15 Unrest) | B) Reallocate to supervisors (+10% Supervisor output).
 14. **The Inquisitor's Demand** (Unrest $\ge 70\%$): A) Hand over heretics (-25 Pop, -30 Unrest) | B) Deny Church (+10 Unrest, +2 Archives).
-15. **The Auditor's Nephew** (Deadline $\ge 5$): A) Appoint Crown Bailiff (+1 Bailiff, +15% paperwork) | B) Refuse post (Royal Pardon forfeited at the next audit only: a failed audit there is a `quota_failure` defeat even with 0 strikes; +1 Archive).
+15. **The Auditor's Nephew** (Deadline $\ge 5$): A) Appoint Crown Bailiff (+1 Supervisor, the Bailiff has no unit of its own, +15% paperwork) | B) Refuse post (Royal Pardon forfeited at the next audit only: a failed audit there is a `quota_failure` defeat even with 0 strikes; +1 Archive).
 16. **The Smugglers' Cove** (Trade Hub held): A) Take 20% cut (+15% gross AP, +10 Unrest) | B) Hang ringleaders (+15 Military Power, +1 Archive).
 17. **The Boundary Dispute** (Deadline $\ge 4$): A) Annex land for Crown (+50 housing capacity, +10 Unrest) | B) Arbitrate for fee (+400 AP, -5 Unrest).
 18. **The Crown's Forced Loan** (Treasury $> 5,000\text{ AP}$): A) Pay loan (-2,000 AP, the three quotas of the next audit -15%) | B) Hide coin (-15% gross AP for 30s).
@@ -490,7 +490,7 @@ Upon victory (or defeat), the Crown compiles the sovereign's historical ledger:
 ### 13.1 Score Formula
 $$\text{Score} = (\text{Total AP Produced} \times 0.01) + (\text{Max Population} \times 2) + (\text{Provinces} \times 500) + (\text{Victories} \times 200) - (\text{Strikes} \times 1000)$$
 
-*(Note: "Total AP Produced" equals `totalCumulativeAp`, which records continuous economic production and manual clicks, strictly excluding capital transfers such as edicts, loans, plunder, and salvage).*
+*(Note: "Total AP Produced" equals `totalCumulativeAp`, which records continuous economic production and manual clicks, strictly excluding capital transfers such as edicts, loans, plunder, and salvage. "Victories" equals `victoriesCount`: every offensive campaign won with $R \ge 1.00$, razor-thin margin included, and every repelled defensive clash).*
 
 ### 13.2 Dynastic Nobility Titles
 - **"Grand Treasurer of the Crown":** Won with $> 60\%$ of total score derived from Administration.
@@ -543,7 +543,7 @@ Archive Points earned during runs can be invested permanently into Crown Charter
 | **Standing Vanguard** | 3 pts | Start every run with 25 Foot Soldiers. |
 | **Primogeniture Decrees** | 4 pts | +8% to all civil and administration caps. |
 | **Spymaster Network** | 5 pts | Scout uncertainty margin narrowed by 12 points base. |
-| **Royal Chronicle** | 6 pts | Displays quota thresholds for the next 2 upcoming deadlines. |
+| **Royal Chronicle** | 6 pts | Displays quota thresholds for the next 2 upcoming deadlines (engine: stat `quota_foresight_deadlines` +2, read through `getForesightQuotas`; from the current deadline during active play, from the next one between deadlines, scaled by the quota requirement). |
 | **Sixth Law Slot** | 10 pts | Unlocks a permanent 6th active law slot. |
 
 ---

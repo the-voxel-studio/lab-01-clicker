@@ -107,7 +107,7 @@
 - If $\ge 2$ criteria are met, `interimWarningOnTrack = true` (green commendation). If $< 2$ criteria are met, `interimWarningOnTrack = false` and an alert banner flashes (*"Quotas lagging! Mobilize resources immediately!"*) with an audio cue.
 
 ### 2.5 Victory & Defeat Conditions
-- **Victory:** Pass Deadline 10 (The Grand Audit).
+- **Victory:** Pass Deadline 10 (The Grand Audit). The score counts a *victory* for every offensive campaign won with $R \ge 1.00$ (razor-thin margin included) and every repelled defensive clash.
 - **Defeat Modes:**
   1. *Quota Failure:* Failing 2 out of 3 quotas for a second time, or failing Deadline 10 (even with 0 strikes).
   2. *Peasant Revolution:* Unrest reaches 100% at any moment in any phase (instant defeat, `revolution`).
@@ -371,7 +371,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 ### 15. The Auditor's Nephew
 - **Trigger:** Deadline $\ge 5$.
 - **Narrative:** *"The King's Chief Auditor sends a letter recommending his dull-witted nephew for a lucrative provincial post."*
-- **Choice A:** Make him a Crown Bailiff (+1 Crown Bailiff, +15% paperwork).
+- **Choice A:** Make him a Crown Bailiff (+1 Supervisor, the Crown Bailiff has no unit of its own, +15% paperwork).
 - **Choice B:** Send him a polite refusal (Royal Pardon forfeited at the next audit only: a failed audit there is a `quota_failure` defeat even with 0 strikes; +1 Archive Point).
 
 ### 16. The Smugglers' Cove
@@ -579,7 +579,7 @@ Archive points earned during a run (passed deadlines, law rejections, dilemmas) 
 | **Standing Vanguard** | 3 pts | Start every run with 25 Foot Soldiers. |
 | **Primogeniture Decrees** | 4 pts | +8% to all civil and administrative caps. |
 | **Spymaster Network** | 5 pts | Scout uncertainty margin narrowed by 12 points base. |
-| **Royal Chronicle** | 6 pts | Displays quota thresholds for the next 2 upcoming deadlines. |
+| **Royal Chronicle** | 6 pts | Displays quota thresholds for the next 2 upcoming deadlines (stat `quota_foresight_deadlines`, read through `getForesightQuotas`). |
 | **Sixth Law Slot** | 10 pts | Unlocks a permanent 6th active law slot. |
 
 ### 12.2 Royal Feats (Achievements)

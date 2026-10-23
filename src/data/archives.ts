@@ -144,9 +144,9 @@ export function applyArchivePerks(state: GameState, activePerkIds: ArchivePerkId
       case 'royal_chronicle':
         state.activeModifiers.push({
           source: 'archive:royal_chronicle',
-          stat: 'gross_ap_rate',
+          stat: 'quota_foresight_deadlines',
           op: 'add',
-          value: 0,
+          value: 2,
         })
         break
 
