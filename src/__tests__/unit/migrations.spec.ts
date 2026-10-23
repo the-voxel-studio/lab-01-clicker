@@ -14,7 +14,19 @@ import {
   isSerializedSavePayload,
 } from '@/core/migrations'
 import { createInitialGameState } from '@/core/state'
+import { validateGameState } from '@/core/validation'
 import fixtureV1 from '../__fixtures__/saves/v1-save.json'
+import fixtureV2 from '../__fixtures__/saves/v2-save.json'
+
+function encode(payload: unknown): string {
+  return `${SAVE_PREFIX}${Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64')}`
+}
+
+function encodeCurrent(mutate: (state: Record<string, unknown>) => void): string {
+  const state: Record<string, unknown> = { ...createInitialGameState() }
+  mutate(state)
+  return encode({ schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1, state })
+}
 
 describe('Save State Versioning & Migrations (Gate B)', () => {
   it('exports state to a Base64 string prefixed with GRA-v1:', () => {
@@ -35,6 +47,8 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     state.ap = 1250.75
     state.totalPopulation = 220
     state.provinces = 5
+    state.provinceBiomes = ['heartland', 'farmlands', 'trade_hub', 'stronghold', 'wilderness']
+    state.freeSerfs = 195
     state.units.scribe = 15
     state.units.soldier = 10
     state.archivePoints = 2
@@ -50,10 +64,10 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.archivePoints).toBe(2)
   })
 
-  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v2 migration pipeline', () => {
+  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v3 migration pipeline', () => {
     expect(isSerializedSavePayload(fixtureV1)).toBe(true)
     expect(fixtureV1.schemaVersion).toBe(1)
-    expect(CURRENT_SCHEMA_VERSION).toBe(2)
+    expect(CURRENT_SCHEMA_VERSION).toBe(3)
 
     // Encode raw v1 fixture directly into save string
     const jsonStr = JSON.stringify(fixtureV1)
@@ -91,6 +105,8 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.clickTokens).toBe(12)
     expect(imported.interimWarningOnTrack).toBeNull()
     expect(imported.pendingDeadlineAudit).toBe(false)
+    expect(imported.capturedProvincesCount).toBe(0)
+    expect(() => validateGameState(imported)).not.toThrow()
   })
 
   it('rejects corrupt, malformed, or tampered save strings with explicit errors', () => {
@@ -146,5 +162,212 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     }
     const encoded = `${SAVE_PREFIX}${Buffer.from(JSON.stringify(corruptPayload), 'utf-8').toString('base64')}`
     expect(() => importSaveFromBase64(encoded)).toThrow(/non-finite|invalid/i)
+  })
+
+  it('imports a real v2 export into a valid v3 state', () => {
+    expect(fixtureV2.schemaVersion).toBe(2)
+    expect('capturedProvincesCount' in fixtureV2.state).toBe(false)
+
+    const imported = importSaveFromBase64(encode(fixtureV2))
+    expect(imported.runId).toBe('fixture_run_v2')
+    expect(imported.capturedProvincesCount).toBe(0)
+    expect(imported.provinces).toBe(4)
+    expect(imported.provinceBiomes).toEqual(['heartland', 'farmlands', 'trade_hub', 'heartland'])
+    expect(imported.units.scribe).toBe(6)
+    expect(() => validateGameState(imported)).not.toThrow()
+  })
+
+  it('rebuilds provinceBiomes to match provinces when migrating v2 to v3', () => {
+    const pad = structuredClone(fixtureV2)
+    pad.state.provinces = 6
+    expect(importSaveFromBase64(encode(pad)).provinceBiomes).toEqual([
+      'heartland',
+      'farmlands',
+      'trade_hub',
+      'heartland',
+      'heartland',
+      'heartland',
+    ])
+
+    const cut = structuredClone(fixtureV2)
+    cut.state.provinces = 2
+    expect(importSaveFromBase64(encode(cut)).provinceBiomes).toEqual(['heartland', 'farmlands'])
+  })
+
+  it('produces a valid state when a v1 save has zero provinces', () => {
+    const v1 = structuredClone(fixtureV1)
+    v1.state.provinces = 0
+    const imported = importSaveFromBase64(encode(v1))
+    expect(imported.provinces).toBe(0)
+    expect(imported.provinceBiomes).toEqual([])
+  })
+
+  it('rejects an unknown phase', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.phase = 'FOO'
+        }),
+      ),
+    ).toThrow(/phase/)
+  })
+
+  it('rejects an unknown unit id', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.units = { dragon: 1 }
+        }),
+      ),
+    ).toThrow(/units\.dragon/)
+  })
+
+  it('rejects a negative or fractional unit count', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.units = { scribe: -1 }
+        }),
+      ),
+    ).toThrow(/units\.scribe/)
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.units = { scribe: 1.5 }
+        }),
+      ),
+    ).toThrow(/units\.scribe/)
+  })
+
+  it('rejects unknown biomes, laws, and modifier fields', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.provinceBiomes = ['heartland', 'heartland', 'moon']
+        }),
+      ),
+    ).toThrow(/provinceBiomes/)
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.activeLaws = ['law:nope']
+        }),
+      ),
+    ).toThrow(/activeLaws/)
+    const badModifiers: unknown[] = [
+      { source: 'x', stat: 'bogus', op: 'add', value: 1 },
+      { source: 'x', stat: 'net_ap_rate', op: 'bogus', value: 1 },
+      { source: 'x', stat: 'net_ap_rate', op: 'add', value: 1, resolverKey: 'bogus' },
+    ]
+    for (const modifier of badModifiers) {
+      expect(() =>
+        importSaveFromBase64(
+          encodeCurrent((s) => {
+            s.activeModifiers = [modifier]
+          }),
+        ),
+      ).toThrow(/activeModifiers\[0\]/)
+    }
+  })
+
+  it('rejects a broken province invariant and a broken population invariant', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.provinces = 5
+        }),
+      ),
+    ).toThrow(/provinces/)
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.freeSerfs = 1
+        }),
+      ),
+    ).toThrow(/totalPopulation/)
+  })
+
+  it('rejects an invalid capturedProvincesCount', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.capturedProvincesCount = -1
+        }),
+      ),
+    ).toThrow(/capturedProvincesCount/)
+  })
+
+  it('rejects present fields with a wrong shape instead of defaulting them', () => {
+    const cases: Array<[string, unknown, RegExp]> = [
+      ['units', null, /units/],
+      ['activeLaws', null, /activeLaws/],
+      ['activeModifiers', null, /activeModifiers/],
+      ['currentLawDraft', 'x', /currentLawDraft/],
+      ['edictUsageCounts', null, /edictUsageCounts/],
+      ['unlockedPatents', 5, /unlockedPatents/],
+      ['rngStreams', null, /rngStreams/],
+    ]
+    for (const [field, bad, pattern] of cases) {
+      expect(() =>
+        importSaveFromBase64(
+          encodeCurrent((s) => {
+            s[field] = bad
+          }),
+        ),
+      ).toThrow(pattern)
+    }
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.provinceBiomes = 'x'
+          s.provinces = 3
+        }),
+      ),
+    ).toThrow(/provinceBiomes/)
+  })
+
+  it('rejects a null entry in provinceBiomes during v2 migration instead of padding it', () => {
+    const bad = structuredClone(fixtureV2)
+    const biomes: unknown[] = bad.state.provinceBiomes
+    biomes[1] = null
+    expect(() => importSaveFromBase64(encode(bad))).toThrow(/provinceBiomes\[1\]/)
+  })
+
+  it('still imports a save that lacks optional fields', () => {
+    const imported = importSaveFromBase64(
+      encodeCurrent((s) => {
+        delete s.currentLawDraft
+        delete s.edictUsageCounts
+        delete s.clickTokens
+      }),
+    )
+    expect(imported.currentLawDraft).toEqual([])
+    expect(imported.clickTokens).toBeGreaterThan(0)
+  })
+
+  it('rejects a bad law draft id, a bad dilemma id, and negative freeSerfs', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.currentLawDraft = ['law:nope']
+        }),
+      ),
+    ).toThrow(/currentLawDraft\[0\]/)
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.currentDilemmaId = 'nope'
+        }),
+      ),
+    ).toThrow(/currentDilemmaId/)
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.freeSerfs = -5
+          s.totalPopulation = 95
+          s.units = { scribe: 100 }
+        }),
+      ),
+    ).toThrow(/freeSerfs/)
   })
 })

@@ -83,32 +83,43 @@ export interface BiomeDef {
   paperworkReduction: number
 }
 
+/** Runtime list of every stat key that Modifiers can alter. */
+export const STAT_KEYS = [
+  'gross_ap_rate',
+  'net_ap_rate',
+  'click_power',
+  'paperwork_friction',
+  'unrest_generation',
+  'unrest_pacification',
+  'pop_growth_rate',
+  'housing_capacity',
+  'military_power',
+  'tax_efficiency',
+  'battle_loot_multiplier',
+  'threat_mitigation_rate',
+] as const
+
 /** Stat keys that can be dynamically altered by Modifiers. */
-export type StatKey =
-  | 'gross_ap_rate'
-  | 'net_ap_rate'
-  | 'click_power'
-  | 'paperwork_friction'
-  | 'unrest_generation'
-  | 'unrest_pacification'
-  | 'pop_growth_rate'
-  | 'housing_capacity'
-  | 'military_power'
-  | 'tax_efficiency'
-  | 'battle_loot_multiplier'
-  | 'threat_mitigation_rate'
+export type StatKey = (typeof STAT_KEYS)[number]
+
+/** Runtime list of every arithmetic composition operation. */
+export const MODIFIER_OPS = ['add', 'addPct', 'mul', 'set'] as const
 
 /** Arithmetic composition operation: 'add' -> 'addPct' -> 'mul' -> 'set'. */
-export type ModifierOp = 'add' | 'addPct' | 'mul' | 'set'
+export type ModifierOp = (typeof MODIFIER_OPS)[number]
+
+/** Runtime list of every supported dynamic conditional resolver key. */
+export const RESOLVER_KEYS = [
+  'law:isolationism',
+  'law:provincial_tithe',
+  'law:border_fortifications',
+  'law:feudal_levy',
+  'law:monastic_scriptoria',
+  'perk:iron_fist',
+] as const
 
 /** Literal union of supported dynamic conditional resolver keys. */
-export type ResolverKey =
-  | 'law:isolationism'
-  | 'law:provincial_tithe'
-  | 'law:border_fortifications'
-  | 'law:feudal_levy'
-  | 'law:monastic_scriptoria'
-  | 'perk:iron_fist'
+export type ResolverKey = (typeof RESOLVER_KEYS)[number]
 
 /** Universal Modifier Contract for laws, perks, edicts, and faction traits. */
 export interface Modifier {

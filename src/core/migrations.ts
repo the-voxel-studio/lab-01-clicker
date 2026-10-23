@@ -1,9 +1,10 @@
 import type { GameState, BiomeId } from './types'
 import { createInitialGameState } from './state'
 import { deriveStreamSeed } from './prng'
+import { assertPresentFieldShapes, isRecord, validateGameState } from './validation'
 
 /** Active master save schema version. */
-export const CURRENT_SCHEMA_VERSION = 2
+export const CURRENT_SCHEMA_VERSION = 3
 
 /** Integrity prefix for clipboard import and export strings. */
 export const SAVE_PREFIX = 'GRA-v1:'
@@ -47,7 +48,7 @@ export function migrateV1ToV2(oldData: unknown): unknown {
 
   // Assign 'heartland' biome to all existing provinces
   const provinceBiomes: BiomeId[] = Array.from(
-    { length: Math.max(1, provinces) },
+    { length: Math.max(0, Math.trunc(provinces)) },
     () => 'heartland',
   )
 
@@ -88,11 +89,49 @@ export function migrateV1ToV2(oldData: unknown): unknown {
 }
 
 /**
+ * Migrates a schema v2 save payload to schema v3.
+ * Adds `capturedProvincesCount` (0) and rebuilds `provinceBiomes` so its length equals `provinces`:
+ * existing entries keep their order, missing ones are padded with 'heartland', extra ones are
+ * truncated from the end.
+ *
+ * @param oldData - Raw v2 payload to migrate.
+ * @returns Migrated SerializedSavePayload conforming to schema v3.
+ */
+export function migrateV2ToV3(oldData: unknown): unknown {
+  if (!isSerializedSavePayload(oldData)) {
+    throw new Error('Migration v2 -> v3 failed: Source data is not a valid SerializedSavePayload.')
+  }
+
+  const oldState: unknown = oldData.state
+  if (!isRecord(oldState)) {
+    throw new Error('Migration v2 -> v3 failed: State is not an object.')
+  }
+  const provinces = typeof oldState.provinces === 'number' ? oldState.provinces : 0
+  const length = Number.isInteger(provinces) && provinces > 0 ? provinces : 0
+  const existing: unknown = oldState.provinceBiomes ?? []
+  if (!Array.isArray(existing)) {
+    throw new Error("Migration v2 -> v3 failed: 'provinceBiomes' is not an array.")
+  }
+  // Keep every existing entry as is (bad ones fail validation); pad only the missing tail.
+  const provinceBiomes: unknown[] = Array.from({ length }, (_, i) =>
+    i < existing.length ? existing[i] : 'heartland',
+  )
+
+  const newPayload: unknown = {
+    schemaVersion: 3,
+    timestamp: oldData.timestamp,
+    state: { ...oldState, capturedProvincesCount: 0, provinceBiomes },
+  }
+  return newPayload
+}
+
+/**
  * Ordered registry of sequential version migrations.
  * Migrations chain sequentially: v1 -> v2 -> v3 etc.
  */
 export const MIGRATIONS: Record<number, MigrationFunction> = {
   1: migrateV1ToV2,
+  2: migrateV2ToV3,
 }
 
 /**
@@ -262,8 +301,9 @@ export function importSaveFromBase64(encodedString: string): GameState {
     )
   }
 
-  // Validate numeric values in source state
+  // Validate numeric values and field shapes in source state
   validateStateNumbers(parsed.state as unknown as Record<string, unknown>)
+  assertPresentFieldShapes(parsed.state as unknown as Record<string, unknown>)
 
   let currentPayload: unknown = parsed
   let currentVersion = parsed.schemaVersion
@@ -286,7 +326,8 @@ export function importSaveFromBase64(encodedString: string): GameState {
 
   // Validate numeric values in migrated state
   validateStateNumbers(currentPayload.state as unknown as Record<string, unknown>)
+  assertPresentFieldShapes(currentPayload.state as unknown as Record<string, unknown>)
 
-  // Ensure state has complete fields with safe fallback defaults
-  return createInitialGameState(currentPayload.state)
+  // Fill missing fields with defaults, then reject anything the engine cannot run on
+  return validateGameState(createInitialGameState(currentPayload.state))
 }
