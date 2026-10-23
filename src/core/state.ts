@@ -116,6 +116,8 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
       military: false,
     },
     activeLaws: [],
+    ruleFlags: [],
+    currentThreatId: null,
     currentLawDraft: [],
     currentDilemmaId: null,
     lastEdictDeadline: 0,
@@ -161,6 +163,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
       ...overrides.unlockedPatents,
     },
     activeLaws: [...(overrides.activeLaws ?? baseState.activeLaws)],
+    ruleFlags: [...(overrides.ruleFlags ?? baseState.ruleFlags)],
     currentLawDraft: [...(overrides.currentLawDraft ?? baseState.currentLawDraft)],
     currentTarget:
       overrides.currentTarget !== undefined
@@ -193,6 +196,7 @@ export function cloneGameState(state: GameState): GameState {
     units: { ...state.units },
     unlockedPatents: { ...state.unlockedPatents },
     activeLaws: [...state.activeLaws],
+    ruleFlags: [...state.ruleFlags],
     currentLawDraft: [...state.currentLawDraft],
     currentTarget: state.currentTarget ? { ...state.currentTarget } : null,
     disbandedMilitaryHistory: state.disbandedMilitaryHistory.map((entry) => ({ ...entry })),

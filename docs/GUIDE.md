@@ -664,7 +664,7 @@ export type Effect =
   | { type: 'stat_modifier'; modifier: Modifier }
   | { type: 'instant_resource'; resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'; amount: number }
   | { type: 'grant_units'; unitId: UnitId; count: number }
-  | { type: 'rule_flag'; flag: string; enabled: boolean }
+  | { type: 'rule_flag'; flag: RuleFlag } // recorded once in GameState.ruleFlags, read through hasRule
 ```
 
 ### 16.1 Dynamic Conditional Modifiers

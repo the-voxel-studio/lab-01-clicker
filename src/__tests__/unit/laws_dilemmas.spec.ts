@@ -10,6 +10,9 @@ import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { dispatch, hasAffordableChoice } from '@/core/commands'
+import { exportSaveToBase64, importSaveFromBase64 } from '@/core/migrations'
+import { hasRule } from '@/core/rules'
+import { applyEffect } from '@/core/modifiers'
 
 describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
   describe('Catalogs Completeness & Integrity', () => {
@@ -113,6 +116,38 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
   })
 
   describe('Law Enactment & Slot Limits', () => {
+    it('records rule flags when a law is enacted', () => {
+      const state = createInitialGameState()
+      state.phase = 'COUNCIL_LAWS'
+      state.currentLawDraft = ['law:sanctuary_rights']
+      expect(hasRule(state, 'law:sanctuary_rights')).toBe(false)
+
+      const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:sanctuary_rights' })
+      expect(res.success).toBe(true)
+      expect(hasRule(state, 'law:sanctuary_rights')).toBe(true)
+      expect(state.ruleFlags).toEqual(['law:sanctuary_rights'])
+    })
+
+    it('keeps rule flags through an export and import round trip', () => {
+      const state = createInitialGameState()
+      state.phase = 'COUNCIL_LAWS'
+      state.currentLawDraft = ['law:sanctuary_rights']
+      expect(dispatch(state, { type: 'ENACT_LAW', lawId: 'law:sanctuary_rights' }).success).toBe(
+        true,
+      )
+
+      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      expect(imported.ruleFlags).toEqual(state.ruleFlags)
+      expect(hasRule(imported, 'law:sanctuary_rights')).toBe(true)
+    })
+
+    it('adds a rule flag only once', () => {
+      const state = createInitialGameState()
+      applyEffect({ type: 'rule_flag', flag: 'law:sanctuary_rights' }, state)
+      applyEffect({ type: 'rule_flag', flag: 'law:sanctuary_rights' }, state)
+      expect(state.ruleFlags).toEqual(['law:sanctuary_rights'])
+    })
+
     it('enacts drafted law, applies modifiers, and transitions to THREAT_HERALD', () => {
       const state = createInitialGameState()
       state.deadline = 2

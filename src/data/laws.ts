@@ -68,7 +68,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:general_cadastre',
-        enabled: true,
       },
     ],
   },
@@ -90,7 +89,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:exceptional_tithe',
-        enabled: true,
       },
     ],
   },
@@ -103,7 +101,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:single_window_bureaucracy',
-        enabled: true,
       },
     ],
   },
@@ -151,7 +148,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:crown_monopolies',
-        enabled: true,
       },
     ],
   },
@@ -173,7 +169,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:chancery_red_tape',
-        enabled: true,
       },
     ],
   },
@@ -195,7 +190,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:corvee_exemption_tax',
-        enabled: true,
       },
     ],
   },
@@ -208,7 +202,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:auditors_inquisition',
-        enabled: true,
       },
     ],
   },
@@ -256,7 +249,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:census_edict',
-        enabled: true,
       },
     ],
   },
@@ -339,7 +331,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:sanctuary_rights',
-        enabled: true,
       },
     ],
   },
@@ -388,7 +379,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:tithe_commutation',
-        enabled: true,
       },
     ],
   },
@@ -401,7 +391,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:sumptuary_edicts',
-        enabled: true,
       },
     ],
   },
@@ -423,7 +412,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:parish_relief_registers',
-        enabled: true,
       },
     ],
   },
@@ -445,7 +433,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:papal_concordat',
-        enabled: true,
       },
     ],
   },
@@ -462,7 +449,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:standing_garrisons',
-        enabled: true,
       },
     ],
   },
@@ -475,7 +461,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:merit_pay',
-        enabled: true,
       },
     ],
   },
@@ -497,7 +482,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:sanctioned_plunder',
-        enabled: true,
       },
     ],
   },
@@ -510,7 +494,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:officer_academies',
-        enabled: true,
       },
     ],
   },
@@ -542,7 +525,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:scorched_earth',
-        enabled: true,
       },
     ],
   },
@@ -555,7 +537,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:vanguard_drills',
-        enabled: true,
       },
     ],
   },
@@ -568,7 +549,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:guerrilla_border_watch',
-        enabled: true,
       },
     ],
   },
@@ -581,7 +561,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:mercenary_capitulation',
-        enabled: true,
       },
     ],
   },
@@ -603,7 +582,6 @@ export const LAWS_DATA: Record<string, LawDef> = {
       {
         type: 'rule_flag',
         flag: 'law:marshals_carte_blanche',
-        enabled: true,
       },
     ],
   },

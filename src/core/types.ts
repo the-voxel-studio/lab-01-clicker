@@ -149,6 +149,32 @@ export interface Modifier {
   resolverKey?: ResolverKey
 }
 
+/** Typed rule flag raised by a law effect and read through `hasRule`. */
+export type RuleFlag =
+  | 'law:auditors_inquisition'
+  | 'law:census_edict'
+  | 'law:chancery_red_tape'
+  | 'law:corvee_exemption_tax'
+  | 'law:crown_monopolies'
+  | 'law:exceptional_tithe'
+  | 'law:general_cadastre'
+  | 'law:guerrilla_border_watch'
+  | 'law:marshals_carte_blanche'
+  | 'law:mercenary_capitulation'
+  | 'law:merit_pay'
+  | 'law:officer_academies'
+  | 'law:papal_concordat'
+  | 'law:parish_relief_registers'
+  | 'law:sanctioned_plunder'
+  | 'law:sanctuary_rights'
+  | 'law:scorched_earth'
+  | 'law:single_window_bureaucracy'
+  | 'law:standing_garrisons'
+  | 'law:sumptuary_edicts'
+  | 'law:tithe_commutation'
+  | 'law:vanguard_drills'
+  | 'law_effect:pardon_forfeited'
+
 /**
  * Universal Effect Taxonomy:
  * Distinguishes continuous StatModifiers from instant resource transfers, unit grants, and global rule flags.
@@ -161,7 +187,7 @@ export type Effect =
       amount: number
     }
   | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
-  | { type: 'rule_flag'; flag: string; enabled: boolean }
+  | { type: 'rule_flag'; flag: RuleFlag }
 
 /**
  * Command Interface Taxonomy:
@@ -330,6 +356,10 @@ export interface GameState {
   unlockedPatents: Record<UnitOrder, boolean>
   /** Active laws enacted in the Royal Council (max 5, or 6 with archive perk). */
   activeLaws: string[]
+  /** Rule flags raised by enacted law effects, without duplicates. */
+  ruleFlags: RuleFlag[]
+  /** Id of the threat being resolved, or null when none (not read yet). */
+  currentThreatId: number | null
   /** Offered law IDs currently drafted in Council of Laws. */
   currentLawDraft: string[]
   /** Active dilemma ID presented in Council Dilemma. */

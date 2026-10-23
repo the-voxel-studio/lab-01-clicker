@@ -11,6 +11,7 @@ import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { ALLOWED_COMMANDS_BY_PHASE } from './phases'
 import { canAffordEffects } from './modifiers'
+import { isRuleFlag } from './rules'
 import { MODIFIER_OPS, RESOLVER_KEYS, STAT_KEYS } from './types'
 import type {
   BiomeId,
@@ -116,7 +117,13 @@ function checkModifiers(value: unknown): void {
 }
 
 const OBJECT_FIELDS = ['units', 'edictUsageCounts', 'unlockedPatents', 'rngStreams'] as const
-const ARRAY_FIELDS = ['activeLaws', 'activeModifiers', 'provinceBiomes', 'currentLawDraft'] as const
+const ARRAY_FIELDS = [
+  'activeLaws',
+  'activeModifiers',
+  'provinceBiomes',
+  'currentLawDraft',
+  'ruleFlags',
+] as const
 
 /**
  * Rejects fields that are present in a raw state with the wrong shape (null, wrong type, non array
@@ -144,9 +151,10 @@ export function assertPresentFieldShapes(state: Record<string, unknown>): void {
 
 /**
  * Validates an untrusted value as a complete GameState.
- * Checks the run phase, unit ids and counts, biomes, active laws, modifiers, the province
- * invariant (`provinces === provinceBiomes.length`), `capturedProvincesCount`, and the population
- * invariant (`|totalPopulation - freeSerfs - sum(units)| < 1e-6`), and `tickRemainderSeconds` (finite,
+ * Checks the run phase, unit ids and counts, biomes, active laws, rule flags, `currentThreatId`,
+ * modifiers, the province invariant (`provinces === provinceBiomes.length`),
+ * `capturedProvincesCount`, the population invariant
+ * (`|totalPopulation - freeSerfs - sum(units)| < 1e-6`), and `tickRemainderSeconds` (finite,
  * in [0, config.balance.FIXED_STEP_SECONDS)).
  *
  * @param value - Candidate state, typically a migrated save payload.
@@ -187,6 +195,20 @@ export function validateGameState(
       fail(`activeLaws[${index}]`, 'unknown law id')
     }
   })
+
+  const flags = value.ruleFlags
+  if (!Array.isArray(flags)) {
+    return fail('ruleFlags', 'expected an array')
+  }
+  for (const [index, flag] of flags.entries()) {
+    if (!isRuleFlag(flag)) {
+      return fail(`ruleFlags[${index}]`, 'unknown rule flag')
+    }
+  }
+
+  if (value.currentThreatId !== null && !isCount(value.currentThreatId)) {
+    return fail('currentThreatId', 'expected null or an integer >= 0')
+  }
 
   const draft = value.currentLawDraft
   if (!Array.isArray(draft)) {
@@ -235,10 +257,10 @@ export function validateGameState(
     return fail('tickRemainderSeconds', `expected a number in [0, ${step})`)
   }
 
-  // Checked above: phase, units, provinces, provinceBiomes, activeLaws, currentLawDraft,
-  // currentDilemmaId, activeModifiers (stat, op, value, resolverKey), capturedProvincesCount,
-  // totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come from createInitialGameState
-  // and are not checked.
+  // Checked above: phase, units, provinces, provinceBiomes, activeLaws, ruleFlags, currentThreatId,
+  // currentLawDraft, currentDilemmaId, activeModifiers (stat, op, value, resolverKey),
+  // capturedProvincesCount, totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come
+  // from createInitialGameState and are not checked.
   const state = value as unknown as GameState
   if (state.phase === 'COUNCIL_DILEMMA') {
     const drafted =

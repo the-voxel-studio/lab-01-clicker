@@ -245,7 +245,9 @@ export function applyEffect(effect: Effect, state: GameState): void {
     }
 
     case 'rule_flag':
-      // Flags can be tracked in activeModifiers or dedicated state as needed
+      if (!state.ruleFlags.includes(effect.flag)) {
+        state.ruleFlags.push(effect.flag)
+      }
       break
   }
 }

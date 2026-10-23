@@ -18,6 +18,7 @@ import {
 } from './formulas'
 import { getHousingBase, removeLastProvince } from './provinces'
 import { composeStat, extractRawEvaluationState } from './modifiers'
+import { hasRule } from './rules'
 import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
 import type { GameState, TickResult, AuditOutcome } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
@@ -608,9 +609,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   addUnrest(state, (composedGen - composedPac) * stepDt, config)
 
   // 6b. Military Desertion (§6.5, Arbitrage 1.0 §2)
-  const hasSanctuaryRights =
-    state.activeLaws.includes('law:sanctuary_rights') ||
-    state.activeModifiers.some((m) => m.source === 'law:sanctuary_rights')
+  const hasSanctuaryRights = hasRule(state, 'law:sanctuary_rights')
   const isDesertionActive = state.unrest >= 75 && !(hasSanctuaryRights && state.unrest < 90)
 
   const getEligibleDesertion = (

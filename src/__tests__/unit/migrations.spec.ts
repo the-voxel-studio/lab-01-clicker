@@ -65,10 +65,10 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.archivePoints).toBe(2)
   })
 
-  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v3 migration pipeline', () => {
+  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v4 migration pipeline', () => {
     expect(isSerializedSavePayload(fixtureV1)).toBe(true)
     expect(fixtureV1.schemaVersion).toBe(1)
-    expect(CURRENT_SCHEMA_VERSION).toBe(3)
+    expect(CURRENT_SCHEMA_VERSION).toBe(4)
 
     // Encode raw v1 fixture directly into save string
     const jsonStr = JSON.stringify(fixtureV1)
@@ -176,6 +176,35 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.provinceBiomes).toEqual(['heartland', 'farmlands', 'trade_hub', 'heartland'])
     expect(imported.units.scribe).toBe(6)
     expect(() => validateGameState(imported)).not.toThrow()
+  })
+
+  it('rebuilds rule flags from active laws when importing a schema 3 save', () => {
+    const state: Record<string, unknown> = { ...createInitialGameState() }
+    delete state.ruleFlags
+    delete state.currentThreatId
+    state.activeLaws = ['law:sanctuary_rights', 'law:papal_concordat', 'law:royal_scriptorium']
+    const imported = importSaveFromBase64(encode({ schemaVersion: 3, timestamp: 1, state }))
+    expect([...imported.ruleFlags].sort()).toEqual(['law:papal_concordat', 'law:sanctuary_rights'])
+    expect(imported.currentThreatId).toBeNull()
+  })
+
+  it('rejects an unknown rule flag and a bad currentThreatId', () => {
+    expect(() =>
+      importSaveFromBase64(
+        encodeCurrent((s) => {
+          s.ruleFlags = ['law:nope']
+        }),
+      ),
+    ).toThrow(/ruleFlags/)
+    for (const bad of [-1, 1.5, 'x']) {
+      expect(() =>
+        importSaveFromBase64(
+          encodeCurrent((s) => {
+            s.currentThreatId = bad
+          }),
+        ),
+      ).toThrow(/currentThreatId/)
+    }
   })
 
   it('rebuilds provinceBiomes to match provinces when migrating v2 to v3', () => {

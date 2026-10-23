@@ -16,6 +16,7 @@ import {
 } from './formulas'
 import { deriveSeed, withStatePrng } from './prng'
 import { composeStat, extractRawEvaluationState, canAffordEffects, applyEffect } from './modifiers'
+import { hasRule } from './rules'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import {
@@ -732,10 +733,7 @@ export function dispatch(
       if (state.activeModifiers.some((m) => m.source === 'archive:sixth_law_slot')) {
         maxLawSlots = 6
       }
-      if (
-        state.activeLaws.includes('law:papal_concordat') &&
-        command.lawId !== 'law:papal_concordat'
-      ) {
+      if (hasRule(state, 'law:papal_concordat') && command.lawId !== 'law:papal_concordat') {
         maxLawSlots -= 1
       }
       if (state.activeLaws.length >= maxLawSlots) {

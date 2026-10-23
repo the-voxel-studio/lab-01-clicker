@@ -172,7 +172,7 @@ describe('Task 1.3: Demographic Invariant, Signed Treasury & Military Desertion'
 
     it('blocks desertion below 90% unrest with Sanctuary Rights law, but resumes at >= 90%', () => {
       const state = createInitialGameState()
-      state.activeLaws.push('law:sanctuary_rights')
+      state.ruleFlags.push('law:sanctuary_rights')
       state.units.soldier = 3
       state.totalPopulation = 103
       state.freeSerfs = 100

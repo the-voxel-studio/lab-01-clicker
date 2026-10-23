@@ -1,10 +1,11 @@
-import type { GameState, BiomeId } from './types'
+import type { GameState, BiomeId, RuleFlag } from './types'
+import { LAWS_DATA } from '@/data/laws'
 import { createInitialGameState } from './state'
 import { deriveStreamSeed } from './prng'
 import { assertPresentFieldShapes, isRecord, validateGameState } from './validation'
 
 /** Active master save schema version. */
-export const CURRENT_SCHEMA_VERSION = 3
+export const CURRENT_SCHEMA_VERSION = 4
 
 /** Integrity prefix for clipboard import and export strings. */
 export const SAVE_PREFIX = 'GRA-v1:'
@@ -128,12 +129,54 @@ export function migrateV2ToV3(oldData: unknown): unknown {
 }
 
 /**
+ * Migrates a schema v3 save payload to schema v4.
+ * Rebuilds `ruleFlags` from the `rule_flag` effects of the laws in `activeLaws` (catalog lookup,
+ * deduplicated, unknown law ids skipped for validation to reject) and sets `currentThreatId` to
+ * null.
+ *
+ * @param oldData - Raw v3 payload to migrate.
+ * @returns Migrated SerializedSavePayload conforming to schema v4.
+ */
+export function migrateV3ToV4(oldData: unknown): unknown {
+  if (!isSerializedSavePayload(oldData)) {
+    throw new Error('Migration v3 -> v4 failed: Source data is not a valid SerializedSavePayload.')
+  }
+
+  const oldState: unknown = oldData.state
+  if (!isRecord(oldState)) {
+    throw new Error('Migration v3 -> v4 failed: State is not an object.')
+  }
+  const laws: unknown = oldState.activeLaws ?? []
+  if (!Array.isArray(laws)) {
+    throw new Error("Migration v3 -> v4 failed: 'activeLaws' is not an array.")
+  }
+  const ruleFlags: RuleFlag[] = []
+  for (const lawId of laws) {
+    const law =
+      typeof lawId === 'string' && Object.hasOwn(LAWS_DATA, lawId) ? LAWS_DATA[lawId] : undefined
+    for (const effect of law?.effects ?? []) {
+      if (effect.type === 'rule_flag' && !ruleFlags.includes(effect.flag)) {
+        ruleFlags.push(effect.flag)
+      }
+    }
+  }
+
+  const newPayload: unknown = {
+    schemaVersion: 4,
+    timestamp: oldData.timestamp,
+    state: { ...oldState, ruleFlags, currentThreatId: null },
+  }
+  return newPayload
+}
+
+/**
  * Ordered registry of sequential version migrations.
- * Migrations chain sequentially: v1 -> v2 -> v3 etc.
+ * Migrations chain sequentially: v1 -> v2 -> v3 -> v4 etc.
  */
 export const MIGRATIONS: Record<number, MigrationFunction> = {
   1: migrateV1ToV2,
   2: migrateV2ToV3,
+  3: migrateV3ToV4,
 }
 
 /**
