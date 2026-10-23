@@ -99,7 +99,7 @@ function handleBuyUnit(
 
   // Check AP treasury
   const currentOwned = state.units[unitId] ?? 0
-  const totalCost = calculateUnitCost(unitId, currentOwned, count, config)
+  const totalCost = calculateUnitCost(unitId, currentOwned, count, config, state.activeModifiers)
   if (state.ap < totalCost) {
     return {
       success: false,
@@ -319,11 +319,13 @@ function handleStampDocument(
   const rawState = extractRawEvaluationState(state)
   const sealMultiplier = composeStat('click_power', 1.0, state.activeModifiers, rawState)
 
-  const isCritical = withStatePrng(
-    state,
-    'click',
-    (prng) => prng.next() < config.balance.CLICK_CRITICAL_CHANCE,
+  const criticalChance = composeStat(
+    'click_critical_chance',
+    config.balance.CLICK_CRITICAL_CHANCE,
+    state.activeModifiers,
+    rawState,
   )
+  const isCritical = withStatePrng(state, 'click', (prng) => prng.next() < criticalChance)
 
   const rawClickValue = calculateClickValue(grossApRate, sealMultiplier, isCritical, config)
 

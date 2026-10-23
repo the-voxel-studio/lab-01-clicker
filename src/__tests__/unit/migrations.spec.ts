@@ -286,8 +286,8 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     ).toThrow(/activeLaws/)
     const badModifiers: unknown[] = [
       { source: 'x', stat: 'bogus', op: 'add', value: 1 },
-      { source: 'x', stat: 'net_ap_rate', op: 'bogus', value: 1 },
-      { source: 'x', stat: 'net_ap_rate', op: 'add', value: 1, resolverKey: 'bogus' },
+      { source: 'x', stat: 'gross_ap_rate', op: 'bogus', value: 1 },
+      { source: 'x', stat: 'gross_ap_rate', op: 'add', value: 1, resolverKey: 'bogus' },
     ]
     for (const modifier of badModifiers) {
       expect(() =>

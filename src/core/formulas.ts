@@ -6,8 +6,16 @@
  */
 
 import { UNITS_DATA } from '@/data/balance'
-import type { UnitId, UnitOrder, UnrestCrisisStage, UnitBalanceDef, GameState } from './types'
+import type {
+  UnitId,
+  UnitOrder,
+  UnrestCrisisStage,
+  UnitBalanceDef,
+  GameState,
+  Modifier,
+} from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
+import { composeUnitStat } from './modifiers'
 
 /**
  * Refills the ergonomic click token bucket based on elapsed delta-time.
@@ -54,11 +62,14 @@ export function calculateClickValue(
 /**
  * Calculates the total cost of purchasing K units using geometric scaling.
  *
- * Sum formula: Cost = BaseCost * r^n * (r^K - 1) / (r - 1)
+ * Sum formula: Cost = BaseCost * r^n * (r^K - 1) / (r - 1), where BaseCost is the unit base cost
+ * composed with the `recruit_cost` modifiers scoped to the unit (clamped at 0).
  *
  * @param unitId - The unit identifier.
  * @param currentOwned - Current quantity of this unit owned by the realm.
  * @param countToBuy - Desired purchase count K (1, 10, 50, 100).
+ * @param config - Injected engine configuration.
+ * @param modifiers - Active modifiers (`state.activeModifiers`); resolver modifiers are skipped.
  * @returns Total AP required for the purchase.
  */
 export function calculateUnitCost(
@@ -66,6 +77,7 @@ export function calculateUnitCost(
   currentOwned: number,
   countToBuy: number,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  modifiers: readonly Modifier[] = [],
 ): number {
   if (countToBuy <= 0) return 0
   const unit = UNITS_DATA[unitId]
@@ -73,7 +85,7 @@ export function calculateUnitCost(
     throw new Error(`Unknown unit identifier: ${unitId}`)
   }
 
-  const baseCost = unit.baseCost
+  const baseCost = composeUnitStat('recruit_cost', unit.baseCost, unit, modifiers)
   const ratio =
     unit.tier === 1 ? config.balance.TIER_I_COST_RATIO : config.balance.TIER_II_COST_RATIO
 
@@ -133,6 +145,7 @@ export function getMaxBulkSize(
  * @param orderHeadroom - Remaining slot capacity under the order cap.
  * @param maxBulkSizeOrConfig - Maximum bulk size ceiling OR injected engine configuration.
  * @param maybeConfig - Injected engine configuration if maxBulkSize was provided.
+ * @param modifiers - Active modifiers; the base cost is composed as in `calculateUnitCost`.
  * @returns Maximum valid count that can be purchased.
  */
 export function calculateMaxAffordableUnits(
@@ -143,6 +156,7 @@ export function calculateMaxAffordableUnits(
   orderHeadroom: number,
   maxBulkSizeOrConfig?: number | EngineConfig,
   maybeConfig?: EngineConfig,
+  modifiers: readonly Modifier[] = [],
 ): number {
   const maxBulkSize = typeof maxBulkSizeOrConfig === 'number' ? maxBulkSizeOrConfig : Infinity
   const config =
@@ -154,11 +168,14 @@ export function calculateMaxAffordableUnits(
   const unit = UNITS_DATA[unitId]
   if (!unit) return 0
 
-  const baseCost = unit.baseCost
+  const baseCost = composeUnitStat('recruit_cost', unit.baseCost, unit, modifiers)
   const ratio =
     unit.tier === 1 ? config.balance.TIER_I_COST_RATIO : config.balance.TIER_II_COST_RATIO
 
   const costOfCurrent = baseCost * Math.pow(ratio, currentOwned)
+  if (costOfCurrent <= 0) {
+    return Math.min(Math.floor(freeSerfs), Math.floor(orderHeadroom), maxBulkSize)
+  }
   if (availableAp < costOfCurrent) return 0
 
   // Inverted geometric series sum:
@@ -173,7 +190,7 @@ export function calculateMaxAffordableUnits(
   // Floating point rounding correction: decrement until cost <= availableAp
   while (
     affordableByAp > 0 &&
-    calculateUnitCost(unitId, currentOwned, affordableByAp, config) > availableAp
+    calculateUnitCost(unitId, currentOwned, affordableByAp, config, modifiers) > availableAp
   ) {
     affordableByAp--
   }

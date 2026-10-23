@@ -17,7 +17,7 @@ import {
   recordPeakPopulation,
 } from './formulas'
 import { getHousingBase, removeLastProvince } from './provinces'
-import { composeStat, extractRawEvaluationState } from './modifiers'
+import { composeStat, composeUnitStat, extractRawEvaluationState } from './modifiers'
 import { hasRule } from './rules'
 import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
 import type { GameState, TickResult, AuditOutcome } from './types'
@@ -63,17 +63,25 @@ export function calculateGrossApRate(
   let grossApRate = 0
 
   // Scribes & Clerks
-  const supervisorBonus = (state.units.supervisor ?? 0) * 0.02
-  const stewardBonus = (state.units.provincial_steward ?? 0) * 0.09
+  const output = (id: UnitId, base: number): number =>
+    composeUnitStat('unit_output', base, UNITS_DATA[id], state.activeModifiers, rawState)
+  const supervisorBonus = (state.units.supervisor ?? 0) * output('supervisor', 0.02)
+  const stewardBonus = (state.units.provincial_steward ?? 0) * output('provincial_steward', 0.09)
   const adminMultiplier = 1.0 + supervisorBonus + stewardBonus
 
   // Urban rebellion halves administrative scribe/clerk production
   const rebellionFriction = crisisStage === 'urban_rebellion' ? 0.5 : 1.0
 
   grossApRate +=
-    (state.units.scribe ?? 0) * UNITS_DATA.scribe.baseValue * adminMultiplier * rebellionFriction
+    (state.units.scribe ?? 0) *
+    output('scribe', UNITS_DATA.scribe.baseValue) *
+    adminMultiplier *
+    rebellionFriction
   grossApRate +=
-    (state.units.clerk ?? 0) * UNITS_DATA.clerk.baseValue * adminMultiplier * rebellionFriction
+    (state.units.clerk ?? 0) *
+    output('clerk', UNITS_DATA.clerk.baseValue) *
+    adminMultiplier *
+    rebellionFriction
 
   // Collectors & Farmers-General (Non-quadratic yield with shared finite serf pool)
   const fgCount = state.units.farmer_general ?? 0
@@ -121,6 +129,66 @@ export function calculateGrossApRate(
   const total = composeStat('gross_ap_rate', grossApRate, state.activeModifiers, rawState)
 
   return { total, pollTax }
+}
+
+/**
+ * Calculates the total AP upkeep per second of the realm.
+ *
+ * Each unit type pays its `upkeepAp` (military units after the quartermaster and grand marshal
+ * discount, floor 20%) composed with its scoped `unit_upkeep` modifiers, times its count; the
+ * `flat_upkeep` stat (base 0) is added. The total is clamped at 0.
+ *
+ * @param state - Current GameState.
+ * @param _config - Balance configuration (unused today, kept for the shared signature).
+ * @returns Total upkeep in AP per second, never below 0.
+ */
+export function calculateUpkeep(
+  state: GameState,
+  _config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  const rawState = extractRawEvaluationState(state)
+  let totalUpkeep = 0
+  for (const [id, count] of Object.entries(state.units) as [UnitId, number][]) {
+    if (count <= 0) continue
+    const def = UNITS_DATA[id]
+    if (!def) continue
+    let unitUpkeep = def.upkeepAp
+    if (def.order === 'military' && unitUpkeep > 0) {
+      const qmDiscount = (state.units.quartermaster ?? 0) * 0.015
+      const gmDiscount = (state.units.grand_marshal ?? 0) * 0.07
+      unitUpkeep *= Math.max(0.2, 1.0 - qmDiscount - gmDiscount)
+    }
+    unitUpkeep = composeUnitStat('unit_upkeep', unitUpkeep, def, state.activeModifiers, rawState)
+    if (unitUpkeep > 0) totalUpkeep += count * unitUpkeep
+  }
+  totalUpkeep += composeStat('flat_upkeep', 0, state.activeModifiers, rawState)
+  return Math.max(0, totalUpkeep)
+}
+
+/**
+ * Calculates the net AP rate per second: gross rate after paperwork friction, minus upkeep.
+ *
+ * @param state - Current GameState.
+ * @param config - Balance configuration.
+ * @returns Net AP per second (negative when upkeep exceeds production).
+ */
+export function calculateNetApRate(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  return calculateApEconomy(state, config).netApPerSecond
+}
+
+/** Gross rate, paperwork friction, upkeep and net rate, each evaluated once (shared by tick). */
+function calculateApEconomy(
+  state: GameState,
+  config: EngineConfig,
+): { grossApRate: number; paperworkFriction: number; upkeep: number; netApPerSecond: number } {
+  const paperworkFriction = calculateNetPaperwork(state, config)
+  const { total: grossApRate } = calculateGrossApRate(state, config)
+  const upkeep = calculateUpkeep(state, config)
+  const netApPerSecond = grossApRate * (1.0 - paperworkFriction) - upkeep
+  return { grossApRate, paperworkFriction, upkeep, netApPerSecond }
 }
 
 /** Aggregated biome trait bonuses across all controlled provinces. */
@@ -191,9 +259,12 @@ export function calculateNetPaperwork(
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const biomeMods = getBiomeModifiers(state)
+  const rawState = extractRawEvaluationState(state)
+  const output = (id: UnitId, base: number): number =>
+    composeUnitStat('unit_output', base, UNITS_DATA[id], state.activeModifiers, rawState)
   const archivistReduction =
-    (state.units.archivist ?? 0) * 0.015 +
-    (state.units.audit_chamber ?? 0) * 0.065 +
+    (state.units.archivist ?? 0) * output('archivist', 0.015) +
+    (state.units.audit_chamber ?? 0) * output('audit_chamber', 0.065) +
     biomeMods.paperworkReduction
 
   const basePaperwork = calculatePaperworkFriction(
@@ -203,7 +274,6 @@ export function calculateNetPaperwork(
     config,
   )
 
-  const rawState = extractRawEvaluationState(state)
   return Math.min(
     0.99,
     Math.max(0, composeStat('paperwork_friction', basePaperwork, state.activeModifiers, rawState)),
@@ -556,28 +626,8 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     applyPopulationLoss(state, bleed, true)
   }
 
-  // Bureaucracy Paperwork Inertia
-  const paperworkFriction = calculateNetPaperwork(state, config)
-
-  // AP Economics: Production, Upkeep & Friction Drag
-  const { total: grossApRate } = calculateGrossApRate(state, config)
-
-  let totalUpkeep = 0
-  for (const [id, count] of Object.entries(state.units) as [UnitId, number][]) {
-    if (count <= 0) continue
-    const def = UNITS_DATA[id]
-    if (def && def.upkeepAp > 0) {
-      let unitUpkeep = def.upkeepAp
-      if (def.order === 'military') {
-        const qmDiscount = (state.units.quartermaster ?? 0) * 0.015
-        const gmDiscount = (state.units.grand_marshal ?? 0) * 0.07
-        unitUpkeep *= Math.max(0.2, 1.0 - qmDiscount - gmDiscount)
-      }
-      totalUpkeep += count * unitUpkeep
-    }
-  }
-
-  const netApPerSecond = grossApRate * (1.0 - paperworkFriction) - totalUpkeep
+  // AP Economics: Production, Paperwork Friction Drag & Upkeep
+  const { paperworkFriction, grossApRate, netApPerSecond } = calculateApEconomy(state, config)
   const netApDelta = netApPerSecond * stepDt
   state.ap += netApDelta
 
@@ -600,7 +650,10 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     composeStat('unrest_generation', baseUnrestGen, state.activeModifiers, rawState),
   )
 
-  const baseUnrestPac = (state.units.clergy ?? 0) * 0.02 + (state.units.prelate ?? 0) * 0.15
+  const baseUnrestPac =
+    (state.units.clergy ?? 0) * 0.02 +
+    (state.units.prelate ?? 0) *
+      composeUnitStat('unit_output', 0.15, UNITS_DATA.prelate, state.activeModifiers, rawState)
   const composedPac = Math.max(
     0,
     composeStat('unrest_pacification', baseUnrestPac, state.activeModifiers, rawState),
@@ -654,7 +707,12 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     }
   } else if (state.ap > 0) {
     const auditChamberCount = state.units.audit_chamber ?? 0
-    state.bankruptcyGraceTimer = 30.0 + auditChamberCount * 10.0
+    state.bankruptcyGraceTimer = composeStat(
+      'bankruptcy_grace_seconds',
+      30.0 + auditChamberCount * 10.0,
+      state.activeModifiers,
+      rawState,
+    )
   }
 
   // Spontaneous Surprise Border Raids (GAME_RULES §8.3)

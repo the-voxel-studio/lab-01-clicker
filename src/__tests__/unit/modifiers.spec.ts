@@ -49,7 +49,7 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
       stat: 'tax_efficiency',
       op: 'addPct',
       value: 0.15,
-      resolverKey: 'law:isolationism',
+      resolverKey: 'max_3_provinces',
     }
 
     const stateSmall: RawEvaluationState = {
@@ -82,7 +82,7 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
       stat: 'gross_ap_rate',
       op: 'add',
       value: 2.0,
-      resolverKey: 'law:provincial_tithe',
+      resolverKey: 'per_province',
     }
     expect(composeStat('gross_ap_rate', 10, [titheMod], stateExpanded)).toBe(10 + 4 * 2.0)
 
@@ -92,7 +92,7 @@ describe('Universal Modifier Engine & Dynamic Resolvers (Gate A & D)', () => {
       stat: 'gross_ap_rate',
       op: 'add',
       value: 1.5,
-      resolverKey: 'law:monastic_scriptoria',
+      resolverKey: 'per_clergy',
     }
     expect(composeStat('gross_ap_rate', 0, [monasticMod], stateSmall)).toBe(4 * 1.5)
   })

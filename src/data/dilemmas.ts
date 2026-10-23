@@ -148,6 +148,16 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
             type: 'stat_modifier',
             modifier: {
               source: 'dilemma:princely_cousin',
+              stat: 'unit_upkeep',
+              op: 'addPct',
+              value: -0.1,
+              scope: { order: 'military' },
+            },
+          },
+          {
+            type: 'stat_modifier',
+            modifier: {
+              source: 'dilemma:princely_cousin',
               stat: 'threat_mitigation_rate',
               op: 'addPct',
               value: -0.15,
@@ -397,7 +407,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     trigger: (state) => (state.units.clergy ?? 0) + (state.units.prelate ?? 0) >= 5,
     choices: [
       {
-        text: 'Purchase bone for cathedral abbey (-450 AP, -20 Unrest)',
+        text: 'Purchase bone for cathedral abbey (-450 AP, -20 Unrest, +5% Prelate efficiency)',
         effects: [
           {
             type: 'instant_resource',
@@ -408,6 +418,16 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
             type: 'instant_resource',
             resource: 'unrest',
             amount: -20,
+          },
+          {
+            type: 'stat_modifier',
+            modifier: {
+              source: 'dilemma:false_relic_merchant',
+              stat: 'unit_output',
+              op: 'addPct',
+              value: 0.05,
+              scope: { unitId: 'prelate' },
+            },
           },
         ],
       },
@@ -555,15 +575,16 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
         ],
       },
       {
-        text: 'Reallocate administrative desks (+10% Admin output)',
+        text: 'Reallocate to supervisors (+10% Supervisor output)',
         effects: [
           {
             type: 'stat_modifier',
             modifier: {
               source: 'dilemma:ghost_scribes',
-              stat: 'gross_ap_rate',
+              stat: 'unit_output',
               op: 'addPct',
               value: 0.1,
+              scope: { unitId: 'supervisor' },
             },
           },
         ],
@@ -805,12 +826,22 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
         ],
       },
       {
-        text: 'Enforce secret double bookkeeping (+300 AP seized)',
+        text: 'Enforce secret double bookkeeping (+300 AP seized, +5% military upkeep)',
         effects: [
           {
             type: 'instant_resource',
             resource: 'ap',
             amount: 300,
+          },
+          {
+            type: 'stat_modifier',
+            modifier: {
+              source: 'dilemma:mutinous_quartermaster',
+              stat: 'unit_upkeep',
+              op: 'addPct',
+              value: 0.05,
+              scope: { order: 'military' },
+            },
           },
         ],
       },

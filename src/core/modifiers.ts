@@ -6,7 +6,16 @@
  * @module core/modifiers
  */
 
-import type { UnitId, StatKey, ResolverKey, Modifier, Effect, GameState } from './types'
+import type {
+  UnitId,
+  StatKey,
+  ResolverKey,
+  Modifier,
+  ModifierScope,
+  Effect,
+  GameState,
+  UnitBalanceDef,
+} from './types'
 import { addProvince, removeLastProvince } from './provinces'
 import { addUnrest, applyPopulationLoss } from './mutations'
 import { recordPeakPopulation } from './formulas'
@@ -45,27 +54,23 @@ export type DynamicModifierResolver = (
  * Resolvers must only read raw state fields and never call `getStat` or composeStat recursively.
  */
 export const DYNAMIC_MODIFIER_RESOLVERS: Record<ResolverKey, DynamicModifierResolver> = {
-  'law:isolationism': (state, mod) => ({
-    active: state.provinces <= 3,
-    value: mod.value,
-  }),
-  'law:provincial_tithe': (state, mod) => ({
+  per_province: (state, mod) => ({
     active: true,
     value: state.provinces * mod.value,
   }),
-  'law:border_fortifications': (state, mod) => ({
-    active: true,
-    value: state.provinces * mod.value,
-  }),
-  'law:feudal_levy': (state, mod) => ({
+  per_100_free_serfs: (state, mod) => ({
     active: true,
     value: Math.floor(state.freeSerfs / 100) * mod.value,
   }),
-  'law:monastic_scriptoria': (state, mod) => ({
+  per_clergy: (state, mod) => ({
     active: true,
     value: (state.units.clergy ?? 0) * mod.value,
   }),
-  'perk:iron_fist': (state, mod) => ({
+  max_3_provinces: (state, mod) => ({
+    active: state.provinces <= 3,
+    value: mod.value,
+  }),
+  unrest_at_least_30: (state, mod) => ({
     active: state.unrest >= 30,
     value: mod.value,
   }),
@@ -169,6 +174,40 @@ export function composeStat(
   const withAdd = baseValue + addSum
   const withAddPct = withAdd * (1 + addPctSum)
   return withAddPct * mulProduct
+}
+
+function scopeMatches(scope: ModifierScope, unit: UnitBalanceDef): boolean {
+  return (
+    (scope.order === undefined || scope.order === unit.order) &&
+    (scope.tier === undefined || scope.tier === unit.tier) &&
+    (scope.unitId === undefined || scope.unitId === unit.id)
+  )
+}
+
+/**
+ * Composes a unit scoped stat (`unit_upkeep`, `recruit_cost`, `unit_output`) for one unit type.
+ * Only modifiers of `stat` whose `scope` matches the unit are composed (same order as
+ * `composeStat`); a modifier without scope is ignored. The result is clamped at 0.
+ *
+ * @param stat - Unit scoped stat to compose.
+ * @param base - Per unit base value of the stat.
+ * @param unit - Unit definition the scopes are matched against.
+ * @param modifiers - Active modifiers.
+ * @param raw - Raw state for dynamic resolvers; without it, resolver modifiers are skipped.
+ * @returns The composed per unit value, never below 0.
+ */
+export function composeUnitStat(
+  stat: StatKey,
+  base: number,
+  unit: UnitBalanceDef,
+  modifiers: readonly Modifier[],
+  raw?: RawEvaluationState,
+): number {
+  const matching = modifiers.filter(
+    (mod) => mod.stat === stat && mod.scope !== undefined && scopeMatches(mod.scope, unit),
+  )
+  if (matching.length === 0) return Math.max(0, base)
+  return Math.max(0, composeStat(stat, base, matching, raw))
 }
 
 /**

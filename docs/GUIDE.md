@@ -657,7 +657,8 @@ export interface Modifier {
   value: number
   appliedAt?: number      // Application timestamp in seconds or tick
   expiresAt?: number      // Expiration timestamp in seconds
-  resolverKey?: ResolverKey // Strongly typed literal union identifier (e.g. 'law:isolationism')
+  resolverKey?: ResolverKey // Strongly typed literal union identifier (e.g. 'max_3_provinces')
+  scope?: ModifierScope   // { order?, tier?, unitId? }: units targeted by unit_upkeep, recruit_cost, unit_output
 }
 
 export type Effect =
@@ -677,7 +678,7 @@ export type DynamicModifierResolver = (
 ) => { active: boolean; value: number } | number
 ```
 **Safety Safeguards:**
-1. **Literal Union Typing:** `ResolverKey` is typed as a literal union (`'law:isolationism' | 'law:provincial_tithe' | ...`), never an arbitrary `string`.
+1. **Literal Union Typing:** `ResolverKey` is typed as a literal union (`'per_province' | 'per_100_free_serfs' | 'per_clergy' | 'max_3_provinces' | 'unrest_at_least_30'`), never an arbitrary `string`.
 2. **Cycle Prevention:** Resolvers only read the raw state (`state.provinces`, `state.units.clergy`, `state.unrest`, etc.) and are strictly forbidden from invoking `getStat` or recursive evaluators.
 
 ### 16.2 Fixed Composition Order & Per-Tick Stat Caching

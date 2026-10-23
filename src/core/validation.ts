@@ -21,6 +21,7 @@ import type {
   RunPhase,
   StatKey,
   UnitId,
+  UnitOrder,
 } from './types'
 
 /** Tolerance of the population invariant `totalPopulation = freeSerfs + sum(units)`. */
@@ -62,6 +63,28 @@ function isModifierOp(value: unknown): value is ModifierOp {
 function isResolverKey(value: unknown): value is ResolverKey {
   return RESOLVER_KEYS.some((key) => key === value)
 }
+
+function isUnitOrder(value: unknown): value is UnitOrder {
+  return value === 'people' || value === 'admin' || value === 'military'
+}
+
+function checkScope(scope: unknown, field: string): void {
+  if (!isRecord(scope)) {
+    return fail(field, 'expected an object')
+  }
+  if (scope.order !== undefined && !isUnitOrder(scope.order)) {
+    return fail(`${field}.order`, 'unknown unit order')
+  }
+  if (scope.tier !== undefined && scope.tier !== 1 && scope.tier !== 2) {
+    return fail(`${field}.tier`, 'expected 1 or 2')
+  }
+  if (scope.unitId !== undefined && !(typeof scope.unitId === 'string' && isUnitId(scope.unitId))) {
+    return fail(`${field}.unitId`, 'unknown unit id')
+  }
+}
+
+/** Stats composed per unit by `composeUnitStat`: the only ones a saved modifier may scope. */
+const UNIT_SCOPED_STATS: readonly StatKey[] = ['unit_upkeep', 'recruit_cost', 'unit_output']
 
 function fail(field: string, reason: string): never {
   throw new Error(`Save import failed: invalid '${field}' (${reason}).`)
@@ -112,6 +135,12 @@ function checkModifiers(value: unknown): void {
     }
     if (modifier.resolverKey !== undefined && !isResolverKey(modifier.resolverKey)) {
       return fail(`${field}.resolverKey`, 'unknown resolver key')
+    }
+    if (modifier.scope !== undefined) {
+      if (!UNIT_SCOPED_STATS.some((stat) => stat === modifier.stat)) {
+        return fail(`${field}.scope`, 'scope is only allowed on a unit scoped stat')
+      }
+      checkScope(modifier.scope, `${field}.scope`)
     }
   })
 }
@@ -258,7 +287,7 @@ export function validateGameState(
   }
 
   // Checked above: phase, units, provinces, provinceBiomes, activeLaws, ruleFlags, currentThreatId,
-  // currentLawDraft, currentDilemmaId, activeModifiers (stat, op, value, resolverKey),
+  // currentLawDraft, currentDilemmaId, activeModifiers (stat, op, value, resolverKey, scope),
   // capturedProvincesCount, totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come
   // from createInitialGameState and are not checked.
   const state = value as unknown as GameState

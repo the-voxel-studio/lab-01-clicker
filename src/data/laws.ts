@@ -34,9 +34,10 @@ export const LAWS_DATA: Record<string, LawDef> = {
         type: 'stat_modifier',
         modifier: {
           source: 'law:royal_scriptorium',
-          stat: 'gross_ap_rate',
+          stat: 'unit_output',
           op: 'addPct',
-          value: 0.25,
+          value: 0.5,
+          scope: { unitId: 'scribe' },
         },
       },
       {
@@ -63,6 +64,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
           stat: 'paperwork_friction',
           op: 'mul',
           value: 0.75,
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:general_cadastre',
+          stat: 'flat_upkeep',
+          op: 'add',
+          value: 2,
+          resolverKey: 'per_province',
         },
       },
       {
@@ -98,6 +109,26 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: 'Single Window Bureaucracy',
     description: 'Archivists grant double reduction | Supervisors -50% efficiency.',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:single_window_bureaucracy',
+          stat: 'unit_output',
+          op: 'mul',
+          value: 2,
+          scope: { unitId: 'archivist' },
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:single_window_bureaucracy',
+          stat: 'unit_output',
+          op: 'mul',
+          value: 0.5,
+          scope: { unitId: 'supervisor' },
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:single_window_bureaucracy',
@@ -146,6 +177,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
         },
       },
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:crown_monopolies',
+          stat: 'recruit_cost',
+          op: 'addPct',
+          value: 0.25,
+          scope: { tier: 1 },
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:crown_monopolies',
       },
@@ -164,6 +205,15 @@ export const LAWS_DATA: Record<string, LawDef> = {
           stat: 'paperwork_friction',
           op: 'addPct',
           value: 0.15,
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:chancery_red_tape',
+          stat: 'bankruptcy_grace_seconds',
+          op: 'add',
+          value: 20,
         },
       },
       {
@@ -199,6 +249,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: "Auditors' Inquisition",
     description: 'Audit Chamber grants double reduction | +15 Unrest at each audit.',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:auditors_inquisition',
+          stat: 'unit_output',
+          op: 'mul',
+          value: 2,
+          scope: { unitId: 'audit_chamber' },
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:auditors_inquisition',
@@ -329,6 +389,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
     description: 'Prevents soldier desertion below 90% Unrest only | Military recruit costs +30%.',
     effects: [
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:sanctuary_rights',
+          stat: 'recruit_cost',
+          op: 'addPct',
+          value: 0.3,
+          scope: { order: 'military' },
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:sanctuary_rights',
       },
@@ -347,7 +417,7 @@ export const LAWS_DATA: Record<string, LawDef> = {
           stat: 'pop_growth_rate',
           op: 'add',
           value: 0.08,
-          resolverKey: 'law:feudal_levy',
+          resolverKey: 'per_100_free_serfs',
         },
       },
       {
@@ -377,6 +447,26 @@ export const LAWS_DATA: Record<string, LawDef> = {
         },
       },
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:tithe_commutation',
+          stat: 'unit_upkeep',
+          op: 'set',
+          value: 0,
+          scope: { unitId: 'clergy' },
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:tithe_commutation',
+          stat: 'unit_upkeep',
+          op: 'set',
+          value: 0,
+          scope: { unitId: 'prelate' },
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:tithe_commutation',
       },
@@ -388,6 +478,35 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: 'Sumptuary Edicts',
     description: '-15% civil upkeep | Click critical chance -50%.',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:sumptuary_edicts',
+          stat: 'unit_upkeep',
+          op: 'addPct',
+          value: -0.15,
+          scope: { order: 'people' },
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:sumptuary_edicts',
+          stat: 'unit_upkeep',
+          op: 'addPct',
+          value: -0.15,
+          scope: { order: 'admin' },
+        },
+      },
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:sumptuary_edicts',
+          stat: 'click_critical_chance',
+          op: 'mul',
+          value: 0.5,
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:sumptuary_edicts',
@@ -447,6 +566,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
     description: '60% of threat power absorbed | Military upkeep +30%.',
     effects: [
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:standing_garrisons',
+          stat: 'unit_upkeep',
+          op: 'addPct',
+          value: 0.3,
+          scope: { order: 'military' },
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:standing_garrisons',
       },
@@ -458,6 +587,17 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: 'Merit Pay',
     description: '-30% military upkeep | Only effective if holding <= 3 provinces.',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:merit_pay',
+          stat: 'unit_upkeep',
+          op: 'addPct',
+          value: -0.3,
+          resolverKey: 'max_3_provinces',
+          scope: { order: 'military' },
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:merit_pay',
@@ -491,6 +631,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: 'Officer Academies',
     description: 'Sergeants and Captains count double | Soldier cost +20%.',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:officer_academies',
+          stat: 'recruit_cost',
+          op: 'addPct',
+          value: 0.2,
+          scope: { unitId: 'soldier' },
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:officer_academies',
@@ -547,6 +697,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
     description: 'Border Strongholds grant double defense | Military upkeep +10%.',
     effects: [
       {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:guerrilla_border_watch',
+          stat: 'unit_upkeep',
+          op: 'addPct',
+          value: 0.1,
+          scope: { order: 'military' },
+        },
+      },
+      {
         type: 'rule_flag',
         flag: 'law:guerrilla_border_watch',
       },
@@ -558,6 +718,16 @@ export const LAWS_DATA: Record<string, LawDef> = {
     name: 'Mercenary Capitulation',
     description: 'Hire Men-at-Arms with AP without consuming Serfs | Upkeep doubled (3.0 AP/s).',
     effects: [
+      {
+        type: 'stat_modifier',
+        modifier: {
+          source: 'law:mercenary_capitulation',
+          stat: 'unit_upkeep',
+          op: 'mul',
+          value: 2,
+          scope: { unitId: 'man_at_arms' },
+        },
+      },
       {
         type: 'rule_flag',
         flag: 'law:mercenary_capitulation',

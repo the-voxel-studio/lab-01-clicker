@@ -1,4 +1,4 @@
-import type { GameState, BiomeId, RuleFlag } from './types'
+import type { GameState, BiomeId, ResolverKey, RuleFlag } from './types'
 import { LAWS_DATA } from '@/data/laws'
 import { createInitialGameState } from './state'
 import { deriveStreamSeed } from './prng'
@@ -128,11 +128,21 @@ export function migrateV2ToV3(oldData: unknown): unknown {
   return newPayload
 }
 
+/** Legacy resolver keys of schema 3 saves and their schema 4 names. */
+const RESOLVER_RENAMES: Readonly<Record<string, ResolverKey>> = {
+  'law:isolationism': 'max_3_provinces',
+  'law:provincial_tithe': 'per_province',
+  'law:border_fortifications': 'per_province',
+  'law:feudal_levy': 'per_100_free_serfs',
+  'law:monastic_scriptoria': 'per_clergy',
+  'perk:iron_fist': 'unrest_at_least_30',
+}
+
 /**
  * Migrates a schema v3 save payload to schema v4.
  * Rebuilds `ruleFlags` from the `rule_flag` effects of the laws in `activeLaws` (catalog lookup,
- * deduplicated, unknown law ids skipped for validation to reject) and sets `currentThreatId` to
- * null.
+ * deduplicated, unknown law ids skipped for validation to reject), sets `currentThreatId` to
+ * null and renames the legacy `resolverKey` of saved `activeModifiers` (`RESOLVER_RENAMES`).
  *
  * @param oldData - Raw v3 payload to migrate.
  * @returns Migrated SerializedSavePayload conforming to schema v4.
@@ -161,10 +171,22 @@ export function migrateV3ToV4(oldData: unknown): unknown {
     }
   }
 
+  const newState: Record<string, unknown> = { ...oldState, ruleFlags, currentThreatId: null }
+  const oldModifiers: unknown = oldState.activeModifiers
+  if (Array.isArray(oldModifiers)) {
+    newState.activeModifiers = oldModifiers.map((modifier: unknown) => {
+      if (!isRecord(modifier) || typeof modifier.resolverKey !== 'string') return modifier
+      const renamed = Object.hasOwn(RESOLVER_RENAMES, modifier.resolverKey)
+        ? RESOLVER_RENAMES[modifier.resolverKey]
+        : undefined
+      return renamed === undefined ? modifier : { ...modifier, resolverKey: renamed }
+    })
+  }
+
   const newPayload: unknown = {
     schemaVersion: 4,
     timestamp: oldData.timestamp,
-    state: { ...oldState, ruleFlags, currentThreatId: null },
+    state: newState,
   }
   return newPayload
 }

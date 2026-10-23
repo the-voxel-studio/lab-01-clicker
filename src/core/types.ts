@@ -86,7 +86,6 @@ export interface BiomeDef {
 /** Runtime list of every stat key that Modifiers can alter. */
 export const STAT_KEYS = [
   'gross_ap_rate',
-  'net_ap_rate',
   'click_power',
   'paperwork_friction',
   'unrest_generation',
@@ -97,6 +96,12 @@ export const STAT_KEYS = [
   'tax_efficiency',
   'battle_loot_multiplier',
   'threat_mitigation_rate',
+  'unit_upkeep',
+  'recruit_cost',
+  'unit_output',
+  'flat_upkeep',
+  'click_critical_chance',
+  'bankruptcy_grace_seconds',
 ] as const
 
 /** Stat keys that can be dynamically altered by Modifiers. */
@@ -110,16 +115,25 @@ export type ModifierOp = (typeof MODIFIER_OPS)[number]
 
 /** Runtime list of every supported dynamic conditional resolver key. */
 export const RESOLVER_KEYS = [
-  'law:isolationism',
-  'law:provincial_tithe',
-  'law:border_fortifications',
-  'law:feudal_levy',
-  'law:monastic_scriptoria',
-  'perk:iron_fist',
+  'per_province',
+  'per_100_free_serfs',
+  'per_clergy',
+  'max_3_provinces',
+  'unrest_at_least_30',
 ] as const
 
 /** Literal union of supported dynamic conditional resolver keys. */
 export type ResolverKey = (typeof RESOLVER_KEYS)[number]
+
+/**
+ * Units a unit scoped modifier targets: it matches a unit when every field it sets equals the
+ * unit's (an empty scope matches every unit).
+ */
+export interface ModifierScope {
+  order?: UnitOrder
+  tier?: UnitTier
+  unitId?: UnitId
+}
 
 /** Universal Modifier Contract for laws, perks, edicts, and faction traits. */
 export interface Modifier {
@@ -147,6 +161,11 @@ export interface Modifier {
    * Evaluated dynamically against current GameState, never serialized as a function.
    */
   resolverKey?: ResolverKey
+  /**
+   * Units targeted by a unit scoped stat (`unit_upkeep`, `recruit_cost`, `unit_output`), read by
+   * `composeUnitStat`; a modifier without scope never applies to a unit scoped stat.
+   */
+  scope?: ModifierScope
 }
 
 /** Typed rule flag raised by a law effect and read through `hasRule`. */
