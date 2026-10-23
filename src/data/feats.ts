@@ -6,6 +6,7 @@
 
 import type { GameState } from '@/core/types'
 
+/** Identifier of a royal feat. */
 export type FeatId =
   | 'royal_pacifist'
   | 'scout_butcher'
@@ -16,6 +17,7 @@ export type FeatId =
   | 'unyielding_governance'
   | 'imperial_barony'
 
+/** Static definition of one royal feat. */
 export interface FeatDef {
   id: FeatId
   title: string
@@ -23,6 +25,7 @@ export interface FeatDef {
   rewardArchivePoints: number
 }
 
+/** Catalog of the eight royal feats, each worth +0.5 archive point once (GAME_RULES §19). */
 export const FEATS_DATA: Record<FeatId, FeatDef> = {
   royal_pacifist: {
     id: 'royal_pacifist',
@@ -45,8 +48,7 @@ export const FEATS_DATA: Record<FeatId, FeatDef> = {
   iron_bailout: {
     id: 'iron_bailout',
     title: 'Iron Bailout',
-    description:
-      'Survive a run after triggering the Lombard Bailout at >= 20 seconds of bankruptcy.',
+    description: 'Win a run after accepting the Lombard Bailout.',
     rewardArchivePoints: 0.5,
   },
   croesus_of_the_realm: {
@@ -75,8 +77,16 @@ export const FEATS_DATA: Record<FeatId, FeatDef> = {
   },
 }
 
+/** Tells whether a value is a known feat id. */
+export function isFeatId(value: unknown): value is FeatId {
+  return typeof value === 'string' && Object.hasOwn(FEATS_DATA, value)
+}
+
 /**
- * Evaluates all unlocked royal feats based on the current GameState.
+ * Evaluates the royal feats a run state satisfies.
+ * The Six Seals and Imperial Barony read the run peaks (`peakActiveLaws`, `peakProvinces`, or the
+ * current counts when higher); Iron Bailout needs a victory and an accepted Lombard Bailout, which
+ * is only offered at the 20-second mark of the bankruptcy countdown (GAME_RULES §14.4).
  *
  * @param state - The active GameState snapshot.
  * @returns Array of unlocked FeatId values.
@@ -104,7 +114,7 @@ export function evaluateFeats(state: GameState): FeatId[] {
     completed.push('croesus_of_the_realm')
   }
 
-  if (state.activeLaws.length >= 6) {
+  if (Math.max(state.peakActiveLaws, state.activeLaws.length) >= 6) {
     completed.push('the_six_seals')
   }
 
@@ -112,7 +122,7 @@ export function evaluateFeats(state: GameState): FeatId[] {
     completed.push('unyielding_governance')
   }
 
-  if (state.provinces >= 8) {
+  if (Math.max(state.peakProvinces, state.provinces) >= 8) {
     completed.push('imperial_barony')
   }
 

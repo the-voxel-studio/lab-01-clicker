@@ -10,7 +10,7 @@ import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { BIOMES_DATA } from '@/data/balance'
 
 /**
- * Adds one province of the given biome and keeps the province counter in sync.
+ * Adds one province of the given biome and keeps the province counter and its run peak in sync.
  *
  * @param state - GameState to mutate.
  * @param biome - Biome of the new province.
@@ -18,6 +18,7 @@ import { BIOMES_DATA } from '@/data/balance'
 export function addProvince(state: GameState, biome: BiomeId): void {
   state.provinceBiomes.push(biome)
   state.provinces = state.provinceBiomes.length
+  state.peakProvinces = Math.max(state.peakProvinces, state.provinces)
 }
 
 /**

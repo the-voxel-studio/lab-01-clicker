@@ -13,6 +13,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   isSerializedSavePayload,
 } from '@/core/migrations'
+import { createArchiveData } from '@/core/archives'
 import { createInitialGameState } from '@/core/state'
 import { validateGameState } from '@/core/validation'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
@@ -26,7 +27,12 @@ function encode(payload: unknown): string {
 function encodeCurrent(mutate: (state: Record<string, unknown>) => void): string {
   const state: Record<string, unknown> = { ...createInitialGameState() }
   mutate(state)
-  return encode({ schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1, state })
+  return encode({
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    timestamp: 1,
+    state,
+    archive: createArchiveData(),
+  })
 }
 
 describe('Save State Versioning & Migrations (Gate B)', () => {
@@ -35,7 +41,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     state.ap = 999.5
     state.provinces = 4
 
-    const encoded = exportSaveToBase64(state)
+    const encoded = exportSaveToBase64(state, createArchiveData())
     expect(encoded.startsWith(SAVE_PREFIX)).toBe(true)
 
     // Base64 payload is non-empty
@@ -54,8 +60,8 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     state.units.soldier = 10
     state.archivePoints = 2
 
-    const encoded = exportSaveToBase64(state)
-    const imported = importSaveFromBase64(encoded)
+    const encoded = exportSaveToBase64(state, createArchiveData())
+    const imported = importSaveFromBase64(encoded).state
 
     expect(imported.ap).toBeCloseTo(1250.75, 2)
     expect(imported.totalPopulation).toBe(220)
@@ -65,17 +71,19 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.archivePoints).toBe(2)
   })
 
-  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v4 migration pipeline', () => {
+  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v5 migration pipeline', () => {
     expect(isSerializedSavePayload(fixtureV1)).toBe(true)
     expect(fixtureV1.schemaVersion).toBe(1)
-    expect(CURRENT_SCHEMA_VERSION).toBe(4)
+    expect(CURRENT_SCHEMA_VERSION).toBe(5)
 
     // Encode raw v1 fixture directly into save string
     const jsonStr = JSON.stringify(fixtureV1)
     const base64Str = Buffer.from(jsonStr, 'utf-8').toString('base64')
     const encodedV1 = `${SAVE_PREFIX}${base64Str}`
 
-    const imported = importSaveFromBase64(encodedV1)
+    const imported = importSaveFromBase64(encodedV1).state
+    expect(importSaveFromBase64(encodedV1).archive.points).toBe(1)
+    expect(imported.archivePoints).toBe(0)
     expect(imported.runId).toBe('fixture_run_v1')
     expect(imported.ap).toBeCloseTo(320.5, 1)
     expect(imported.units.scribe).toBe(8)
@@ -169,7 +177,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(fixtureV2.schemaVersion).toBe(2)
     expect('capturedProvincesCount' in fixtureV2.state).toBe(false)
 
-    const imported = importSaveFromBase64(encode(fixtureV2))
+    const imported = importSaveFromBase64(encode(fixtureV2)).state
     expect(imported.runId).toBe('fixture_run_v2')
     expect(imported.capturedProvincesCount).toBe(0)
     expect(imported.provinces).toBe(4)
@@ -183,7 +191,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     delete state.ruleFlags
     delete state.currentThreatId
     state.activeLaws = ['law:sanctuary_rights', 'law:papal_concordat', 'law:royal_scriptorium']
-    const imported = importSaveFromBase64(encode({ schemaVersion: 3, timestamp: 1, state }))
+    const imported = importSaveFromBase64(encode({ schemaVersion: 3, timestamp: 1, state })).state
     expect([...imported.ruleFlags].sort()).toEqual(['law:papal_concordat', 'law:sanctuary_rights'])
     expect(imported.currentThreatId).toBeNull()
   })
@@ -210,7 +218,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
   it('rebuilds provinceBiomes to match provinces when migrating v2 to v3', () => {
     const pad = structuredClone(fixtureV2)
     pad.state.provinces = 6
-    expect(importSaveFromBase64(encode(pad)).provinceBiomes).toEqual([
+    expect(importSaveFromBase64(encode(pad)).state.provinceBiomes).toEqual([
       'heartland',
       'farmlands',
       'trade_hub',
@@ -221,13 +229,16 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
 
     const cut = structuredClone(fixtureV2)
     cut.state.provinces = 2
-    expect(importSaveFromBase64(encode(cut)).provinceBiomes).toEqual(['heartland', 'farmlands'])
+    expect(importSaveFromBase64(encode(cut)).state.provinceBiomes).toEqual([
+      'heartland',
+      'farmlands',
+    ])
   })
 
   it('produces a valid state when a v1 save has zero provinces', () => {
     const v1 = structuredClone(fixtureV1)
     v1.state.provinces = 0
-    const imported = importSaveFromBase64(encode(v1))
+    const imported = importSaveFromBase64(encode(v1)).state
     expect(imported.provinces).toBe(0)
     expect(imported.provinceBiomes).toEqual([])
   })
@@ -341,13 +352,13 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
       encodeCurrent((s) => {
         s.tickRemainderSeconds = 0.02
       }),
-    )
+    ).state
     expect(kept.tickRemainderSeconds).toBe(0.02)
     const absent = importSaveFromBase64(
       encodeCurrent((s) => {
         delete s.tickRemainderSeconds
       }),
-    )
+    ).state
     expect(absent.tickRemainderSeconds).toBe(0)
   })
 
@@ -394,7 +405,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
         delete s.edictUsageCounts
         delete s.clickTokens
       }),
-    )
+    ).state
     expect(imported.currentLawDraft).toEqual([])
     expect(imported.clickTokens).toBeGreaterThan(0)
   })
@@ -454,6 +465,6 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
       state.freeSerfs = 100
       state.totalPopulation = 100
     })
-    expect(importSaveFromBase64(encoded).currentDilemmaId).toBe(taxable.id)
+    expect(importSaveFromBase64(encoded).state.currentDilemmaId).toBe(taxable.id)
   })
 })

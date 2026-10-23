@@ -141,7 +141,7 @@ describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
     expect(source.currentTarget!.power).toBe(20)
   })
 
-  it('fully resets all state fields on RESTART_RUN while preserving archivePoints', () => {
+  it('fully resets all state fields on RESTART_RUN, run archive points included', () => {
     const state = createInitialGameState({ seed: 42 })
     state.archivePoints = 15
     state.units.peasant = 10
@@ -157,7 +157,7 @@ describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
 
     expect(state.seed).toBe(99)
     expect(state.runId).toBe('run_99')
-    expect(state.archivePoints).toBe(15) // Preserved
+    expect(state.archivePoints).toBe(0) // Run points live in ArchiveData once the run is concluded
     expect(state.units.peasant).toBe(0) // Reset
     expect(state.units.scribe).toBe(0) // Reset
     expect(state.ap).toBe(BALANCE.STARTING_AP) // Reset to 50

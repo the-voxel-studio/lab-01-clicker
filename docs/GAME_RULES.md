@@ -532,6 +532,9 @@ Players can dismiss units during `ACTIVE_CYCLE` or `AWAIT_RESUME` to cut ongoing
 
 Archive Points earned during runs can be invested permanently into Crown Charters. Players may **freely reset and redistribute points** between runs.
 
+- **Run points versus archive points:** `state.archivePoints` counts only the points earned during the current run (passed deadlines, rejected law drafts, dilemma choices). They may go negative when a dilemma spends more points than the run has earned so far. When the run is concluded (`concludeRun`), they are added to the persistent `ArchiveData.points`, together with +0.5 per feat unlocked for the first time (§19); the archive total never drops below 0. A run is concluded once: concluding it again awards nothing.
+- **Perks:** investing costs the perk's points; a reset refunds every invested perk. Perk effects apply only to a run started from the archive (`startRun`); a bare `RESTART_RUN` starts with no perk and 0 run points.
+
 | Perk | Cost | Permanent Effect |
 | :--- | :---: | :--- |
 | **Starting Treasury** | 1 pt | Start every run with +150 AP. |
@@ -570,7 +573,7 @@ To prevent cognitive overload while preserving discovery, the Steward guides new
 To ensure run preservation across cache purges, devices, and browser sessions:
 
 1. **Export Mechanism:**
-   - Serializes current active `GameState` and accumulated `ArchiveData` into a compact JSON string.
+   - Serializes current active `GameState` and accumulated `ArchiveData` into a compact JSON string: `{ schemaVersion, timestamp, state, archive }`.
    - Encodes the payload as a Base64 string prefixed with an encoding format header: `GRA-v1:<base64-payload>`.
    - The `GRA-v1:` prefix designates the envelope encoding format version and remains stable across versions. State schema versioning is managed inside the JSON payload via `schemaVersion: number` (e.g. 1, 2, ...), allowing sequential schema migrations upon import.
    - Copies directly to the user's clipboard in 1 click.
@@ -578,19 +581,20 @@ To ensure run preservation across cache purges, devices, and browser sessions:
    - Opens an import text modal.
    - Validates the `GRA-v1:` prefix and verifies `schemaVersion <= CURRENT_SCHEMA_VERSION`.
    - Applies sequential schema migrations (`1 -> 2`, etc.) to restore the state cleanly without requiring a page reload.
+   - A save older than schema 5 carries no archive: it receives an empty archive holding the save's former `archivePoints`, and its run points restart at 0. The archive is validated on import (finite points >= 0, known and unique perk and feat ids).
 
 ---
 
 ## 19. Royal Feats & Achievements System
 
-Eight thematic achievements incentivize exploring diverse playstyles. Each unlocked achievement permanently awards **+0.5 Archive Points** toward meta-progression:
+Eight thematic achievements incentivize exploring diverse playstyles. Each unlocked achievement permanently awards **+0.5 Archive Points** toward meta-progression, once per feat across all runs, when the run that unlocks it is concluded (§15). "Simultaneously" means at any moment of the run (the engine tracks the run peaks of active laws and provinces). Iron Bailout is a victory after accepting the Lombard Bailout, which is only offered at the 20-second mark of the bankruptcy countdown (§14.4):
 
 | Feat | Title | Condition | Reward |
 | :---: | :--- | :--- | :---: |
 | 1 | **Royal Pacifist** | Win a run without recruiting a single military unit. | +0.5 Archive Pt |
 | 2 | **Scout Butcher** | Sacrifice $\ge 20$ scouts in reconnaissance rerolls across a single run. | +0.5 Archive Pt |
 | 3 | **Fiscal Paradise** | Win a run maintaining tax rate $\le 15\%$ at all times. | +0.5 Archive Pt |
-| 4 | **Iron Bailout** | Survive a run after triggering the Lombard Bailout at $\ge 20$ seconds of bankruptcy. | +0.5 Archive Pt |
+| 4 | **Iron Bailout** | Win a run after accepting the Lombard Bailout (§14.4). | +0.5 Archive Pt |
 | 5 | **Crœsus of the Realm** | Produce $> 1,000,000$ cumulative AP in a single run. | +0.5 Archive Pt |
 | 6 | **The Six Seals** | Enact and maintain 6 active laws simultaneously. | +0.5 Archive Pt |
 | 7 | **Unyielding Governance** | Win a run with zero strikes (no Royal Pardon used). | +0.5 Archive Pt |

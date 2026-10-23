@@ -29,6 +29,7 @@ import {
   exportSaveToBase64,
   importSaveFromBase64,
 } from '@/core/migrations'
+import { createArchiveData } from '@/core/archives'
 import { LAWS_DATA } from '@/data/laws'
 import type { CampaignTarget } from '@/core/types'
 import { PRNG } from '@/core/prng'
@@ -559,7 +560,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
   describe('military laws and saves', () => {
     function encode(schemaVersion: number, state: unknown): string {
       return `${SAVE_PREFIX}${Buffer.from(
-        JSON.stringify({ schemaVersion, timestamp: 1, state }),
+        JSON.stringify({ schemaVersion, timestamp: 1, state, archive: createArchiveData() }),
         'utf-8',
       ).toString('base64')}`
     }
@@ -588,7 +589,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
         state.activeLaws.push(lawId)
       }
       state.currentTarget = { ...target }
-      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(imported.activeModifiers).toEqual(state.activeModifiers)
       expect(imported.ruleFlags).toEqual(state.ruleFlags)
       expect(hasRule(imported, 'law:vanguard_drills')).toBe(true)
@@ -639,7 +640,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
           { source: 'kept', stat: 'gross_ap_rate', op: 'add', value: 1 },
         ],
       }
-      const imported = importSaveFromBase64(encode(3, state))
+      const imported = importSaveFromBase64(encode(3, state)).state
       expect(imported.activeModifiers).toEqual([
         {
           source: 'archive:spymaster_network',
@@ -722,7 +723,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       state.totalPopulation = 110
       state.freeSerfs = 0
       for (const effect of LAWS_DATA['law:officer_academies']!.effects) applyEffect(effect, state)
-      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(calculateMilitaryPower(imported)).toBe(calculateMilitaryPower(state))
       expect(calculateGrossApRate(imported).total).toBe(calculateGrossApRate(state).total)
     })
@@ -939,7 +940,7 @@ describe('Factions and scheduled threats (GAME_RULES 7.5, 8.1)', () => {
 describe('Campaign target faction on save import', () => {
   const encode = (schemaVersion: number, state: unknown): string =>
     `${SAVE_PREFIX}${Buffer.from(
-      JSON.stringify({ schemaVersion, timestamp: 1, state }),
+      JSON.stringify({ schemaVersion, timestamp: 1, state, archive: createArchiveData() }),
       'utf-8',
     ).toString('base64')}`
   const legacy = (lootType: string) => ({
@@ -960,7 +961,7 @@ describe('Campaign target faction on save import', () => {
     }
     for (const [loot, faction] of Object.entries(expected)) {
       const state = { ...createInitialGameState(), currentTarget: legacy(loot) }
-      expect(importSaveFromBase64(encode(3, state)).currentTarget?.factionId).toBe(faction)
+      expect(importSaveFromBase64(encode(3, state)).state.currentTarget?.factionId).toBe(faction)
     }
   })
 

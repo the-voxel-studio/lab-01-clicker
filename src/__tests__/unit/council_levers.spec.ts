@@ -23,6 +23,7 @@ import {
   exportSaveToBase64,
   importSaveFromBase64,
 } from '@/core/migrations'
+import { createArchiveData } from '@/core/archives'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { hasRule } from '@/core/rules'
 import { LAWS_DATA } from '@/data/laws'
@@ -88,7 +89,12 @@ function withNetRate(state: GameState, gross: number, flatUpkeep = 0): void {
 
 function encodeSave(state: Record<string, unknown>): string {
   return `${SAVE_PREFIX}${Buffer.from(
-    JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1, state }),
+    JSON.stringify({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 1,
+      state,
+      archive: createArchiveData(),
+    }),
     'utf-8',
   ).toString('base64')}`
 }
@@ -194,7 +200,7 @@ describe('Task 3: demography and council levers', () => {
     it('survives export and import with its order scope', () => {
       const state = createInitialGameState()
       enact(state, 'law:census_edict')
-      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(imported.activeModifiers).toEqual(state.activeModifiers)
       expect(calculateOrderCaps(1000, imported.activeModifiers).admin).toBe(120)
     })
@@ -339,7 +345,7 @@ describe('Task 3: demography and council levers', () => {
     it('survive export and import', () => {
       const state = createInitialGameState()
       choose(state, 'dilemma:crowns_forced_loan', 0)
-      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(imported.activeModifiers).toEqual(state.activeModifiers)
       expect(imported.activeModifiers[0]?.untilNextAudit).toBe(true)
     })

@@ -46,6 +46,8 @@ export function createEmptyUnitRoster(): Record<UnitId, number> {
  * Creates a pristine, fully initialized GameState for a new run.
  * Baseline values follow GAME_RULES §2.1 and BALANCE definitions.
  *
+ * `peakActiveLaws` and `peakProvinces` default to the resulting `activeLaws.length` and `provinces`.
+ *
  * @param overrides - Optional property overrides for testing or seeded runs.
  * @returns Complete GameState ready for simulation.
  */
@@ -133,6 +135,9 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
 
     // Meta & Persistence
     archivePoints: 0,
+    archiveConcluded: false,
+    peakActiveLaws: 0,
+    peakProvinces: BALANCE.STARTING_PROVINCES,
     scoutsSacrificed: 0,
     militaryRecruitedCount: 0,
     taxRateViolated15: false,
@@ -146,9 +151,13 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     defeatReason: null,
   }
 
+  const activeLaws = [...(overrides.activeLaws ?? baseState.activeLaws)]
+  const provinces = overrides.provinces ?? baseState.provinces
   return {
     ...baseState,
     ...overrides,
+    peakActiveLaws: overrides.peakActiveLaws ?? activeLaws.length,
+    peakProvinces: overrides.peakProvinces ?? provinces,
     rngStreams: {
       ...baseState.rngStreams,
       ...overrides.rngStreams,
@@ -162,7 +171,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
       ...baseState.unlockedPatents,
       ...overrides.unlockedPatents,
     },
-    activeLaws: [...(overrides.activeLaws ?? baseState.activeLaws)],
+    activeLaws,
     ruleFlags: [...(overrides.ruleFlags ?? baseState.ruleFlags)],
     currentLawDraft: [...(overrides.currentLawDraft ?? baseState.currentLawDraft)],
     currentTarget:

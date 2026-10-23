@@ -27,6 +27,7 @@ import {
   exportSaveToBase64,
   importSaveFromBase64,
 } from '@/core/migrations'
+import { createArchiveData } from '@/core/archives'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { UNITS_DATA } from '@/data/balance'
 import { LAWS_DATA } from '@/data/laws'
@@ -430,7 +431,7 @@ describe('Task 2: unit scoped economy levers', () => {
       state.activeLaws = ['law:merit_pay']
       enact(state, 'law:merit_pay')
       const before = calculateUpkeep(state, config)
-      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(imported.activeModifiers).toEqual(state.activeModifiers)
       expect(calculateUpkeep(imported, config)).toBe(before)
     })
@@ -441,7 +442,12 @@ describe('Task 2: unit scoped economy levers', () => {
         { source: 'x', stat: 'gross_ap_rate', op: 'add', value: 1, scope: { order: 'admin' } },
       ]
       const encoded = `${SAVE_PREFIX}${Buffer.from(
-        JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1, state }),
+        JSON.stringify({
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          timestamp: 1,
+          state,
+          archive: createArchiveData(),
+        }),
         'utf-8',
       ).toString('base64')}`
       expect(() => importSaveFromBase64(encoded)).toThrow(
@@ -455,7 +461,12 @@ describe('Task 2: unit scoped economy levers', () => {
         const state: Record<string, unknown> = { ...createInitialGameState() }
         state.activeModifiers = [{ source: 'x', stat: 'unit_upkeep', op: 'add', value: 1, scope }]
         const encoded = `${SAVE_PREFIX}${Buffer.from(
-          JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1, state }),
+          JSON.stringify({
+            schemaVersion: CURRENT_SCHEMA_VERSION,
+            timestamp: 1,
+            state,
+            archive: createArchiveData(),
+          }),
           'utf-8',
         ).toString('base64')}`
         expect(() => importSaveFromBase64(encoded)).toThrow(/activeModifiers\[0\]\.scope/)
@@ -485,7 +496,7 @@ describe('Task 2: unit scoped economy levers', () => {
         JSON.stringify({ schemaVersion: 3, timestamp: 1, state }),
         'utf-8',
       ).toString('base64')}`
-      const imported = importSaveFromBase64(encoded)
+      const imported = importSaveFromBase64(encoded).state
       expect(imported.activeModifiers.map((m) => m.resolverKey)).toEqual(
         oldKeys.map(([, renamed]) => renamed),
       )

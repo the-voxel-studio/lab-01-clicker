@@ -11,6 +11,7 @@ import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { dispatch, hasAffordableChoice } from '@/core/commands'
 import { exportSaveToBase64, importSaveFromBase64 } from '@/core/migrations'
+import { createArchiveData } from '@/core/archives'
 import { hasRule } from '@/core/rules'
 import { applyEffect } from '@/core/modifiers'
 
@@ -136,7 +137,7 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
         true,
       )
 
-      const imported = importSaveFromBase64(exportSaveToBase64(state))
+      const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(imported.ruleFlags).toEqual(state.ruleFlags)
       expect(hasRule(imported, 'law:sanctuary_rights')).toBe(true)
     })

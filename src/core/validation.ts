@@ -10,6 +10,9 @@ import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { FACTIONS_DATA } from '@/data/threats'
+import { isArchivePerkId } from '@/data/archives'
+import { isFeatId } from '@/data/feats'
+import type { ArchiveData } from './archives'
 import { ALLOWED_COMMANDS_BY_PHASE } from './phases'
 import { canAffordEffects } from './modifiers'
 import { calculateNetApRate } from './engine'
@@ -229,7 +232,8 @@ export function assertPresentFieldShapes(state: Record<string, unknown>): void {
  * Validates an untrusted value as a complete GameState.
  * Checks the run phase, unit ids and counts, biomes, active laws, rule flags, `currentThreatId`,
  * modifiers, `currentTarget` (null or a complete target), the province invariant (`provinces === provinceBiomes.length`),
- * `capturedProvincesCount`, the population invariant
+ * `capturedProvincesCount`, the run peaks (`peakActiveLaws`, `peakProvinces`), `archiveConcluded`,
+ * the run `archivePoints` (finite, negative allowed), the population invariant
  * (`|totalPopulation - freeSerfs - sum(units)| < 1e-6`), and `tickRemainderSeconds` (finite,
  * in [0, config.balance.FIXED_STEP_SECONDS)).
  *
@@ -329,6 +333,17 @@ export function validateGameState(
     return fail('totalPopulation', 'must equal freeSerfs plus the sum of units')
   }
 
+  for (const field of ['peakActiveLaws', 'peakProvinces']) {
+    if (!isCount(value[field])) {
+      return fail(field, 'expected a finite integer >= 0')
+    }
+  }
+  if (typeof value.archiveConcluded !== 'boolean') {
+    return fail('archiveConcluded', 'expected a boolean')
+  }
+  // Run points may be negative: a dilemma can spend more than the run earned so far.
+  checkFiniteNumber(value, 'archivePoints')
+
   const remainder = checkFiniteNumber(value, 'tickRemainderSeconds')
   const step = config.balance.FIXED_STEP_SECONDS
   if (remainder < 0 || remainder >= step) {
@@ -337,7 +352,8 @@ export function validateGameState(
 
   // Checked above: phase, units, provinces, provinceBiomes, activeLaws, ruleFlags, currentThreatId,
   // currentLawDraft, currentDilemmaId, activeModifiers (stat, op, value, resolverKey, scope), currentTarget,
-  // capturedProvincesCount, totalPopulation, freeSerfs, tickRemainderSeconds. Other fields come
+  // capturedProvincesCount, totalPopulation, freeSerfs, peakActiveLaws, peakProvinces,
+  // archiveConcluded, archivePoints, tickRemainderSeconds. Other fields come
   // from createInitialGameState and are not checked.
   const state = value as unknown as GameState
   if (state.phase === 'COUNCIL_DILEMMA') {
@@ -355,4 +371,45 @@ export function validateGameState(
     }
   }
   return state
+}
+
+/** Checks that a value is an array of known ids without duplicates and returns a typed copy. */
+function checkUniqueIds<T>(value: unknown, field: string, isKnown: (id: unknown) => id is T): T[] {
+  if (!Array.isArray(value)) {
+    return fail(field, 'expected an array')
+  }
+  const ids: T[] = []
+  value.forEach((id: unknown, index) => {
+    if (!isKnown(id)) {
+      return fail(`${field}[${index}]`, 'unknown id')
+    }
+    if (ids.includes(id)) {
+      return fail(`${field}[${index}]`, 'duplicate id')
+    }
+    ids.push(id)
+  })
+  return ids
+}
+
+/**
+ * Validates an untrusted value as ArchiveData: finite `points` >= 0 and known, unique perk and
+ * feat ids. Whether the invested perks were paid for cannot be checked.
+ *
+ * @param value - Candidate archive from a save payload.
+ * @returns A validated copy of the archive.
+ * @throws Error naming the first invalid field.
+ */
+export function validateArchiveData(value: unknown): ArchiveData {
+  if (!isRecord(value)) {
+    return fail('archive', 'expected an object')
+  }
+  const { points } = value
+  if (typeof points !== 'number' || !Number.isFinite(points) || points < 0) {
+    return fail('archive.points', 'expected a finite number >= 0')
+  }
+  return {
+    points,
+    investedPerks: checkUniqueIds(value.investedPerks, 'archive.investedPerks', isArchivePerkId),
+    unlockedFeats: checkUniqueIds(value.unlockedFeats, 'archive.unlockedFeats', isFeatId),
+  }
 }

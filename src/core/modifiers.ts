@@ -275,7 +275,8 @@ export function applyEffect(effect: Effect, state: GameState, netApRate?: number
           }
           break
         case 'archive_points':
-          state.archivePoints = Math.max(0, state.archivePoints + effect.amount)
+          // Run points may go negative; concludeRun clamps the archive total at 0.
+          state.archivePoints += effect.amount
           break
       }
       break

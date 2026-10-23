@@ -570,7 +570,7 @@ Subject to **at most 1 edict per deadline**, **+50% escalating penalty per prior
 ## 12. Meta-Progression (The National Archives) & Royal Feats
 
 ### 12.1 Archive Perks (Persistent Crown Charters)
-Archive points earned from completed deadlines, victories, or law rejections are invested permanently:
+Archive points earned during a run (passed deadlines, law rejections, dilemmas) are added to the persistent archive when the run is concluded, then invested permanently:
 | Perk | Cost | Permanent Effect |
 | :--- | :---: | :--- |
 | **Starting Treasury** | 1 pt | Start every run with +150 AP. |
@@ -583,11 +583,11 @@ Archive points earned from completed deadlines, victories, or law rejections are
 | **Sixth Law Slot** | 10 pts | Unlocks a permanent 6th active law slot. |
 
 ### 12.2 Royal Feats (Achievements)
-Unlocking each feat awards **+0.5 Archive Points**:
+Unlocking each feat awards **+0.5 Archive Points**, once per feat across all runs:
 1. **Royal Pacifist:** Win a run without recruiting a single military unit.
 2. **Scout Butcher:** Sacrifice $\ge 20$ scouts in recon rerolls across a single run.
 3. **Fiscal Paradise:** Win maintaining tax rate $\le 15\%$ at all times.
-4. **Iron Bailout:** Survive a run after triggering the Lombard Bailout.
+4. **Iron Bailout:** Win a run after accepting the Lombard Bailout (offered at the 20-second mark of the bankruptcy countdown).
 5. **Crœsus of the Realm:** Produce $> 1,000,000$ cumulative AP in a single run.
 6. **The Six Seals:** Enact and maintain 6 active laws simultaneously.
 7. **Unyielding Governance:** Win a run with zero strikes (no Royal Pardon used).
@@ -705,6 +705,7 @@ export interface SerializedSavePayload {
   schemaVersion: number    // e.g. 1, 2, 3
   timestamp: number
   state: GameState
+  archive?: ArchiveData    // present from schema 5 on
 }
 ```
 

@@ -6,6 +6,7 @@
 
 import type { GameState } from '@/core/types'
 
+/** Identifier of a National Archives perk. */
 export type ArchivePerkId =
   | 'starting_treasury'
   | 'ancient_cadastre'
@@ -16,6 +17,7 @@ export type ArchivePerkId =
   | 'royal_chronicle'
   | 'sixth_law_slot'
 
+/** Static definition of one National Archives perk. */
 export interface ArchivePerkDef {
   id: ArchivePerkId
   name: string
@@ -24,6 +26,7 @@ export interface ArchivePerkDef {
   effectDescription: string
 }
 
+/** Catalog of the eight National Archives perks and their costs (GAME_RULES §15). */
 export const ARCHIVES_DATA: Record<ArchivePerkId, ArchivePerkDef> = {
   starting_treasury: {
     id: 'starting_treasury',
@@ -81,6 +84,11 @@ export const ARCHIVES_DATA: Record<ArchivePerkId, ArchivePerkDef> = {
     description: 'Expanded Great Council chambers permitting another minister decree.',
     effectDescription: 'Unlocks a permanent 6th active law slot.',
   },
+}
+
+/** Tells whether a value is a known archive perk id. */
+export function isArchivePerkId(value: unknown): value is ArchivePerkId {
+  return typeof value === 'string' && Object.hasOwn(ARCHIVES_DATA, value)
 }
 
 /**

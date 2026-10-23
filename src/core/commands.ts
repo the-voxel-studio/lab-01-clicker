@@ -25,6 +25,7 @@ import {
   type FactionTraitResult,
 } from '@/data/threats'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
+import { EDICTS_DATA, EDICT_ESCALATION_PER_USE } from '@/data/edicts'
 import {
   tick,
   calculateGrossApRate,
@@ -406,56 +407,66 @@ function handleEnactEdict(
   }
 
   const k = state.edictUsageCounts[command.edictId] ?? 0
-  const mult = 1 + 0.5 * k
+  const mult = 1 + EDICT_ESCALATION_PER_USE * k
 
   const events: string[] = []
 
   switch (command.edictId) {
     case 'forced_tithe': {
-      // 30 seconds of poll tax income + 35 * mult Unrest + 20s pop growth freeze
+      // Poll tax income seized, escalated Unrest, population growth freeze
+      const edict = EDICTS_DATA.forced_tithe.values
       const { pollTax } = calculateGrossApRate(state, config)
-      const instantTax = 30 * pollTax
+      const instantTax = edict.pollTaxSeconds * pollTax
       state.ap += instantTax
       // Zero AP quota credit!
-      addUnrest(state, 35 * mult, config)
-      state.forcedTitheFreezeTimer = 20
+      const unrest = edict.unrest * mult
+      addUnrest(state, unrest, config)
+      state.forcedTitheFreezeTimer = edict.growthFreezeSeconds
       events.push(
-        `Forced Tithe enacted: +${Math.round(instantTax)} AP seized, +${(35 * mult).toFixed(1)} Unrest stirred, population growth frozen for 20s.`,
+        `Forced Tithe enacted: +${Math.round(instantTax)} AP seized, +${unrest.toFixed(1)} Unrest stirred, population growth frozen for ${edict.growthFreezeSeconds}s.`,
       )
       break
     }
 
     case 'church_seizure': {
-      if (k >= 2) {
+      const edict = EDICTS_DATA.church_seizure.values
+      if (k >= edict.maxUsesPerRun) {
         return {
           success: false,
-          error: 'Maximum of 2 church seizures permitted per run.',
+          error: `Maximum of ${edict.maxUsesPerRun} church seizures permitted per run.`,
         }
       }
-      // max(300, 25 * Gross AP/s), cuts pacification by 50% for 60 * mult seconds, + 10 * mult Unrest
+      // max(minPayout, grossRateSeconds * Gross AP/s); pacification cut and Unrest escalate
       const grossRate = calculateGrossApRate(state, config).total
-      const payout = Math.max(300, 25 * grossRate)
+      const payout = Math.max(edict.minPayout, edict.grossRateSeconds * grossRate)
       state.ap += payout
       // Zero AP quota credit!
+      const duration = edict.pacificationSeconds * mult
       state.activeModifiers.push({
         source: 'edict:church_seizure',
         stat: 'unrest_pacification',
         op: 'mul',
-        value: 0.5,
+        value: edict.pacificationMultiplier,
         appliedAt: state.totalElapsedSeconds,
-        expiresAt: state.totalElapsedSeconds + 60 * mult,
+        expiresAt: state.totalElapsedSeconds + duration,
       })
-      addUnrest(state, 10 * mult, config)
+      const unrest = edict.unrest * mult
+      addUnrest(state, unrest, config)
       events.push(
-        `Church Seizure enacted: +${Math.round(payout)} AP seized, church pacification halved for ${(60 * mult).toFixed(1)}s, +${(10 * mult).toFixed(1)} Unrest.`,
+        `Church Seizure enacted: +${Math.round(payout)} AP seized, church pacification cut for ${duration.toFixed(1)}s, +${unrest.toFixed(1)} Unrest.`,
       )
       break
     }
 
     case 'grand_festival': {
-      // Cost = max(100, 0.20 * max(0, state.ap), 30 * Gross AP/s)
+      // Cost = max(minCost, treasuryShare * max(0, state.ap), grossRateSeconds * Gross AP/s)
+      const edict = EDICTS_DATA.grand_festival.values
       const grossRate = calculateGrossApRate(state, config).total
-      const cost = Math.max(100, 0.2 * Math.max(0, state.ap), 30 * grossRate)
+      const cost = Math.max(
+        edict.minCost,
+        edict.treasuryShare * Math.max(0, state.ap),
+        edict.grossRateSeconds * grossRate,
+      )
       if (state.ap < cost) {
         return {
           success: false,
@@ -463,8 +474,10 @@ function handleEnactEdict(
         }
       }
       state.ap -= cost
-      addUnrest(state, -20, config)
-      events.push(`Grand Festival celebrated: -20 Unrest pacified for ${Math.round(cost)} AP.`)
+      addUnrest(state, -edict.unrestRelief, config)
+      events.push(
+        `Grand Festival celebrated: -${edict.unrestRelief} Unrest pacified for ${Math.round(cost)} AP.`,
+      )
       break
     }
   }
@@ -697,14 +710,15 @@ function handleResumeGovernance(state: GameState): DispatchResult {
 }
 
 /**
- * Handles restarting a run (RESTART_RUN).
+ * Handles restarting a run (RESTART_RUN): a bare run with no perk and 0 run archive points.
+ * The UI concludes the finished run into the archive first and uses `startRun` to apply perks.
  */
 function handleRestartRun(
   state: GameState,
   command: Extract<Command, { type: 'RESTART_RUN' }>,
 ): DispatchResult {
   const seed = command.seed ?? deriveSeed(state.seed, 'restart')
-  const initial = createInitialGameState({ seed, archivePoints: state.archivePoints })
+  const initial = createInitialGameState({ seed })
   Object.assign(state, initial)
   return { success: true, events: [`Run restarted with seed ${seed}.`] }
 }
@@ -846,6 +860,7 @@ export function dispatch(
         applyEffect(eff, state, lawNetApRate)
       }
       state.activeLaws.push(command.lawId)
+      state.peakActiveLaws = Math.max(state.peakActiveLaws, state.activeLaws.length)
       transitionToNextInterDeadlinePhase(state, config)
       return { success: true, events: [`Enacted Imperial Law: ${law.name}`] }
     }

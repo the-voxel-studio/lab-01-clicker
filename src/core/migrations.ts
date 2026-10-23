@@ -2,19 +2,35 @@ import type { GameState, BiomeId, ResolverKey, RuleFlag, FactionId } from './typ
 import { LAWS_DATA } from '@/data/laws'
 import { createInitialGameState } from './state'
 import { deriveStreamSeed } from './prng'
-import { assertPresentFieldShapes, isRecord, validateGameState } from './validation'
+import {
+  assertPresentFieldShapes,
+  isRecord,
+  validateArchiveData,
+  validateGameState,
+} from './validation'
+import { createArchiveData, type ArchiveData } from './archives'
 
 /** Active master save schema version. */
-export const CURRENT_SCHEMA_VERSION = 4
+export const CURRENT_SCHEMA_VERSION = 5
 
 /** Integrity prefix for clipboard import and export strings. */
 export const SAVE_PREFIX = 'GRA-v1:'
 
-/** Standard versioned serializable payload contract. */
+/**
+ * Standard versioned serializable payload contract.
+ * `archive` is present from schema 5 on; older payloads receive it from `migrateV4ToV5`.
+ */
 export interface SerializedSavePayload {
   schemaVersion: number
   timestamp: number
   state: GameState
+  archive?: ArchiveData
+}
+
+/** A decoded and validated save: the run state and the persistent archive. */
+export interface ImportedSave {
+  state: GameState
+  archive: ArchiveData
 }
 
 /**
@@ -243,13 +259,52 @@ export function migrateV3ToV4(oldData: unknown): unknown {
 }
 
 /**
+ * Migrates a schema v4 save payload to schema v5.
+ * Moves the state's `archivePoints` into a new payload `archive` (no perk, no feat) and resets
+ * the run points to 0, sets `peakActiveLaws` and `peakProvinces` from the current
+ * `activeLaws.length` and `provinces`, and sets `archiveConcluded` to false.
+ *
+ * @param oldData - Raw v4 payload to migrate.
+ * @returns Migrated payload conforming to schema v5.
+ */
+export function migrateV4ToV5(oldData: unknown): unknown {
+  if (!isSerializedSavePayload(oldData)) {
+    throw new Error('Migration v4 -> v5 failed: Source data is not a valid SerializedSavePayload.')
+  }
+  const oldState: unknown = oldData.state
+  if (!isRecord(oldState)) {
+    throw new Error('Migration v4 -> v5 failed: State is not an object.')
+  }
+  const laws = Array.isArray(oldState.activeLaws) ? oldState.activeLaws : []
+  const provinces = typeof oldState.provinces === 'number' ? oldState.provinces : 0
+  const archive: unknown = {
+    ...createArchiveData(),
+    points: typeof oldState.archivePoints === 'number' ? oldState.archivePoints : 0,
+  }
+  const newPayload: unknown = {
+    schemaVersion: 5,
+    timestamp: oldData.timestamp,
+    state: {
+      ...oldState,
+      archivePoints: 0,
+      archiveConcluded: false,
+      peakActiveLaws: laws.length,
+      peakProvinces: provinces,
+    },
+    archive,
+  }
+  return newPayload
+}
+
+/**
  * Ordered registry of sequential version migrations.
- * Migrations chain sequentially: v1 -> v2 -> v3 -> v4 etc.
+ * Migrations chain sequentially: v1 -> v2 -> v3 -> v4 -> v5.
  */
 export const MIGRATIONS: Record<number, MigrationFunction> = {
   1: migrateV1ToV2,
   2: migrateV2ToV3,
   3: migrateV3ToV4,
+  4: migrateV4ToV5,
 }
 
 /**
@@ -328,16 +383,19 @@ function validateStateNumbers(state: Record<string, unknown>): void {
 }
 
 /**
- * Serializes a GameState into an exportable Base64 string with GRA-v1: prefix.
+ * Serializes a GameState and the archive into an exportable Base64 string with GRA-v1: prefix.
+ * The JSON payload is `{ schemaVersion, timestamp, state, archive }` (GAME_RULES §18).
  *
  * @param state - The active GameState to serialize.
+ * @param archive - The persistent archive to serialize with it.
  * @returns Encoded string safe for clipboard sharing.
  */
-export function exportSaveToBase64(state: GameState): string {
+export function exportSaveToBase64(state: GameState, archive: ArchiveData): string {
   const payload: SerializedSavePayload = {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: Date.now(),
     state,
+    archive,
   }
 
   const json = JSON.stringify(payload)
@@ -358,14 +416,15 @@ export function exportSaveToBase64(state: GameState): string {
 }
 
 /**
- * Imports and deserializes a GameState from an exportable string.
- * Validates integrity prefix, executes sequential migrations, and ensures type safety.
+ * Imports and deserializes a GameState and its archive from an exportable string.
+ * Validates integrity prefix, executes sequential migrations, and ensures type safety. A save
+ * older than schema 5 gets an archive holding its former `archivePoints`.
  *
  * @param encodedString - Raw encoded string with GRA-v1: prefix.
- * @returns Deserialized and migrated GameState.
- * @throws Error if the string is corrupt or malformed.
+ * @returns Deserialized, migrated and validated state and archive.
+ * @throws Error if the string is corrupt or malformed, or the state or archive is invalid.
  */
-export function importSaveFromBase64(encodedString: string): GameState {
+export function importSaveFromBase64(encodedString: string): ImportedSave {
   if (!encodedString || typeof encodedString !== 'string') {
     throw new Error('Save import failed: Input must be a non-empty string.')
   }
@@ -447,5 +506,7 @@ export function importSaveFromBase64(encodedString: string): GameState {
   assertPresentFieldShapes(currentPayload.state as unknown as Record<string, unknown>)
 
   // Fill missing fields with defaults, then reject anything the engine cannot run on
-  return validateGameState(createInitialGameState(currentPayload.state))
+  const state = validateGameState(createInitialGameState(currentPayload.state))
+  const archive = validateArchiveData(currentPayload.archive)
+  return { state, archive }
 }

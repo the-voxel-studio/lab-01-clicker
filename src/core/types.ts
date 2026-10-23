@@ -419,8 +419,18 @@ export interface GameState {
   clickTokens: number
 
   // Meta & Persistence
-  /** Total archive points accumulated for permanent Crown Charters. */
+  /**
+   * Archive points earned during the current run only (council rejections, dilemmas, passed
+   * audits); negative when a dilemma spent more than the run earned. `concludeRun` adds them to
+   * the persistent `ArchiveData`.
+   */
   archivePoints: number
+  /** Whether `concludeRun` already awarded this run's points and feats to the archive. */
+  archiveConcluded: boolean
+  /** Highest number of laws held active at once during this run (The Six Seals). */
+  peakActiveLaws: number
+  /** Highest number of provinces held at once during this run (Imperial Barony). */
+  peakProvinces: number
   /** Total scouts sacrificed in reconnaissance patrols. */
   scoutsSacrificed: number
   /** Total military combat units recruited via BUY_UNIT during run. */
