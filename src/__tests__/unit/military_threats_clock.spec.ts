@@ -13,8 +13,10 @@ import { tick, evaluateDeadlineAudit } from '@/core/engine'
 import {
   resolveDefensiveClash,
   resolveOffensiveCampaign,
+  resolveScheduledThreat,
   generateCampaignTarget,
 } from '@/core/battle'
+import { FACTIONS_DATA, neutralTrait } from '@/data/threats'
 import { getNextInterDeadlinePhase } from '@/core/phases'
 import { UNITS_DATA, getThreatPower, getThreatTributeAp } from '@/data/balance'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
@@ -114,7 +116,9 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(res2.success).toBe(true)
     expect(state.units.scout).toBe(0)
     expect(state.totalPopulation).toBe(98)
-    expect(state.currentTarget?.uncertaintyMargin).toBe(0.45)
+    // The second reroll draws Steppe Horsemen, which double the 0.45 base margin
+    expect(state.currentTarget?.factionId).toBe('steppe_horsemen')
+    expect(state.currentTarget?.uncertaintyMargin).toBe(0.9)
 
     // Third patrol with 0 scouts is rejected
     const res3 = dispatch(state, { type: 'RECON_PATROL' })
@@ -567,6 +571,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       perceivedMax: 58,
       biome: 'farmlands',
       lootType: 'mixed',
+      factionId: 'steppe_horsemen',
       isFalseLedger: false,
       isAmbush: true,
     }
@@ -647,6 +652,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       ])
       expect(imported.currentTarget?.perceivedMin).toBe(22)
       expect(imported.currentTarget?.perceivedMax).toBe(58)
+      expect(imported.currentTarget?.factionId).toBe('steppe_horsemen')
     })
 
     it('composes standing garrisons and merit pay upkeep without overwriting', () => {
@@ -720,5 +726,260 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       expect(calculateMilitaryPower(imported)).toBe(calculateMilitaryPower(state))
       expect(calculateGrossApRate(imported).total).toBe(calculateGrossApRate(state).total)
     })
+  })
+})
+
+describe('Factions and scheduled threats (GAME_RULES 7.5, 8.1)', () => {
+  const quotaOf = (deadline: number) =>
+    DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === deadline)!
+
+  const heraldFor = (deadline: number) => {
+    const state = createInitialGameState()
+    state.deadline = deadline
+    state.phase = 'COUNCIL_LAWS'
+    dispatch(state, { type: 'REJECT_LAWS' }, DEFAULT_ENGINE_CONFIG)
+    return state
+  }
+
+  it('mercenary threat tribute is 25% higher', () => {
+    const state = heraldFor(5)
+    expect(state.phase).toBe('THREAT_HERALD')
+    expect(state.currentThreatId).toBe(6)
+    expect(state.currentThreatTributeAp).toBe(Math.round(1.25 * 20 * quotaOf(6).apRate))
+    expect(heraldFor(4).currentThreatTributeAp).toBe(20 * quotaOf(5).apRate)
+  })
+
+  it('clears the announced threat once it is resolved', () => {
+    const state = heraldFor(2)
+    expect(state.currentThreatId).toBe(3)
+    state.ap = 1_000_000
+    dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' }, DEFAULT_ENGINE_CONFIG)
+    expect(state.currentThreatId).toBeNull()
+    expect(state.phase).toBe('EXPEDITION')
+  })
+
+  it('keeps the threat announced when the tribute is refused', () => {
+    const state = heraldFor(2)
+    state.ap = 0
+    const res = dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
+    expect(res.success).toBe(false)
+    expect(state.currentThreatId).toBe(3)
+  })
+
+  it('barons deploy armored veterans against a huge army', () => {
+    const small = heraldFor(3)
+    const base = getThreatPower(quotaOf(4).military)
+    expect(small.currentThreatPower).toBe(base)
+
+    const state = createInitialGameState()
+    state.deadline = 3
+    state.phase = 'COUNCIL_LAWS'
+    state.units.soldier = Math.ceil(1.2 * quotaOf(4).military)
+    state.totalPopulation += state.units.soldier
+    dispatch(state, { type: 'REJECT_LAWS' }, DEFAULT_ENGINE_CONFIG)
+    expect(state.currentThreatPower).toBe(Math.round(base * 1.1))
+  })
+
+  it('imperial legions take 2 provinces on collapse', () => {
+    const state = heraldFor(9)
+    expect(state.currentThreatId).toBe(10)
+    state.provinces = 5
+    state.provinceBiomes = ['heartland', 'farmlands', 'farmlands', 'trade_hub', 'wilderness']
+    dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'defense' }, DEFAULT_ENGINE_CONFIG)
+    expect(state.provinces).toBe(3)
+    expect(state.provinceBiomes).toHaveLength(3)
+  })
+
+  it('a non imperial collapse takes a single province', () => {
+    const state = heraldFor(3)
+    state.provinces = 5
+    state.provinceBiomes = ['heartland', 'farmlands', 'farmlands', 'trade_hub', 'wilderness']
+    state.currentThreatPower = 100_000
+    dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'defense' }, DEFAULT_ENGINE_CONFIG)
+    expect(state.provinces).toBe(4)
+  })
+
+  it('imperial legions never take the realm below 0 provinces', () => {
+    const state = heraldFor(9)
+    state.provinces = 1
+    state.provinceBiomes = ['heartland']
+    dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'defense' }, DEFAULT_ENGINE_CONFIG)
+    expect(state.provinces).toBe(0)
+    expect(state.defeatReason).toBe('conquest')
+  })
+
+  it('zealots add 15 unrest and desert one soldier per 10 when unrest is above 60', () => {
+    const state = heraldFor(6)
+    expect(state.currentThreatId).toBe(7)
+    state.unrest = 65
+    state.units.soldier = 25
+    state.totalPopulation += 25
+    const popBefore = state.totalPopulation
+    const res = resolveScheduledThreat(
+      state,
+      'defense',
+      0,
+      0,
+      new PRNG(1),
+      DEFAULT_ENGINE_CONFIG,
+      FACTIONS_DATA.zealots.applyReactiveTrait(state, 0, 0, { militaryPower: 0, militaryQuota: 1 }),
+    )
+    expect(res.success).toBe(true)
+    // 65 + 15 defection, then -5 for the repelled threat
+    expect(state.unrest).toBe(75)
+    expect(state.units.soldier).toBe(23 - Math.round((25 - 2) * 0.1))
+    expect(state.totalPopulation).toBe(popBefore - 2 - Math.round((25 - 2) * 0.1))
+  })
+
+  it('zealot levy applies the 15 unrest before the 30 of the levy and the 5% casualties after desertions', () => {
+    const state = createInitialGameState()
+    state.unrest = 20
+    state.units.soldier = 25
+    state.totalPopulation += 25
+    const popBefore = state.totalPopulation
+    resolveScheduledThreat(state, 'levy', 0, 0, new PRNG(1), DEFAULT_ENGINE_CONFIG, {
+      ...neutralTrait(0, 0),
+      unrestDelta: 15,
+      soldierDesertions: 2,
+    })
+    expect(state.unrest).toBe(65)
+    expect(state.totalPopulation).toBe(popBefore - 2 - Math.round((popBefore - 2) * 0.05))
+  })
+
+  it('a zealot defection that reaches 100 unrest ends the run in revolution and keeps the phase', () => {
+    const state = heraldFor(6)
+    state.unrest = 80
+    const res = dispatch(
+      state,
+      { type: 'SELECT_THREAT_RESPONSE', response: 'levy' },
+      DEFAULT_ENGINE_CONFIG,
+    )
+    expect(res.success).toBe(true)
+    expect(state.unrest).toBe(100)
+    expect(state.isGameOver).toBe(true)
+    expect(state.defeatReason).toBe('revolution')
+    expect(state.phase).toBe('RUN_DEFEAT')
+    expect(state.currentThreatId).toBeNull()
+  })
+
+  it('keeps the catalog factions and the campaign faction draw in sync', () => {
+    const drawn = new Set<string>()
+    for (let seed = 1; seed <= 400; seed++) {
+      const state = createInitialGameState()
+      drawn.add(generateCampaignTarget(state, DEFAULT_ENGINE_CONFIG, new PRNG(seed)).factionId)
+    }
+    expect([...drawn].sort()).toEqual(Object.keys(FACTIONS_DATA).sort())
+  })
+
+  it('campaign loot type follows the faction', () => {
+    const expected: Record<string, string> = {
+      outlaws: 'population',
+      barons: 'soldiers',
+      mercenaries: 'ap',
+      zealots: 'population',
+    }
+    const seen = new Set<string>()
+    const mismatches: string[] = []
+    for (let seed = 1; seed <= 400; seed++) {
+      const state = createInitialGameState()
+      const target = generateCampaignTarget(state, DEFAULT_ENGINE_CONFIG, new PRNG(seed))
+      seen.add(target.factionId)
+      const loot = expected[target.factionId]
+      if (loot !== undefined && target.lootType !== loot) mismatches.push(target.factionId)
+    }
+    expect(mismatches).toEqual([])
+    expect([...seen].sort()).toEqual([
+      'barons',
+      'imperial_legions',
+      'mercenaries',
+      'outlaws',
+      'steppe_horsemen',
+      'zealots',
+    ])
+  })
+
+  it('steppe horsemen double the scout uncertainty margin up to 0.9', () => {
+    const margins: Record<string, number> = {}
+    for (let seed = 1; seed <= 400; seed++) {
+      const state = createInitialGameState()
+      const target = generateCampaignTarget(state, DEFAULT_ENGINE_CONFIG, new PRNG(seed))
+      margins[target.factionId] = target.uncertaintyMargin
+    }
+    expect(margins.steppe_horsemen).toBeCloseTo(0.9, 10)
+    expect(margins.outlaws).toBeCloseTo(0.45, 10)
+
+    const state = createInitialGameState()
+    state.units.scout = 2
+    for (let seed = 1; seed <= 400; seed++) {
+      const target = generateCampaignTarget(state, DEFAULT_ENGINE_CONFIG, new PRNG(seed))
+      const expectedMargin = target.factionId === 'steppe_horsemen' ? 0.42 : 0.21
+      expect(target.uncertaintyMargin).toBeCloseTo(expectedMargin, 10)
+    }
+  })
+
+  it('outlaws inflict 15% more civilian casualties on collapse when soldiers < 10', () => {
+    const run = (extra: number) => {
+      const state = createInitialGameState()
+      state.provinces = 5
+      state.provinceBiomes = ['heartland', 'farmlands', 'farmlands', 'trade_hub', 'wilderness']
+      state.totalPopulation = 1000
+      state.freeSerfs = 1000
+      state.units = { ...state.units, peasant: 0 }
+      resolveDefensiveClash(state, 0, 500, 0, new PRNG(5), DEFAULT_ENGINE_CONFIG, 0, {
+        extraCivilianCasualtyRate: extra,
+        extraProvincesLost: 0,
+      })
+      return 1000 - state.totalPopulation
+    }
+    expect(run(0.15)).toBeGreaterThan(run(0))
+    expect([run(0), run(0.15)]).toEqual([172, 198])
+  })
+})
+
+describe('Campaign target faction on save import', () => {
+  const encode = (schemaVersion: number, state: unknown): string =>
+    `${SAVE_PREFIX}${Buffer.from(
+      JSON.stringify({ schemaVersion, timestamp: 1, state }),
+      'utf-8',
+    ).toString('base64')}`
+  const legacy = (lootType: string) => ({
+    power: 40,
+    uncertaintyMargin: 0.45,
+    biome: 'farmlands',
+    lootType,
+    isFalseLedger: false,
+    isAmbush: false,
+  })
+
+  it('maps the legacy loot type of a v3 target to its faction', () => {
+    const expected: Record<string, string> = {
+      ap: 'mercenaries',
+      population: 'outlaws',
+      soldiers: 'barons',
+      mixed: 'steppe_horsemen',
+    }
+    for (const [loot, faction] of Object.entries(expected)) {
+      const state = { ...createInitialGameState(), currentTarget: legacy(loot) }
+      expect(importSaveFromBase64(encode(3, state)).currentTarget?.factionId).toBe(faction)
+    }
+  })
+
+  it('rejects a v3 target with an unknown loot type', () => {
+    const state = { ...createInitialGameState(), currentTarget: legacy('gold') }
+    expect(() => importSaveFromBase64(encode(3, state))).toThrow(/currentTarget/)
+  })
+
+  it('rejects a missing or unknown factionId', () => {
+    const target = generateCampaignTarget(
+      createInitialGameState(),
+      DEFAULT_ENGINE_CONFIG,
+      new PRNG(1),
+    )
+    for (const factionId of [undefined, 'dragons', 7]) {
+      const state = { ...createInitialGameState(), currentTarget: { ...target, factionId } }
+      expect(() => importSaveFromBase64(encode(CURRENT_SCHEMA_VERSION, state))).toThrow(
+        /currentTarget\.factionId/,
+      )
+    }
   })
 })

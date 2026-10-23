@@ -44,6 +44,21 @@ export function addUnrest(
 }
 
 /**
+ * Removes units of one type and the matching population, keeping the §3.1 balance.
+ *
+ * @param state - Mutable game state.
+ * @param unitId - Unit type that leaves.
+ * @param count - Requested number of units, capped at the units held.
+ * @returns The number of units actually removed.
+ */
+export function removeUnits(state: GameState, unitId: UnitId, count: number): number {
+  const removed = Math.max(0, Math.min(count, state.units[unitId] ?? 0))
+  state.units[unitId] = (state.units[unitId] ?? 0) - removed
+  state.totalPopulation = Math.max(0, state.totalPopulation - removed)
+  return removed
+}
+
+/**
  * Deterministic unit cascade order for demographic population losses.
  * Follows Tier I Civil -> Tier II Civil -> Tier I Military -> Tier II Military in declaration order.
  */

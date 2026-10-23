@@ -258,6 +258,10 @@ export type Command =
 /** Province Biome Identifiers. */
 export type BiomeId = 'heartland' | 'farmlands' | 'trade_hub' | 'stronghold' | 'wilderness'
 
+/** Enemy faction of a scheduled threat or a campaign target (GAME_RULES 7.5). */
+export type FactionId =
+  'outlaws' | 'barons' | 'mercenaries' | 'zealots' | 'steppe_horsemen' | 'imperial_legions'
+
 /** Expedition campaign reconnaissance target. */
 export interface CampaignTarget {
   power: number
@@ -268,6 +272,8 @@ export interface CampaignTarget {
   perceivedMax: number
   biome: BiomeId
   lootType: 'ap' | 'population' | 'soldiers' | 'mixed'
+  /** Faction that holds the target; it sets the loot type and the scout margin. */
+  factionId: FactionId
   isFalseLedger: boolean
   isAmbush: boolean
   revealedFalseLedger?: boolean
@@ -395,7 +401,7 @@ export interface GameState {
   activeLaws: string[]
   /** Rule flags raised by enacted law effects, without duplicates. */
   ruleFlags: RuleFlag[]
-  /** Id of the threat being resolved, or null when none (not read yet). */
+  /** Deadline of the scheduled threat announced by the current herald, or null outside the herald. */
   currentThreatId: number | null
   /** Offered law IDs currently drafted in Council of Laws. */
   currentLawDraft: string[]

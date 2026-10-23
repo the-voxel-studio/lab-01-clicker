@@ -9,6 +9,7 @@ import { UNITS_DATA, BIOMES_DATA } from '@/data/balance'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
+import { FACTIONS_DATA } from '@/data/threats'
 import { ALLOWED_COMMANDS_BY_PHASE } from './phases'
 import { canAffordEffects } from './modifiers'
 import { calculateNetApRate } from './engine'
@@ -181,6 +182,9 @@ function checkCampaignTarget(value: unknown): void {
   if (typeof value.lootType !== 'string' || !LOOT_TYPES.includes(value.lootType)) {
     return fail('currentTarget.lootType', 'unknown loot type')
   }
+  if (typeof value.factionId !== 'string' || !Object.hasOwn(FACTIONS_DATA, value.factionId)) {
+    return fail('currentTarget.factionId', 'unknown faction id')
+  }
   for (const key of ['isFalseLedger', 'isAmbush']) {
     if (typeof value[key] !== 'boolean') {
       return fail(`currentTarget.${key}`, 'expected a boolean')
@@ -278,8 +282,9 @@ export function validateGameState(
     }
   }
 
-  if (value.currentThreatId !== null && !isCount(value.currentThreatId)) {
-    return fail('currentThreatId', 'expected null or an integer >= 0')
+  const threatId = value.currentThreatId
+  if (threatId !== null && !(isCount(threatId) && threatId >= 3 && threatId <= 10)) {
+    return fail('currentThreatId', 'expected null or an integer from 3 to 10')
   }
 
   const draft = value.currentLawDraft

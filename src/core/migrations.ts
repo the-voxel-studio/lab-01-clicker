@@ -1,4 +1,4 @@
-import type { GameState, BiomeId, ResolverKey, RuleFlag } from './types'
+import type { GameState, BiomeId, ResolverKey, RuleFlag, FactionId } from './types'
 import { LAWS_DATA } from '@/data/laws'
 import { createInitialGameState } from './state'
 import { deriveStreamSeed } from './prng'
@@ -152,13 +152,29 @@ function migrateThreatMitigation(modifier: Record<string, unknown>): unknown {
   return undefined
 }
 
-/** Adds the perceived power band that schema 3 targets lack, centered on the real power. */
+/** Faction a legacy target gets from its loot type, which the faction now decides. */
+const LEGACY_LOOT_FACTIONS: Readonly<Record<string, FactionId>> = {
+  ap: 'mercenaries',
+  population: 'outlaws',
+  soldiers: 'barons',
+  mixed: 'steppe_horsemen',
+}
+
+/**
+ * Adds the perceived power band and the faction that schema 3 targets lack: the band is centered
+ * on the real power, the faction is the one whose loot matches the saved loot type.
+ */
 function migrateCampaignTarget(target: unknown): unknown {
   if (!isRecord(target) || target.perceivedMin !== undefined) return target
   const { power, uncertaintyMargin } = target
   if (typeof power !== 'number' || typeof uncertaintyMargin !== 'number') return target
+  const factionId =
+    typeof target.lootType === 'string' && Object.hasOwn(LEGACY_LOOT_FACTIONS, target.lootType)
+      ? LEGACY_LOOT_FACTIONS[target.lootType]
+      : undefined
   return {
     ...target,
+    factionId,
     perceivedMin: Math.round(power * (1 - uncertaintyMargin)),
     perceivedMax: Math.round(power * (1 + uncertaintyMargin)),
   }
@@ -170,7 +186,7 @@ function migrateCampaignTarget(target: unknown): unknown {
  * deduplicated, unknown law ids skipped for validation to reject), sets `currentThreatId` to
  * null, renames the legacy `resolverKey` of saved `activeModifiers` (`RESOLVER_RENAMES`), maps or
  * drops the modifiers of the removed `threat_mitigation_rate` stat and adds the perceived band to
- * a saved `currentTarget`.
+ * a saved `currentTarget` with its faction.
  *
  * @param oldData - Raw v3 payload to migrate.
  * @returns Migrated SerializedSavePayload conforming to schema v4.

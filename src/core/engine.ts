@@ -19,7 +19,7 @@ import {
 import { getHousingBase, removeLastProvince } from './provinces'
 import { composeStat, composeUnitStat, extractRawEvaluationState } from './modifiers'
 import { hasRule } from './rules'
-import { triggerDefeat, addUnrest, applyPopulationLoss } from './mutations'
+import { triggerDefeat, addUnrest, applyPopulationLoss, removeUnits } from './mutations'
 import type { GameState, TickResult, AuditOutcome } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
@@ -282,7 +282,7 @@ export function calculateNetPaperwork(
 }
 
 /** Quotas checked against a deadline quota: the three targets times `quota_requirement`. */
-interface EffectiveQuota {
+export interface EffectiveQuota {
   apRate: number
   pop: number
   military: number
@@ -292,7 +292,7 @@ interface EffectiveQuota {
  * Scales a deadline quota by the `quota_requirement` stat (base 1, clamped at 0), as read by the
  * audit and by the 50 s interim projection.
  */
-function effectiveQuota(state: GameState, quota: EffectiveQuota): EffectiveQuota {
+export function effectiveQuota(state: GameState, quota: EffectiveQuota): EffectiveQuota {
   const requirement = Math.max(
     0,
     composeStat('quota_requirement', 1, state.activeModifiers, extractRawEvaluationState(state)),
@@ -746,8 +746,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     state.desertionTimer = snapToStepGrid(state.desertionTimer + stepDt, grid)
     while (eligible && state.desertionTimer >= eligible.threshold) {
       state.desertionTimer -= eligible.threshold
-      state.units[eligible.unitId] = (state.units[eligible.unitId] ?? 0) - 1
-      state.totalPopulation -= 1
+      removeUnits(state, eligible.unitId, 1)
       eligible = getEligibleDesertion(state)
     }
     if (!eligible) {

@@ -196,7 +196,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
         }),
       ),
     ).toThrow(/ruleFlags/)
-    for (const bad of [-1, 1.5, 'x']) {
+    for (const bad of [-1, 1.5, 'x', 2, 11]) {
       expect(() =>
         importSaveFromBase64(
           encodeCurrent((s) => {

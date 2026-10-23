@@ -12,16 +12,17 @@
  * @module core/battle
  */
 
-import type { GameState, CampaignTarget, BiomeId } from './types'
+import type { GameState, CampaignTarget, BiomeId, FactionId } from './types'
 import { PRNG, withStatePrng } from './prng'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
-import { addUnrest, applyPopulationLoss, triggerDefeat } from './mutations'
+import { addUnrest, applyPopulationLoss, removeUnits, triggerDefeat } from './mutations'
 import { calculateMilitaryPower, calculateMaxPopulation } from './engine'
 import { addProvince, removeLastProvince } from './provinces'
 import { calculateOrderCaps, recordPeakPopulation } from './formulas'
 import { composeStat, extractRawEvaluationState } from './modifiers'
 import { hasRule } from './rules'
 import { UNITS_DATA, type UnitId } from '@/data/balance'
+import type { FactionTraitResult } from '@/data/threats'
 
 /**
  * Distributes military casualties proportionally between Soldier and Man-at-Arms retinues.
@@ -94,6 +95,36 @@ export interface DefensiveClashResult {
   soldierCasualties: number
   unrestDelta: number
   events: string[]
+}
+
+/** Faction trait values that shape a defensive collapse. */
+export type CollapseTrait = Pick<
+  FactionTraitResult,
+  'extraCivilianCasualtyRate' | 'extraProvincesLost'
+>
+
+/** Collapse trait of a threat without faction effects, such as a surprise raid. */
+const NO_COLLAPSE_TRAIT: CollapseTrait = { extraCivilianCasualtyRate: 0, extraProvincesLost: 0 }
+
+/** Every faction a campaign target can belong to, in draw order. */
+const FACTION_IDS: readonly FactionId[] = [
+  'outlaws',
+  'barons',
+  'mercenaries',
+  'zealots',
+  'steppe_horsemen',
+  'imperial_legions',
+]
+
+/** Maximum scout uncertainty margin of a Steppe Horsemen target (twice the base 0.45). */
+const STEPPE_MAX_MARGIN = 0.9
+
+/** Loot type each faction always carries; steppe and imperial targets roll a mixed draw. */
+const FACTION_LOOT: Partial<Record<FactionId, LootType>> = {
+  outlaws: 'population',
+  barons: 'soldiers',
+  mercenaries: 'ap',
+  zealots: 'population',
 }
 
 /** Combat roll range of the side the player commands under Vanguard Drills (GAME_RULES §10.3). */
@@ -480,6 +511,9 @@ export function resolveOffensiveCampaign(
  * @param enemyAttackForces - Attack power of invading threat / raid.
  * @param strongholdCount - Controlled Border Strongholds granting +12 passive defense.
  * @param prng - Deterministic PRNG instance.
+ * @param config - Injected engine configuration.
+ * @param tributeCost - Tribute of the repelled threat, basis of the battlefield salvage.
+ * @param trait - Faction trait values applied if the defense collapses.
  * @returns DefensiveClashResult summary.
  */
 export function resolveDefensiveClash(
@@ -490,6 +524,7 @@ export function resolveDefensiveClash(
   prng?: PRNG,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
   tributeCost: number = 0,
+  trait: CollapseTrait = NO_COLLAPSE_TRAIT,
 ): DefensiveClashResult {
   if (!prng) {
     return withStatePrng(state, 'combat', (p) =>
@@ -501,6 +536,7 @@ export function resolveDefensiveClash(
         p,
         config,
         tributeCost,
+        trait,
       ),
     )
   }
@@ -555,7 +591,11 @@ export function resolveDefensiveClash(
 
   // Defensive Collapse: Devastating breach!
   // 1 Province permanently lost (No floor! Triggers conquest defeat if reduced to 0)
-  removeLastProvince(state)
+  let lostProvinces = 0
+  for (let i = 0; i < 1 + trait.extraProvincesLost && state.provinces > 0; i++) {
+    removeLastProvince(state)
+    lostProvinces += 1
+  }
   if (state.provinces <= 0) {
     triggerDefeat(state, 'conquest')
   }
@@ -572,7 +612,9 @@ export function resolveDefensiveClash(
 
   // 15% to 25% of civilian population slaughtered or abducted
   const civilianLossFraction = prng.nextBetween(0.15, 0.25)
-  const rawLostCivilians = Math.round(state.totalPopulation * civilianLossFraction)
+  const rawLostCivilians = Math.round(
+    state.totalPopulation * civilianLossFraction * (1 + trait.extraCivilianCasualtyRate),
+  )
   const lostCivilians = applyPopulationLoss(state, rawLostCivilians)
 
   // 30% to 50% AP treasury looted (signed treasury: existing debts are never cleared)
@@ -583,14 +625,14 @@ export function resolveDefensiveClash(
   addUnrest(state, 20, config)
 
   events.push(
-    `Defensive Collapse! Lost 1 Province, ${killedMilitary} military personnel killed, ${lostCivilians} civilians lost, ${lostAp} AP pillaged (+20 Unrest).`,
+    `Defensive Collapse! Lost ${lostProvinces} ${lostProvinces === 1 ? 'Province' : 'Provinces'}, ${killedMilitary} military personnel killed, ${lostCivilians} civilians lost, ${lostAp} AP pillaged (+20 Unrest).`,
   )
 
   return {
     success: false,
     clashRatio: 1.0 / enemyRatio,
     isCollapse: true,
-    lostProvinces: 1,
+    lostProvinces,
     lostPopulation: killedMilitary + lostCivilians,
     lostAp,
     soldierCasualties: killedMilitary,
@@ -622,8 +664,14 @@ export function generateCampaignTarget(
   const biomeIndex = Math.min(biomes.length - 1, Math.floor(prng.next() * biomes.length))
   const biome = biomes[biomeIndex]!
 
+  const factionIndex = Math.min(
+    FACTION_IDS.length - 1,
+    Math.floor(prng.next() * FACTION_IDS.length),
+  )
+  const factionId = FACTION_IDS[factionIndex]!
+
   const lootIndex = Math.min(lootTypes.length - 1, Math.floor(prng.next() * lootTypes.length))
-  const lootType = lootTypes[lootIndex]!
+  const lootType = FACTION_LOOT[factionId] ?? lootTypes[lootIndex]!
 
   const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
   const basePower = Math.max(15, Math.round(quota.military * prng.nextBetween(0.85, 1.25)))
@@ -633,7 +681,11 @@ export function generateCampaignTarget(
   const rawState = extractRawEvaluationState(state)
   const baseMargin = composeStat('scout_uncertainty_margin', 0.45, state.activeModifiers, rawState)
   const marginReduction = scoutCount * 0.12 + spymasterCount * 0.3
-  const uncertaintyMargin = Math.max(0.05, baseMargin - marginReduction)
+  const reducedMargin = baseMargin - marginReduction
+  const uncertaintyMargin =
+    factionId === 'steppe_horsemen'
+      ? Math.min(STEPPE_MAX_MARGIN, Math.max(0.05, 2 * reducedMargin))
+      : Math.max(0.05, reducedMargin)
 
   const ambushChance = composeStat('ambush_chance', 0.1, state.activeModifiers, rawState)
   const isFalseLedger = prng.next() < 0.15
@@ -646,6 +698,7 @@ export function generateCampaignTarget(
     perceivedMax: Math.round(basePower * (1 + uncertaintyMargin)),
     biome,
     lootType,
+    factionId,
     isFalseLedger,
     isAmbush,
     revealedFalseLedger: spymasterCount >= 1 ? isFalseLedger : false,
@@ -699,6 +752,8 @@ export function performScoutReroll(
  * @param tributeAp - Required tribute AP cost.
  * @param prng - Deterministic PRNG instance.
  * @param config - Injected engine configuration.
+ * @param trait - Faction trait values: unrest and desertions hit before a fight or a levy, the
+ *   collapse values shape a lost defense.
  * @returns Resolution summary.
  */
 export function resolveScheduledThreat(
@@ -708,6 +763,11 @@ export function resolveScheduledThreat(
   tributeAp: number,
   prng?: PRNG,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+  trait: Pick<FactionTraitResult, keyof CollapseTrait | 'unrestDelta' | 'soldierDesertions'> = {
+    ...NO_COLLAPSE_TRAIT,
+    unrestDelta: 0,
+    soldierDesertions: 0,
+  },
 ): { success: boolean; message: string } {
   if (response === 'tribute') {
     if (state.ap < tributeAp) {
@@ -725,9 +785,12 @@ export function resolveScheduledThreat(
 
   if (!prng) {
     return withStatePrng(state, 'combat', (p) =>
-      resolveScheduledThreat(state, response, threatPower, tributeAp, p, config),
+      resolveScheduledThreat(state, response, threatPower, tributeAp, p, config, trait),
     )
   }
+
+  removeUnits(state, 'soldier', trait.soldierDesertions)
+  if (trait.unrestDelta !== 0) addUnrest(state, trait.unrestDelta, config)
 
   if (response === 'levy') {
     const rawCasualties = Math.round(state.totalPopulation * 0.05)
@@ -750,6 +813,7 @@ export function resolveScheduledThreat(
     prng,
     config,
     tributeAp,
+    trait,
   )
 
   return {

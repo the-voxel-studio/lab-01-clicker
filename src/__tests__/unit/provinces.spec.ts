@@ -56,6 +56,7 @@ describe('One province list', () => {
       perceivedMax: 1,
       biome: 'trade_hub',
       lootType: 'ap',
+      factionId: 'outlaws',
       isFalseLedger: false,
       isAmbush: false,
     }

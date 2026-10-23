@@ -44,32 +44,52 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
   })
 
   describe('Faction Reactive Traits', () => {
+    const context = { militaryPower: 0, militaryQuota: 100 }
+
     it('applies outlaws civilian casualty penalty when soldiers < 10', () => {
       const state = createInitialGameState()
       state.units.soldier = 5
-      const traitResult = FACTIONS_DATA.outlaws.applyReactiveTrait(state, 50, 1000)
+      const traitResult = FACTIONS_DATA.outlaws.applyReactiveTrait(state, 50, 1000, context)
       expect(traitResult.extraCivilianCasualtyRate).toBe(0.15)
 
       state.units.soldier = 12
-      const traitResult2 = FACTIONS_DATA.outlaws.applyReactiveTrait(state, 50, 1000)
+      const traitResult2 = FACTIONS_DATA.outlaws.applyReactiveTrait(state, 50, 1000, context)
       expect(traitResult2.extraCivilianCasualtyRate).toBe(0)
     })
 
     it('applies mercenaries +25% tribute cost escalation', () => {
       const state = createInitialGameState()
-      const traitResult = FACTIONS_DATA.mercenaries.applyReactiveTrait(state, 40, 1000)
+      const traitResult = FACTIONS_DATA.mercenaries.applyReactiveTrait(state, 40, 1000, context)
       expect(traitResult.adjustedTributeCost).toBe(1250)
     })
 
-    it('applies zealots religious defection when unrest > 60%', () => {
+    it('returns zealots religious defection values without mutating the state', () => {
       const state = createInitialGameState()
       state.unrest = 65
-      state.units.soldier = 5
+      state.units.soldier = 25
       const initialPop = state.totalPopulation
-      FACTIONS_DATA.zealots.applyReactiveTrait(state, 60, 2000)
-      expect(state.unrest).toBe(80)
-      expect(state.units.soldier).toBe(3)
-      expect(state.totalPopulation).toBe(initialPop - 2)
+      const result = FACTIONS_DATA.zealots.applyReactiveTrait(state, 60, 2000, context)
+      expect(result.unrestDelta).toBe(15)
+      expect(result.soldierDesertions).toBe(2)
+      expect(state.unrest).toBe(65)
+      expect(state.units.soldier).toBe(25)
+      expect(state.totalPopulation).toBe(initialPop)
+
+      state.unrest = 60
+      const calm = FACTIONS_DATA.zealots.applyReactiveTrait(state, 60, 2000, context)
+      expect(calm.unrestDelta).toBe(0)
+      expect(calm.soldierDesertions).toBe(0)
+    })
+
+    it('raises barons power by 10% only from 1.2 times the military quota', () => {
+      const state = createInitialGameState()
+      const at = (militaryPower: number) =>
+        FACTIONS_DATA.barons.applyReactiveTrait(state, 50, 1000, {
+          militaryPower,
+          militaryQuota: 100,
+        }).adjustedThreatPower
+      expect(at(119.9)).toBe(50)
+      expect(at(120)).toBe(55)
     })
   })
 
@@ -272,6 +292,7 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
         perceivedMax: 1,
         biome: 'trade_hub',
         lootType: 'ap',
+        factionId: 'outlaws',
         isFalseLedger: false,
         isAmbush: false,
       }

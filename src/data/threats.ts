@@ -4,10 +4,31 @@
  * @module data/threats
  */
 
-import type { GameState } from '@/core/types'
+import type { FactionId, GameState } from '@/core/types'
 
-export type FactionId =
-  'outlaws' | 'barons' | 'mercenaries' | 'zealots' | 'steppe_horsemen' | 'imperial_legions'
+export type { FactionId }
+
+/** Engine figures a faction trait reads, so the pure catalog needs no engine import. */
+export interface FactionTraitContext {
+  /** Military power of the player. */
+  militaryPower: number
+  /** Military quota the threat deadline asks for, after `quota_requirement`. */
+  militaryQuota: number
+}
+
+/** Values a faction trait hands back; the engine applies them to the state. */
+export interface FactionTraitResult {
+  adjustedThreatPower: number
+  adjustedTributeCost: number
+  /** Extra share of the civilian casualties of a defensive collapse, 0.15 meaning +15%. */
+  extraCivilianCasualtyRate: number
+  /** Provinces lost on a defensive collapse on top of the first one. */
+  extraProvincesLost: number
+  /** Unrest added when the threat is faced. */
+  unrestDelta: number
+  /** Soldiers who desert when the threat is faced. */
+  soldierDesertions: number
+}
 
 export interface FactionDef {
   id: FactionId
@@ -15,16 +36,31 @@ export interface FactionDef {
   description: string
   reactiveTraitDescription: string
   /**
-   * Applies the reactive faction modifier or penalty to state / threat.
+   * Returns the reactive faction modifiers for the current state, without mutating it.
    */
   applyReactiveTrait: (
-    state: GameState,
+    state: Readonly<GameState>,
     threatPower: number,
     tributeCost: number,
-  ) => {
-    adjustedThreatPower: number
-    adjustedTributeCost: number
-    extraCivilianCasualtyRate: number
+    context: FactionTraitContext,
+  ) => FactionTraitResult
+}
+
+/**
+ * Trait result that changes nothing, spread under the fields a faction overrides.
+ *
+ * @param threatPower - Threat power passed through.
+ * @param tributeCost - Tribute cost passed through.
+ * @returns A result with no extra effect.
+ */
+export function neutralTrait(threatPower: number, tributeCost: number): FactionTraitResult {
+  return {
+    adjustedThreatPower: threatPower,
+    adjustedTributeCost: tributeCost,
+    extraCivilianCasualtyRate: 0,
+    extraProvincesLost: 0,
+    unrestDelta: 0,
+    soldierDesertions: 0,
   }
 }
 
@@ -45,14 +81,10 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
       'Bandits and deserters preying on poorly defended villages. Loot yields rescued captive serfs.',
     reactiveTraitDescription:
       'If player possesses < 10 soldiers, bandits inflict +15% civilian casualties upon collapse.',
-    applyReactiveTrait: (state, threatPower, tributeCost) => {
-      const soldiers = state.units.soldier ?? 0
-      return {
-        adjustedThreatPower: threatPower,
-        adjustedTributeCost: tributeCost,
-        extraCivilianCasualtyRate: soldiers < 10 ? 0.15 : 0,
-      }
-    },
+    applyReactiveTrait: (state, threatPower, tributeCost) => ({
+      ...neutralTrait(threatPower, tributeCost),
+      extraCivilianCasualtyRate: (state.units.soldier ?? 0) < 10 ? 0.15 : 0,
+    }),
   },
   barons: {
     id: 'barons',
@@ -61,14 +93,13 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
       'Disciplined armored retinues fighting for feudal privileges. Surrenders yield armored soldiers.',
     reactiveTraitDescription:
       'If player maintains a huge army (>= 1.2x Quota), enemies deploy Armored Veterans (+10% power).',
-    applyReactiveTrait: (state, threatPower, tributeCost) => {
-      // In combat, threat power increases by 10% if player military exceeds 1.2x quota
-      return {
-        adjustedThreatPower: Math.round(threatPower * 1.1),
-        adjustedTributeCost: tributeCost,
-        extraCivilianCasualtyRate: 0,
-      }
-    },
+    applyReactiveTrait: (_state, threatPower, tributeCost, context) => ({
+      ...neutralTrait(threatPower, tributeCost),
+      adjustedThreatPower:
+        context.militaryPower >= 1.2 * context.militaryQuota
+          ? Math.round(threatPower * 1.1)
+          : threatPower,
+    }),
   },
   mercenaries: {
     id: 'mercenaries',
@@ -76,9 +107,8 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
     description: 'Gold-hungry sellswords. Victory yields heavy AP chests.',
     reactiveTraitDescription: 'Tribute demand increases by +25%.',
     applyReactiveTrait: (_state, threatPower, tributeCost) => ({
-      adjustedThreatPower: threatPower,
+      ...neutralTrait(threatPower, tributeCost),
       adjustedTributeCost: Math.round(tributeCost * 1.25),
-      extraCivilianCasualtyRate: 0,
     }),
   },
   zealots: {
@@ -86,19 +116,13 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
     name: 'Holy League Zealots',
     description: 'Religious fanatics exploiting peasant discontent. Victory yields converts.',
     reactiveTraitDescription:
-      'If player Unrest is > 60%, zealots trigger Religious Defection (+15 Unrest and soldier desertions).',
+      'If player Unrest is > 60%, zealots trigger Religious Defection (+15 Unrest and one soldier desertion per 10 soldiers).',
     applyReactiveTrait: (state, threatPower, tributeCost) => {
-      if (state.unrest > 60) {
-        state.unrest = Math.min(100, state.unrest + 15)
-        if ((state.units.soldier ?? 0) > 0) {
-          state.units.soldier = Math.max(0, (state.units.soldier ?? 0) - 2)
-          state.totalPopulation = Math.max(0, state.totalPopulation - 2)
-        }
-      }
+      if (state.unrest <= 60) return neutralTrait(threatPower, tributeCost)
       return {
-        adjustedThreatPower: threatPower,
-        adjustedTributeCost: tributeCost,
-        extraCivilianCasualtyRate: 0,
+        ...neutralTrait(threatPower, tributeCost),
+        unrestDelta: 15,
+        soldierDesertions: Math.floor((state.units.soldier ?? 0) / 10),
       }
     },
   },
@@ -106,12 +130,9 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
     id: 'steppe_horsemen',
     name: 'Steppe Horsemen',
     description: 'Lightning cavalry raids across the open plains.',
-    reactiveTraitDescription: 'Scout uncertainty margin is doubled (up to 60%).',
-    applyReactiveTrait: (_state, threatPower, tributeCost) => ({
-      adjustedThreatPower: threatPower,
-      adjustedTributeCost: tributeCost,
-      extraCivilianCasualtyRate: 0,
-    }),
+    reactiveTraitDescription: 'Scout uncertainty margin is doubled (up to 90%).',
+    applyReactiveTrait: (_state, threatPower, tributeCost) =>
+      neutralTrait(threatPower, tributeCost),
   },
   imperial_legions: {
     id: 'imperial_legions',
@@ -119,9 +140,8 @@ export const FACTIONS_DATA: Record<FactionId, FactionDef> = {
     description: 'Ironclad imperial siege host sent to punish insubordination.',
     reactiveTraitDescription: 'Threaten 2 provinces if defensive collapse occurs.',
     applyReactiveTrait: (_state, threatPower, tributeCost) => ({
-      adjustedThreatPower: threatPower,
-      adjustedTributeCost: tributeCost,
-      extraCivilianCasualtyRate: 0,
+      ...neutralTrait(threatPower, tributeCost),
+      extraProvincesLost: 1,
     }),
   },
 }

@@ -107,6 +107,7 @@ describe('Task 1.1: EngineConfig Injection & Decoupling', () => {
       perceivedMax: 29,
       biome: 'farmlands',
       lootType: 'ap',
+      factionId: 'outlaws',
       isFalseLedger: false,
       isAmbush: false,
     }

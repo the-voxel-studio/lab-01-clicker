@@ -333,9 +333,9 @@ Enemy threats and tactical campaign targets belong to thematic feudal factions w
    - *Reactive Trait:* Tribute demand increases by +25% (the doubling of surprise raid probability when `ap > 2000` is governed uniformly by the general raid rule in §8.3, without duplicate doubling).
 4. **Holy League Zealots:**
    - Religious fanatics attacking during high unrest. Victory yields converts (**Population**).
-   - *Reactive Trait:* If player Unrest is $> 60\%$, zealots trigger *Religious Defection* (+15 Unrest and soldier desertions).
+   - *Reactive Trait:* If player Unrest is $> 60\%$, zealots trigger *Religious Defection* (+15 Unrest and one soldier desertion per 10 soldiers), applied when the threat is faced by defense or levy.
 5. **Steppe Horsemen:**
-   - Lightning cavalry raids; scout uncertainty margin is doubled ($\pm 30\%$).
+   - Lightning cavalry raids; scout uncertainty margin is doubled (base $\pm 45\%$ becomes $\pm 90\%$, 5% floor).
 6. **Imperial Crown Legions:**
    - Imperial siege host; threaten 2 provinces if defensive collapse occurs.
 

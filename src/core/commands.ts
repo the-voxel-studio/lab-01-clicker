@@ -18,6 +18,12 @@ import { deriveSeed, withStatePrng } from './prng'
 import { composeStat, extractRawEvaluationState, canAffordEffects, applyEffect } from './modifiers'
 import { hasRule } from './rules'
 import { LAWS_DATA } from '@/data/laws'
+import {
+  FACTIONS_DATA,
+  SCHEDULED_THREATS_DATA,
+  neutralTrait,
+  type FactionTraitResult,
+} from '@/data/threats'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import {
   tick,
@@ -25,6 +31,7 @@ import {
   calculateMaxPopulation,
   calculateNetPaperwork,
   calculateMilitaryPower,
+  effectiveQuota,
   calculateNetApRate,
 } from './engine'
 import { createInitialGameState } from './state'
@@ -551,6 +558,60 @@ function composeThreatPower(state: GameState, basePower: number): number {
   return Math.max(0, Math.round(basePower * factor))
 }
 
+/** Scheduled threat of a deadline once the faction trait and `threat_power` are applied. */
+interface ScheduledThreatForecast {
+  power: number
+  tribute: number
+  trait: FactionTraitResult
+}
+
+/**
+ * Builds the threat of a deadline from its quota, its faction trait, then `threat_power`.
+ *
+ * @param state - Active state read by the trait and the modifiers.
+ * @param deadline - Deadline the threat attacks.
+ * @param config - Balance configuration (quotas).
+ * @returns Power, tribute and the trait values for that deadline.
+ */
+function forecastScheduledThreat(
+  state: GameState,
+  deadline: number,
+  config: EngineConfig,
+): ScheduledThreatForecast {
+  const trait = forecastThreatTrait(state, deadline, config)
+  return {
+    power: composeThreatPower(state, trait.adjustedThreatPower),
+    tribute: trait.adjustedTributeCost,
+    trait,
+  }
+}
+
+/**
+ * Applies the faction trait of the threat of a deadline to its base power and tribute.
+ *
+ * @param state - Active state read by the trait.
+ * @param deadline - Deadline the threat attacks.
+ * @param config - Balance configuration (quotas).
+ * @returns The trait values, with the adjusted power before `threat_power`.
+ */
+function forecastThreatTrait(
+  state: GameState,
+  deadline: number,
+  config: EngineConfig,
+): FactionTraitResult {
+  const quota =
+    config.quotas.find((q) => q.deadline === deadline) ?? config.quotas[config.quotas.length - 1]!
+  const basePower = getThreatPower(quota.military)
+  const baseTribute = getThreatTributeAp(quota.apRate)
+  const def = SCHEDULED_THREATS_DATA.find((t) => t.deadline === deadline)
+  return def
+    ? FACTIONS_DATA[def.factionId].applyReactiveTrait(state, basePower, baseTribute, {
+        militaryPower: calculateMilitaryPower(state),
+        militaryQuota: effectiveQuota(state, quota).military,
+      })
+    : neutralTrait(basePower, baseTribute)
+}
+
 /**
  * Transitions to the next inter-deadline phase, populating threat and expedition targets when entering them.
  */
@@ -558,6 +619,7 @@ function transitionToNextInterDeadlinePhase(
   state: GameState,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): void {
+  if (state.phase === 'THREAT_HERALD' || state.isGameOver) state.currentThreatId = null
   if (state.isGameOver) return
   if (state.phase === 'COUNCIL_DILEMMA') state.currentDilemmaId = null
   if (state.phase === 'COUNCIL_LAWS') state.currentLawDraft = []
@@ -598,12 +660,10 @@ function transitionToNextInterDeadlinePhase(
       return draft
     })
   } else if (nextPhase === 'THREAT_HERALD') {
-    const nextDeadline = state.deadline + 1
-    const nextQuota =
-      config.quotas.find((q) => q.deadline === nextDeadline) ??
-      config.quotas[config.quotas.length - 1]!
-    state.currentThreatPower = composeThreatPower(state, getThreatPower(nextQuota.military))
-    state.currentThreatTributeAp = getThreatTributeAp(nextQuota.apRate)
+    const forecast = forecastScheduledThreat(state, state.deadline + 1, config)
+    state.currentThreatId = state.deadline + 1
+    state.currentThreatPower = forecast.power
+    state.currentThreatTributeAp = forecast.tribute
   } else if (nextPhase === 'EXPEDITION') {
     state.campaignsLaunchedThisDeadline = 0
     generateCampaignTarget(state, config)
@@ -800,12 +860,12 @@ export function dispatch(
       let threatPower = state.currentThreatPower
       let tributeAp = state.currentThreatTributeAp
 
+      const threatDeadline = state.currentThreatId ?? state.deadline + 1
+      const trait = forecastThreatTrait(state, threatDeadline, config)
       if (threatPower <= 0 || tributeAp <= 0) {
-        const nextQuota = config.quotas.find((q) => q.deadline === state.deadline + 1)
-        if (nextQuota) {
-          threatPower = composeThreatPower(state, getThreatPower(nextQuota.military))
-          tributeAp = getThreatTributeAp(nextQuota.apRate)
-        }
+        const forecast = forecastScheduledThreat(state, threatDeadline, config)
+        threatPower = forecast.power
+        tributeAp = forecast.tribute
       }
 
       if (command.response === 'tribute' && state.ap < tributeAp) {
@@ -822,6 +882,7 @@ export function dispatch(
         tributeAp,
         undefined,
         config,
+        trait,
       )
       if (!res.success && command.response === 'tribute') {
         // Insufficient treasury for tribute: do NOT advance phase, stay in THREAT_HERALD
