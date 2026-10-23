@@ -98,7 +98,11 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
         { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
         {
           timeSeconds: 100.0,
-          command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 },
+          command: {
+            type: 'RESOLVE_DILEMMA',
+            dilemmaId: 'dilemma:cabinet_scarcity',
+            choiceIndex: 1,
+          },
         },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
@@ -112,7 +116,11 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
         { timeSeconds: 200.0, command: { type: 'SUBMIT_AUDIT' } },
         {
           timeSeconds: 200.0,
-          command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 },
+          command: {
+            type: 'RESOLVE_DILEMMA',
+            dilemmaId: 'dilemma:cabinet_scarcity',
+            choiceIndex: 1,
+          },
         },
         { timeSeconds: 200.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 200.0, command: { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' } },
@@ -174,7 +182,11 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
         { timeSeconds: 100.0, command: { type: 'SUBMIT_AUDIT' } },
         {
           timeSeconds: 100.0,
-          command: { type: 'RESOLVE_DILEMMA', dilemmaId: 'mock_dilemma', choiceIndex: 0 },
+          command: {
+            type: 'RESOLVE_DILEMMA',
+            dilemmaId: 'dilemma:cabinet_scarcity',
+            choiceIndex: 1,
+          },
         },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },

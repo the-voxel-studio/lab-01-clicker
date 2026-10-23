@@ -37,6 +37,7 @@ import {
   generateCampaignTarget,
 } from './battle'
 import type { Command, GameState, DispatchResult } from './types'
+import type { DilemmaDef } from '@/data/dilemmas'
 
 /**
  * Handles unit recruitment (BUY_UNIT).
@@ -506,6 +507,18 @@ function handleRefuseLombardLoan(state: GameState): DispatchResult {
 }
 
 /**
+ * Tells whether at least one choice of a dilemma can be paid by the state, using the same
+ * affordability check as the RESOLVE_DILEMMA command.
+ *
+ * @param state - The current game state.
+ * @param dilemma - The dilemma definition to evaluate.
+ * @returns True when a choice has all its costs payable.
+ */
+export function hasAffordableChoice(state: GameState, dilemma: DilemmaDef): boolean {
+  return dilemma.choices.some((choice) => canAffordEffects(state, choice.effects))
+}
+
+/**
  * Transitions to the next inter-deadline phase, populating threat and expedition targets when entering them.
  */
 function transitionToNextInterDeadlinePhase(
@@ -513,13 +526,21 @@ function transitionToNextInterDeadlinePhase(
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): void {
   if (state.isGameOver) return
+  if (state.phase === 'COUNCIL_DILEMMA') state.currentDilemmaId = null
+  if (state.phase === 'COUNCIL_LAWS') state.currentLawDraft = []
   const nextPhase = getNextInterDeadlinePhase(state.phase, state.deadline)
   state.phase = nextPhase
 
   if (nextPhase === 'COUNCIL_DILEMMA') {
-    const allDilemmas = Object.values(DILEMMAS_DATA)
-    const eligible = allDilemmas.filter((d) => d.trigger(state, config))
-    const pool = eligible.length > 0 ? eligible : allDilemmas
+    const pool = Object.values(DILEMMAS_DATA).filter(
+      (d) => d.trigger(state, config) && hasAffordableChoice(state, d),
+    )
+    if (pool.length === 0) {
+      // Nothing qualifies: skip the dilemma step so the run cannot deadlock.
+      state.currentDilemmaId = null
+      transitionToNextInterDeadlinePhase(state, config)
+      return
+    }
     state.currentDilemmaId = withStatePrng(state, 'council', (prng) => {
       const idx = Math.min(pool.length - 1, Math.floor(prng.next() * pool.length))
       return pool[idx]!.id
@@ -663,11 +684,13 @@ export function dispatch(
     }
 
     case 'RESOLVE_DILEMMA': {
-      const dilemmaId = command.dilemmaId || state.currentDilemmaId
-      const dilemma = dilemmaId ? DILEMMAS_DATA[dilemmaId] : undefined
+      const dilemmaId = command.dilemmaId
+      if (state.currentDilemmaId === null || dilemmaId !== state.currentDilemmaId) {
+        return { success: false, error: `Dilemma ${dilemmaId} is not the drafted dilemma.` }
+      }
+      const dilemma = DILEMMAS_DATA[dilemmaId]
       if (!dilemma) {
-        transitionToNextInterDeadlinePhase(state, config)
-        return { success: true }
+        return { success: false, error: `Unknown dilemma ${dilemmaId}.` }
       }
       const choice = dilemma.choices[command.choiceIndex]
       if (!choice) {
@@ -694,7 +717,7 @@ export function dispatch(
       if (!law) {
         return { success: false, error: `Unknown law ${command.lawId}.` }
       }
-      if (state.currentLawDraft.length > 0 && !state.currentLawDraft.includes(command.lawId)) {
+      if (!state.currentLawDraft.includes(command.lawId)) {
         return { success: false, error: `Law ${command.lawId} is not in current council draft.` }
       }
       if (state.activeLaws.includes(command.lawId)) {

@@ -8,7 +8,8 @@ import { describe, it, expect } from 'vitest'
 import { createInitialGameState } from '@/core/state'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
-import { dispatch } from '@/core/commands'
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { dispatch, hasAffordableChoice } from '@/core/commands'
 
 describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
   describe('Catalogs Completeness & Integrity', () => {
@@ -177,6 +178,100 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
       expect(res.error).toContain('Cannot afford')
       expect(state.phase).toBe('COUNCIL_LAWS')
       expect(state.ap).toBe(50)
+    })
+  })
+
+  describe('Council command integrity', () => {
+    it('rejects resolving a dilemma other than the drafted one', () => {
+      const state = createInitialGameState()
+      state.phase = 'COUNCIL_DILEMMA'
+      state.currentDilemmaId = 'dilemma:rotting_grain_silos'
+      state.ap = 500
+
+      const res = dispatch(state, {
+        type: 'RESOLVE_DILEMMA',
+        dilemmaId: 'dilemma:foreign_envoy_bribe',
+        choiceIndex: 0,
+      })
+      expect(res.success).toBe(false)
+      expect(state.ap).toBe(500)
+      expect(state.phase).toBe('COUNCIL_DILEMMA')
+    })
+
+    it('rejects an unknown dilemma id', () => {
+      const state = createInitialGameState()
+      state.phase = 'COUNCIL_DILEMMA'
+      state.currentDilemmaId = 'dilemma:rotting_grain_silos'
+
+      const res = dispatch(state, {
+        type: 'RESOLVE_DILEMMA',
+        dilemmaId: 'dilemma:nope',
+        choiceIndex: 0,
+      })
+      expect(res.success).toBe(false)
+      expect(state.phase).toBe('COUNCIL_DILEMMA')
+    })
+
+    it('rejects a law when no draft exists', () => {
+      const state = createInitialGameState()
+      state.phase = 'COUNCIL_LAWS'
+      state.currentLawDraft = []
+      const ap = state.ap
+
+      const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' })
+      expect(res.success).toBe(false)
+      expect(state.ap).toBe(ap)
+      expect(state.phase).toBe('COUNCIL_LAWS')
+    })
+
+    it('never drafts a dilemma without an affordable choice', () => {
+      const drafted: Array<string | null> = []
+      const unaffordable: string[] = []
+      for (let seed = 1; seed <= 50; seed++) {
+        const state = createInitialGameState({
+          seed,
+          freeSerfs: 10,
+          ap: 100,
+          provinceBiomes: ['heartland', 'heartland', 'farmlands'],
+        })
+        state.phase = 'AUDIT_ASSESSMENT'
+        const silos = DILEMMAS_DATA['dilemma:rotting_grain_silos']!
+        expect(silos.trigger(state)).toBe(true)
+        expect(hasAffordableChoice(state, silos)).toBe(false)
+
+        dispatch(state, { type: 'SUBMIT_AUDIT' })
+        drafted.push(state.currentDilemmaId)
+        const def = state.currentDilemmaId ? DILEMMAS_DATA[state.currentDilemmaId] : undefined
+        if (def && !hasAffordableChoice(state, def)) unaffordable.push(def.id)
+      }
+      expect(drafted).not.toContain('dilemma:rotting_grain_silos')
+      expect(unaffordable).toEqual([])
+    })
+
+    it('skips the dilemma step when nothing qualifies', () => {
+      const state = createInitialGameState({
+        seed: 5,
+        ap: 100,
+        lastAuditOutcome: {
+          deadline: 1,
+          apMet: true,
+          popMet: true,
+          militaryMet: true,
+          passedCount: 3,
+          success: true,
+          royalPardonIssued: false,
+          isGameOver: false,
+          victory: false,
+          grossApRate: DEFAULT_ENGINE_CONFIG.quotas[0]!.apRate * 1.5,
+        },
+      })
+      state.phase = 'AUDIT_ASSESSMENT'
+      expect(Object.values(DILEMMAS_DATA).filter((d) => d.trigger(state))).toEqual([])
+
+      const res = dispatch(state, { type: 'SUBMIT_AUDIT' })
+      expect(res.success).toBe(true)
+      expect(state.phase).toBe('COUNCIL_LAWS')
+      expect(state.currentDilemmaId).toBeNull()
     })
   })
 })

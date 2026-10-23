@@ -9,6 +9,8 @@ import { BALANCE, UNITS_DATA, DEADLINE_QUOTAS, type UnitId, type UnitOrder } fro
 import type { GameState, Command, DefeatReason } from '@/core/types'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
+import { canAffordEffects } from '@/core/modifiers'
+import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { tick, calculateMilitaryPower } from '@/core/engine'
 import { PRNG } from '@/core/prng'
 import { calculateUnitCost, calculateOrderCaps, calculateHousingCapacity } from '@/core/formulas'
@@ -61,7 +63,16 @@ export function runSimulation(
     }
 
     if (state.phase === 'COUNCIL_DILEMMA') {
-      dispatch(state, { type: 'RESOLVE_DILEMMA', dilemmaId: 'dilemma_mock', choiceIndex: 0 })
+      const dilemmaId = state.currentDilemmaId
+      const dilemma = dilemmaId === null ? undefined : DILEMMAS_DATA[dilemmaId]
+      if (dilemmaId === null || !dilemma) {
+        throw new Error(`Bot: COUNCIL_DILEMMA without a known drafted dilemma (${dilemmaId}).`)
+      }
+      const choiceIndex = dilemma.choices.findIndex((c) => canAffordEffects(state, c.effects))
+      if (choiceIndex < 0) {
+        throw new Error(`Bot: no affordable choice for drafted dilemma ${dilemmaId}.`)
+      }
+      dispatch(state, { type: 'RESOLVE_DILEMMA', dilemmaId, choiceIndex })
       continue
     }
 
