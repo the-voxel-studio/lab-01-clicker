@@ -166,6 +166,7 @@ function measure(state: GameState): Metrics {
   out['stat.threatPower'] = stat('threat_power', 1)
   out['stat.unrestGeneration'] = stat('unrest_generation', 1)
   out['stat.unrestPacification'] = stat('unrest_pacification', 1)
+  out['stat.lawSlots'] = stat('law_slots', config.balance.LAW_SLOTS_BASE)
   const quota = effectiveQuota(state, { apRate: 100, pop: 100, military: 100 })
   out['quota.requirement'] = quota.apRate
   out['foresight.length'] = getForesightQuotas(state, config).length

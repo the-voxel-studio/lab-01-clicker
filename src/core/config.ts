@@ -128,7 +128,6 @@ export interface BalanceConfig {
   readonly EXCEPTIONAL_TITHE_UNREST: number
   readonly FAST_FORWARD_MIN_DEADLINE: number
   readonly LAW_SLOTS_BASE: number
-  readonly LAW_SLOTS_EXTENDED: number
   readonly DISBAND_SEVERANCE_SHARE: number
   readonly DISBAND_UNPAID_UNREST: number
   readonly MUTINY_WINDOW_SECONDS: number

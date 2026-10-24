@@ -109,6 +109,7 @@ export const STAT_KEYS = [
   'order_cap',
   'quota_requirement',
   'quota_foresight_deadlines',
+  'law_slots',
 ] as const
 
 /** Stat keys that can be dynamically altered by Modifiers. */

@@ -877,25 +877,6 @@ const ROWS: readonly Row[] = [
       c,
     ),
   ),
-  row('LAW_SLOTS_EXTENDED', (c) => {
-    const state = realm(
-      1,
-      {},
-      {
-        phase: 'COUNCIL_LAWS',
-        currentLawDraft: ['law:royal_scriptorium'],
-        activeLaws: ['law:a', 'law:b', 'law:c', 'law:d', 'law:e', 'law:f'],
-      },
-    )
-    state.activeModifiers.push({
-      source: 'archive:sixth_law_slot',
-      stat: 'order_cap',
-      op: 'add',
-      value: 0,
-      scope: { order: 'admin' },
-    })
-    return commanded(state, { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' }, c)
-  }),
   row('SCORE_PER_CUMULATIVE_AP', scored),
   row('SCORE_PER_PEAK_POPULATION', scored),
   row('SCORE_PER_PROVINCE', scored),

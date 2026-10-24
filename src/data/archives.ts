@@ -159,9 +159,9 @@ export function applyArchivePerks(state: GameState, activePerkIds: ArchivePerkId
       case 'sixth_law_slot':
         state.activeModifiers.push({
           source: 'archive:sixth_law_slot',
-          stat: 'gross_ap_rate',
+          stat: 'law_slots',
           op: 'add',
-          value: 0,
+          value: 1,
         })
         break
     }

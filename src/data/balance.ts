@@ -179,7 +179,6 @@ export const BALANCE = {
   EXCEPTIONAL_TITHE_UNREST: 30, // Unrest points: added after the audit under Exceptional Tithe
   FAST_FORWARD_MIN_DEADLINE: 5, // deadline index: fast forward unlocks
   LAW_SLOTS_BASE: 5, // slots: active laws allowed
-  LAW_SLOTS_EXTENDED: 6, // slots: active laws allowed with the Sixth Law Slot perk
   DISBAND_SEVERANCE_SHARE: 0.5, // ratio of base cost: severance paid per disbanded unit
   DISBAND_UNPAID_UNREST: 2, // Unrest points: per unpaid disbanded unit
   MUTINY_WINDOW_SECONDS: 10, // seconds: rolling window of military demobilization
