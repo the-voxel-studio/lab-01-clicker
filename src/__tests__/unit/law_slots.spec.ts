@@ -3,9 +3,9 @@ import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 import { applyArchivePerks } from '@/data/archives'
 import { STAT_KEYS } from '@/core/types'
-import type { GameState, LawId } from '@/core/types'
+import type { GameState } from '@/core/types'
 
-const FIVE: LawId[] = [
+const FIVE: string[] = [
   'law:royal_scriptorium',
   'law:general_cadastre',
   'law:census_edict',
@@ -13,7 +13,7 @@ const FIVE: LawId[] = [
   'law:merit_pay',
 ]
 
-function councilWith(active: LawId[], draft: LawId): GameState {
+function councilWith(active: string[], draft: string): GameState {
   const state = createInitialGameState()
   state.phase = 'COUNCIL_LAWS'
   state.activeLaws = [...active]

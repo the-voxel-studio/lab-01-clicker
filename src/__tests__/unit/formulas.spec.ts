@@ -21,6 +21,7 @@ import {
   getUnrestCrisisStage,
 } from '@/core/formulas'
 import { BALANCE, UNITS_DATA } from '@/data/balance'
+import type { UnitId } from '@/core/types'
 
 describe('Core Formulas & Mathematical Scaling (Gate A)', () => {
   describe('Unit Cost Geometric Scaling', () => {

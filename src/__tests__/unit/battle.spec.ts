@@ -301,6 +301,7 @@ describe('Task 4: rolled casualties and campaign details', () => {
       perceivedMax: 140,
       biome: 'heartland',
       lootType: 'ap',
+      factionId: 'outlaws',
       isFalseLedger: false,
       isAmbush: true,
     }
