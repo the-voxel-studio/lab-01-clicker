@@ -178,6 +178,9 @@ function checkCampaignTarget(value: unknown): void {
     if (perceivedMin > perceivedMax) {
       return fail('currentTarget.perceivedMin', 'must not exceed perceivedMax')
     }
+    if (perceivedMin < 0) {
+      return fail('currentTarget.perceivedMin', 'must not be negative')
+    }
   }
   if (!isBiomeId(value.biome)) {
     return fail('currentTarget.biome', 'unknown biome id')

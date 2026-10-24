@@ -20,7 +20,7 @@ import { getHousingBase, removeLastProvince } from './provinces'
 import { composeStat, composeUnitStat, extractRawEvaluationState } from './modifiers'
 import { hasRule } from './rules'
 import { triggerDefeat, addUnrest, applyPopulationLoss, removeUnits } from './mutations'
-import type { GameState, TickResult, AuditOutcome } from './types'
+import type { GameState, Modifier, TickResult, AuditOutcome } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
 
@@ -307,11 +307,19 @@ export interface EffectiveQuota {
 /**
  * Scales a deadline quota by the `quota_requirement` stat (base 1, clamped at 0), as read by the
  * audit and by the 50 s interim projection.
+ *
+ * @param state - Current GameState.
+ * @param quota - The quota to scale.
+ * @param modifiers - Modifiers to compose (defaults to the active ones).
  */
-export function effectiveQuota(state: GameState, quota: EffectiveQuota): EffectiveQuota {
+export function effectiveQuota(
+  state: GameState,
+  quota: EffectiveQuota,
+  modifiers: readonly Modifier[] = state.activeModifiers,
+): EffectiveQuota {
   const requirement = Math.max(
     0,
-    composeStat('quota_requirement', 1, state.activeModifiers, extractRawEvaluationState(state)),
+    composeStat('quota_requirement', 1, modifiers, extractRawEvaluationState(state)),
   )
   return {
     apRate: quota.apRate * requirement,
@@ -331,7 +339,9 @@ export interface ForesightQuota extends EffectiveQuota {
  * The count is the `quota_foresight_deadlines` stat (base 0, rounded down, 0 without the perk).
  * Upcoming deadlines start at the current one while it is not audited yet (active play, raid,
  * Lombard offer) and at the next one during the inter-deadline sequence; they stop at the last
- * deadline. Each quota is scaled by `quota_requirement` as the audit will read it now.
+ * deadline. The first deadline is the next audit and is scaled by `quota_requirement` as that audit
+ * will read it now; later deadlines ignore the `untilNextAudit` modifiers, which expire before they
+ * are audited.
  *
  * @param state - Current GameState.
  * @param config - Engine configuration (quotas).
@@ -355,9 +365,17 @@ export function getForesightQuotas(
     state.phase === 'SURPRISE_RAID' ||
     state.phase === 'LOMBARD_OFFER'
   const first = unaudited ? state.deadline : state.deadline + 1
+  const lastingModifiers = state.activeModifiers.filter((mod) => !mod.untilNextAudit)
   return config.quotas
     .filter((quota) => quota.deadline >= first && quota.deadline < first + count)
-    .map((quota) => ({ deadline: quota.deadline, ...effectiveQuota(state, quota) }))
+    .map((quota) => ({
+      deadline: quota.deadline,
+      ...effectiveQuota(
+        state,
+        quota,
+        quota.deadline === first ? state.activeModifiers : lastingModifiers,
+      ),
+    }))
 }
 
 /**
@@ -603,7 +621,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     }
   }
 
-  // 0a. Check pending audit before integrating new step
+  // Check pending audit before integrating new step
   if (
     state.pendingDeadlineAudit ||
     state.deadlineTimeSeconds >= config.balance.DEADLINE_DURATION_SECONDS ||
@@ -628,7 +646,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     }
   }
 
-  // 0b. Bound stepDt to prevent deadline overshooting
+  // Bound stepDt to prevent deadline overshooting
   const stepDt = Math.min(
     dt,
     Math.max(0, config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds),
@@ -662,7 +680,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
   const stepStartSeconds = state.totalElapsedSeconds
   state.totalElapsedSeconds = snapToStepGrid(state.totalElapsedSeconds + stepDt, grid)
 
-  // 0c. Purge modifiers expired at the step start, so a modifier covers its last step
+  // Purge modifiers expired at the step start, so a modifier covers its last step
   state.activeModifiers = state.activeModifiers.filter(
     (mod) => mod.expiresAt === undefined || mod.expiresAt > stepStartSeconds,
   )
@@ -685,7 +703,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     state.taxRateViolated15 = true
   }
 
-  // 2b. Forced tithe growth freeze countdown (20s timer)
+  // Forced tithe growth freeze countdown (20s timer)
   if (state.forcedTitheFreezeTimer > 0) {
     state.forcedTitheFreezeTimer = Math.max(
       0,
@@ -807,7 +825,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
 
   addUnrest(state, (composedGen - composedPac) * stepDt, config)
 
-  // 6b. Military Desertion (§6.5, Arbitrage 1.0 §2)
+  // Military Desertion (§6.5, Arbitrage 1.0 §2)
   const hasSanctuaryRights = hasRule(state, 'law:sanctuary_rights')
   const isDesertionActive =
     state.unrest >= config.balance.UNREST_STRIFE_DESERTION_THRESHOLD &&

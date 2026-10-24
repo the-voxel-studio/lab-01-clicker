@@ -382,6 +382,35 @@ describe('Task 2: unit scoped economy levers', () => {
       enact(state, 'law:mercenary_capitulation')
       expect(calculateUpkeep(state, config)).toBe(33)
     })
+
+    it('mercenary_capitulation hires men at arms without free serfs', () => {
+      const state = stateWith({ soldier: 4 })
+      state.ap = 1000
+      state.unlockedPatents.military = true
+      const before = { population: state.totalPopulation, serfs: state.freeSerfs }
+      expect(
+        dispatch(state, { type: 'BUY_UNIT', unitId: 'man_at_arms', count: 1 }, config).success,
+      ).toBe(false)
+      enact(state, 'law:mercenary_capitulation')
+      const result = dispatch(state, { type: 'BUY_UNIT', unitId: 'man_at_arms', count: 1 }, config)
+      expect(result.success).toBe(true)
+      expect(state.units.man_at_arms).toBe(1)
+      expect(state.freeSerfs).toBe(before.serfs)
+      expect(state.totalPopulation).toBe(before.population + 1)
+    })
+
+    it('mercenary_capitulation still charges serfs for other units and keeps the AP check', () => {
+      const state = stateWith({ soldier: 4 })
+      state.ap = 1000
+      state.unlockedPatents.military = true
+      enact(state, 'law:mercenary_capitulation')
+      expect(
+        dispatch(state, { type: 'BUY_UNIT', unitId: 'soldier', count: 1 }, config).success,
+      ).toBe(false)
+      state.ap = 0
+      const broke = dispatch(state, { type: 'BUY_UNIT', unitId: 'man_at_arms', count: 1 }, config)
+      expect(broke.success).toBe(false)
+    })
   })
 
   describe('dilemmas', () => {

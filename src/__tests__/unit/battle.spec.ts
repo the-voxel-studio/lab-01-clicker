@@ -308,11 +308,13 @@ describe('Task 4: rolled casualties and campaign details', () => {
     expect(calculateEnemyPower({ ...target, isAmbush: false })).toBe(100)
   })
 
-  it('stores a perceived band of width 2M that contains the real power', () => {
+  it('stores a perceived band of at most width 2M that contains the real power', () => {
     for (let seed = 1; seed <= 200; seed++) {
       const target = generateCampaignTarget(createInitialGameState(), config, new PRNG(seed))
       const width = target.perceivedMax - target.perceivedMin
-      expect(Math.abs(width - 2 * target.uncertaintyMargin * target.power)).toBeLessThanOrEqual(1)
+      const fullWidth = 2 * target.uncertaintyMargin * target.power
+      expect(width).toBeLessThanOrEqual(fullWidth + 1)
+      expect(target.perceivedMin === 0 || Math.abs(width - fullWidth) <= 1).toBe(true)
       expect(target.perceivedMin).toBeLessThanOrEqual(target.power)
       expect(target.perceivedMax).toBeGreaterThanOrEqual(target.power)
     }

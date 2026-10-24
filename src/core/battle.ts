@@ -717,7 +717,8 @@ export function resolveDefensiveClash(
  * @param power - Real enemy power.
  * @param margin - Uncertainty margin M (ratio).
  * @param position - Uniform draw in [0, 1): 0 puts the real power on the lower edge.
- * @returns Rounded lower and upper estimates; the real power is always inside.
+ * @returns Rounded lower and upper estimates; the lower edge is floored at 0 and the real power is
+ *   always inside.
  */
 function perceivedBand(
   power: number,
@@ -726,7 +727,7 @@ function perceivedBand(
 ): { perceivedMin: number; perceivedMax: number } {
   const width = 2 * margin
   return {
-    perceivedMin: Math.round(power * (1 - width * position)),
+    perceivedMin: Math.max(0, Math.round(power * (1 - width * position))),
     perceivedMax: Math.round(power * (1 + width * (1 - position))),
   }
 }

@@ -19,7 +19,6 @@ import {
 import { FACTIONS_DATA, neutralTrait } from '@/data/threats'
 import { getNextInterDeadlinePhase } from '@/core/phases'
 import { UNITS_DATA, getThreatPower, getThreatTributeAp } from '@/data/balance'
-import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { applyEffect } from '@/core/modifiers'
 import { calculateGrossApRate, calculateUpkeep, calculateMilitaryPower } from '@/core/engine'
 import { hasRule } from '@/core/rules'
@@ -30,7 +29,7 @@ import {
   importSaveFromBase64,
 } from '@/core/migrations'
 import { createArchiveData } from '@/core/archives'
-import { LAWS_DATA } from '@/data/laws'
+import { lawOf, dilemmaOf } from './catalog_lookup'
 import type { CampaignTarget } from '@/core/types'
 import { PRNG } from '@/core/prng'
 
@@ -550,7 +549,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     const state = createInitialGameState()
     state.phase = 'COUNCIL_LAWS'
     state.deadline = 3
-    const choice = DILEMMAS_DATA['dilemma:princely_cousin']!.choices[1]!
+    const choice = dilemmaOf('dilemma:princely_cousin').choices[1]
     for (const effect of choice.effects) applyEffect(effect, state)
     dispatch(state, { type: 'REJECT_LAWS' })
     const quota = DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 4)!
@@ -585,7 +584,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
         'law:vanguard_drills',
         'law:officer_academies',
       ]) {
-        for (const effect of LAWS_DATA[lawId]!.effects) applyEffect(effect, state)
+        for (const effect of lawOf(lawId).effects) applyEffect(effect, state)
         state.activeLaws.push(lawId)
       }
       state.currentTarget = { ...target }
@@ -600,6 +599,10 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       const base = { ...createInitialGameState() }
       const inverted = { ...base, currentTarget: { ...target, perceivedMin: 60, perceivedMax: 50 } }
       expect(() => importSaveFromBase64(encode(CURRENT_SCHEMA_VERSION, inverted))).toThrow(
+        /currentTarget\.perceivedMin/,
+      )
+      const negative = { ...base, currentTarget: { ...target, perceivedMin: -1 } }
+      expect(() => importSaveFromBase64(encode(CURRENT_SCHEMA_VERSION, negative))).toThrow(
         /currentTarget\.perceivedMin/,
       )
       const infinite = {
@@ -662,7 +665,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       state.provinces = 3
       const plain = calculateUpkeep(state, DEFAULT_ENGINE_CONFIG)
       for (const lawId of ['law:standing_garrisons', 'law:merit_pay']) {
-        for (const effect of LAWS_DATA[lawId]!.effects) applyEffect(effect, state)
+        for (const effect of lawOf(lawId).effects) applyEffect(effect, state)
       }
       const both = calculateUpkeep(state, DEFAULT_ENGINE_CONFIG)
       const unitUpkeep = 50 * UNITS_DATA.soldier.upkeepAp
@@ -681,7 +684,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
         state.units.soldier = 18
         state.units.man_at_arms = 0
         if (law) {
-          for (const effect of LAWS_DATA['law:standing_garrisons']!.effects) {
+          for (const effect of lawOf('law:standing_garrisons').effects) {
             applyEffect(effect, state)
           }
         }
@@ -722,7 +725,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       state.units.sergeant = 10
       state.totalPopulation = 110
       state.freeSerfs = 0
-      for (const effect of LAWS_DATA['law:officer_academies']!.effects) applyEffect(effect, state)
+      for (const effect of lawOf('law:officer_academies').effects) applyEffect(effect, state)
       const imported = importSaveFromBase64(exportSaveToBase64(state, createArchiveData())).state
       expect(calculateMilitaryPower(imported)).toBe(calculateMilitaryPower(state))
       expect(calculateGrossApRate(imported).total).toBe(calculateGrossApRate(state).total)
@@ -916,6 +919,24 @@ describe('Factions and scheduled threats (GAME_RULES 7.5, 8.1)', () => {
       const expectedMargin = target.factionId === 'steppe_horsemen' ? 0.42 : 0.21
       expect(target.uncertaintyMargin).toBeCloseTo(expectedMargin, 10)
     }
+  })
+
+  it('never reports a negative lower edge on a wide steppe band', () => {
+    let floored = 0
+    let steppe = 0
+    for (let seed = 1; seed <= 2000; seed++) {
+      const state = createInitialGameState()
+      state.deadline = 6
+      const target = generateCampaignTarget(state, DEFAULT_ENGINE_CONFIG, new PRNG(seed))
+      if (target.factionId !== 'steppe_horsemen') continue
+      steppe++
+      expect(target.perceivedMin).toBeGreaterThanOrEqual(0)
+      expect(target.perceivedMin).toBeLessThanOrEqual(target.power)
+      expect(target.perceivedMax).toBeGreaterThanOrEqual(target.power)
+      if (target.perceivedMin === 0) floored++
+    }
+    expect(steppe).toBeGreaterThan(100)
+    expect(floored).toBeGreaterThan(0)
   })
 
   it('outlaws inflict 15% more civilian casualties on collapse when soldiers < 10', () => {

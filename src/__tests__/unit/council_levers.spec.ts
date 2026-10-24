@@ -28,6 +28,7 @@ import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { hasRule } from '@/core/rules'
 import { LAWS_DATA } from '@/data/laws'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
+import { dilemmaOf, effectOf, lawOf } from './catalog_lookup'
 import type { Effect, GameState, Modifier } from '@/core/types'
 
 const config = DEFAULT_ENGINE_CONFIG
@@ -215,7 +216,7 @@ describe('Task 3: demography and council levers', () => {
   })
 
   describe('grand_kermesse', () => {
-    const law = LAWS_DATA['law:grand_kermesse']!
+    const law = lawOf('law:grand_kermesse')
 
     it('costs 40 s of net income', () => {
       const state = createInitialGameState()
@@ -245,7 +246,7 @@ describe('Task 3: demography and council levers', () => {
     it('refuses to price the cost without a net rate', () => {
       const state = createInitialGameState()
       expect(() => canAffordEffects(state, law.effects)).toThrow(/net AP rate/)
-      expect(() => applyEffect(law.effects[0]!, state)).toThrow(/net AP rate/)
+      expect(() => applyEffect(effectOf(law, 0), state)).toThrow(/net AP rate/)
     })
 
     it('costs nothing when the net rate is not positive', () => {
@@ -444,7 +445,7 @@ describe('Task 3: demography and council levers', () => {
 
   describe('great_archive_fire', () => {
     it('triggers above 45% paperwork only', () => {
-      const trigger = DILEMMAS_DATA['dilemma:great_archive_fire']!.trigger
+      const trigger = dilemmaOf('dilemma:great_archive_fire').trigger
       const at = (paperwork: number): boolean => {
         const state = createInitialGameState()
         state.activeModifiers.push({

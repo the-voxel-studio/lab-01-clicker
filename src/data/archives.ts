@@ -4,7 +4,7 @@
  * @module data/archives
  */
 
-import type { GameState } from '@/core/types'
+import type { GameState, UnitOrder } from '@/core/types'
 
 /** Identifier of a National Archives perk. */
 export type ArchivePerkId =
@@ -91,6 +91,9 @@ export function isArchivePerkId(value: unknown): value is ArchivePerkId {
   return typeof value === 'string' && Object.hasOwn(ARCHIVES_DATA, value)
 }
 
+/** Orders whose cap the Primogeniture Decrees perk raises (the military cap is left alone). */
+const civilAndAdminOrders: UnitOrder[] = ['people', 'admin']
+
 /**
  * Applies permanent bonuses from active National Archive perks to an initial GameState.
  *
@@ -124,12 +127,15 @@ export function applyArchivePerks(state: GameState, activePerkIds: ArchivePerkId
         break
 
       case 'primogeniture_decrees':
-        state.activeModifiers.push({
-          source: 'archive:primogeniture_decrees',
-          stat: 'housing_capacity',
-          op: 'addPct',
-          value: 0.08,
-        })
+        for (const order of civilAndAdminOrders) {
+          state.activeModifiers.push({
+            source: 'archive:primogeniture_decrees',
+            stat: 'order_cap',
+            op: 'mul',
+            value: 1.08,
+            scope: { order },
+          })
+        }
         break
 
       case 'spymaster_network':

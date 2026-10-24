@@ -86,8 +86,11 @@ function handleBuyUnit(
     }
   }
 
+  // Mercenary Capitulation hires Men-at-Arms from outside the realm (GAME_RULES.md §10.3.9)
+  const isExternalHire = unitId === 'man_at_arms' && hasRule(state, 'law:mercenary_capitulation')
+
   // Check demographic availability (Free Serfs)
-  if (state.freeSerfs < count) {
+  if (!isExternalHire && state.freeSerfs < count) {
     return {
       success: false,
       error: `Not enough free serfs (requested: ${count}, available: ${state.freeSerfs}).`,
@@ -125,7 +128,13 @@ function handleBuyUnit(
 
   // Execute mutation
   state.ap -= totalCost
-  state.freeSerfs -= count
+  if (isExternalHire) {
+    // Keeps the §3.1 balance: the hired units join the population instead of leaving the serfs
+    state.totalPopulation += count
+    state.peakPopulation = Math.max(state.peakPopulation, state.totalPopulation)
+  } else {
+    state.freeSerfs -= count
+  }
   state.units[unitId] = currentOwned + count
   if (def.order === 'military') {
     state.militaryRecruitedCount = (state.militaryRecruitedCount ?? 0) + count

@@ -9,7 +9,9 @@ import { concludeRun, createArchiveData, investPerk, resetPerks, startRun } from
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
-import { calculateGrossApRate } from '@/core/engine'
+import { calculateGrossApRate, calculateMaxPopulation } from '@/core/engine'
+import { calculateOrderCaps } from '@/core/formulas'
+import { extractRawEvaluationState } from '@/core/modifiers'
 import { addProvince, removeLastProvince } from '@/core/provinces'
 import {
   CURRENT_SCHEMA_VERSION,
@@ -17,10 +19,10 @@ import {
   exportSaveToBase64,
   importSaveFromBase64,
 } from '@/core/migrations'
-import { ARCHIVES_DATA } from '@/data/archives'
+import { ARCHIVES_DATA, applyArchivePerks, type ArchivePerkId } from '@/data/archives'
 import { evaluateFeats } from '@/data/feats'
 import { EDICTS_DATA } from '@/data/edicts'
-import { DILEMMAS_DATA } from '@/data/dilemmas'
+import { dilemmaOf } from './catalog_lookup'
 import { applyEffect } from '@/core/modifiers'
 
 function encode(payload: unknown): string {
@@ -93,7 +95,7 @@ describe('National Archives meta progression', () => {
     const archive = createArchiveData()
     archive.points = 3
     const state = startRun(archive, 4)
-    const burn = DILEMMAS_DATA['dilemma:cabinet_scarcity']!.choices[1]!
+    const burn = dilemmaOf('dilemma:cabinet_scarcity').choices[1]
     for (const effect of burn.effects) applyEffect(effect, state)
     expect(state.archivePoints).toBe(-1)
 
@@ -170,6 +172,26 @@ describe('National Archives meta progression', () => {
     expect(state.archivePoints).toBe(0)
     expect(state.archiveConcluded).toBe(false)
     expect(state.activeModifiers).toEqual([])
+  })
+
+  it('primogeniture decrees raise the civil and admin caps by 8% and leave housing and military alone', () => {
+    const caps = (perks: ArchivePerkId[]) => {
+      const state = createInitialGameState()
+      applyArchivePerks(state, perks)
+      const housing = calculateMaxPopulation(state, DEFAULT_ENGINE_CONFIG)
+      const orderCaps = calculateOrderCaps(
+        housing,
+        state.activeModifiers,
+        extractRawEvaluationState(state),
+        DEFAULT_ENGINE_CONFIG,
+      )
+      return { housing, orderCaps }
+    }
+    expect(caps([])).toEqual({ housing: 750, orderCaps: { admin: 112, military: 90, people: 187 } })
+    expect(caps(['primogeniture_decrees'])).toEqual({
+      housing: 750,
+      orderCaps: { admin: 121, military: 90, people: 202 },
+    })
   })
 
   it('exposes perk costs from the catalog', () => {

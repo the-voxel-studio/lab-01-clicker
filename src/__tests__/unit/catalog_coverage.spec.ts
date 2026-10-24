@@ -408,5 +408,24 @@ describe('Task 8: catalog coverage guard', () => {
       })
       expect(getForesightQuotas(state, config)[0]?.apRate).toBe(quotaOf(3).apRate * 2)
     })
+
+    it('applies an until next audit modifier to the next audited deadline only', () => {
+      const state = withChronicle(3, 'ACTIVE_CYCLE')
+      state.activeModifiers.push(
+        { source: 'test:lasting', stat: 'quota_requirement', op: 'mul', value: 2 },
+        {
+          source: 'test:loan',
+          stat: 'quota_requirement',
+          op: 'mul',
+          value: 0.5,
+          untilNextAudit: true,
+        },
+      )
+      const [next, later] = getForesightQuotas(state, config)
+      expect(next?.deadline).toBe(3)
+      expect(next?.apRate).toBe(quotaOf(3).apRate)
+      expect(later?.deadline).toBe(4)
+      expect(later?.apRate).toBe(quotaOf(4).apRate * 2)
+    })
   })
 })

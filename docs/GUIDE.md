@@ -702,7 +702,7 @@ To guarantee that save files remain backwards-compatible across development upda
 
 ```typescript
 export interface SerializedSavePayload {
-  schemaVersion: number    // e.g. 1, 2, 3
+  schemaVersion: number    // 1 to 5 (current: 5)
   timestamp: number
   state: GameState
   archive?: ArchiveData    // present from schema 5 on
@@ -712,8 +712,8 @@ export interface SerializedSavePayload {
 ### 17.1 Sequential Migration Chain
 - Migrations are declared as an ordered pipeline `migrations: Record<number, (old: unknown) => unknown>`.
 - Types are validated strictly with runtime type guards, with **zero `any`**.
-- When loading a save payload with `schemaVersion < CURRENT_SCHEMA_VERSION`, the engine runs migrations sequentially ($v_1 \to v_2 \to v_3$) before mounting the state.
-- Save fixtures for every legacy schema version are stored in `src/__tests__/__fixtures__/saves/` and verified in unit tests.
+- When loading a save payload with `schemaVersion < CURRENT_SCHEMA_VERSION`, the engine runs migrations sequentially ($v_1 \to v_2 \to v_3 \to v_4 \to v_5$) before mounting the state.
+- Save fixtures for the v1 and v2 schemas are stored in `src/__tests__/__fixtures__/saves/`; the v3 and v4 migrations are verified in unit tests with inline payloads.
 
 ---
 

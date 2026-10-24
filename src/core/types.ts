@@ -181,7 +181,7 @@ export interface Modifier {
   untilNextAudit?: true
 }
 
-/** Typed rule flag raised by a law effect and read through `hasRule`. */
+/** Typed rule flag raised by a law or dilemma effect and read through `hasRule`. */
 export type RuleFlag =
   | 'law:auditors_inquisition'
   | 'law:census_edict'
@@ -400,7 +400,7 @@ export interface GameState {
   unlockedPatents: Record<UnitOrder, boolean>
   /** Active laws enacted in the Royal Council (max 5, or 6 with archive perk). */
   activeLaws: string[]
-  /** Rule flags raised by enacted law effects, without duplicates. */
+  /** Rule flags raised by enacted law or dilemma effects, without duplicates. */
   ruleFlags: RuleFlag[]
   /** Deadline of the scheduled threat announced by the current herald, or null outside the herald. */
   currentThreatId: number | null

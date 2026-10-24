@@ -30,6 +30,7 @@ export interface FactionTraitResult {
   soldierDesertions: number
 }
 
+/** A hostile faction: its identity and the reactive trait it applies against the realm. */
 export interface FactionDef {
   id: FactionId
   name: string
@@ -64,6 +65,7 @@ export function neutralTrait(threatPower: number, tributeCost: number): FactionT
   }
 }
 
+/** A scheduled crown threat announced for a given deadline. */
 export interface ScheduledThreatDef {
   deadline: number
   title: string
