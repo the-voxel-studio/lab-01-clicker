@@ -19,6 +19,7 @@ import type {
 import { addProvince, removeLastProvince } from './provinces'
 import { addUnrest, applyPopulationLoss } from './mutations'
 import { recordPeakPopulation } from './formulas'
+import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 
 /**
  * Raw game state inspected by dynamic modifier resolvers.
@@ -222,6 +223,28 @@ function incomeSecondsCost(seconds: number, netApRate: number | undefined): numb
 }
 
 /**
+ * Full bankruptcy grace countdown in seconds: the base plus the audit chamber bonus, composed with
+ * the `bankruptcy_grace_seconds` stat. A running countdown restarts from this value.
+ *
+ * @param state - Current GameState.
+ * @param config - Balance configuration.
+ * @returns Grace seconds granted before bankruptcy defeat.
+ */
+export function calculateBankruptcyGraceSeconds(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  const auditChambers = state.units.audit_chamber ?? 0
+  return composeStat(
+    'bankruptcy_grace_seconds',
+    config.balance.BANKRUPTCY_GRACE_BASE_SECONDS +
+      auditChambers * config.balance.BANKRUPTCY_GRACE_PER_AUDIT_CHAMBER_SECONDS,
+    state.activeModifiers,
+    extractRawEvaluationState(state),
+  )
+}
+
+/**
  * Applies an Effect payload (from laws, dilemmas, or edicts) directly to GameState.
  * A `stat_modifier` template is cloned, never pushed by reference: `appliedAt` is stamped with
  * `totalElapsedSeconds` and `durationSeconds`, when set, becomes `expiresAt` relative to it.
@@ -230,9 +253,15 @@ function incomeSecondsCost(seconds: number, netApRate: number | undefined): numb
  * @param state - The game state to mutate.
  * @param netApRate - Net AP rate per second (`calculateNetApRate`), required by
  *   `ap_cost_income_seconds`.
+ * @param config - Balance configuration, read by `end_bankruptcy_countdown`.
  * @throws Error when an `ap_cost_income_seconds` effect is applied without `netApRate`.
  */
-export function applyEffect(effect: Effect, state: GameState, netApRate?: number): void {
+export function applyEffect(
+  effect: Effect,
+  state: GameState,
+  netApRate?: number,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): void {
   switch (effect.type) {
     case 'stat_modifier': {
       const { modifier } = effect
@@ -297,6 +326,10 @@ export function applyEffect(effect: Effect, state: GameState, netApRate?: number
       }
       break
     }
+
+    case 'end_bankruptcy_countdown':
+      state.bankruptcyGraceTimer = calculateBankruptcyGraceSeconds(state, config)
+      break
 
     case 'rule_flag':
       if (!state.ruleFlags.includes(effect.flag)) {

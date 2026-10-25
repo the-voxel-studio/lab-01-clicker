@@ -180,15 +180,23 @@ describe('Automated Bot Archetype Simulations & Balance Calibration', () => {
     VALIDATION_TIMEOUT_MS,
   )
 
-  it('asserts the Bureaucrat expert bot achieves win rate > 65%', () => {
-    const { winRate } = measure(bureaucratBotStrategy, 3001, 20)
-    expect(winRate).toBeGreaterThan(0.65)
-  })
+  it(
+    'asserts the Bureaucrat expert bot achieves win rate > 65%',
+    () => {
+      const { winRate } = measure(bureaucratBotStrategy, 3001, 20)
+      expect(winRate).toBeGreaterThan(0.65)
+    },
+    VALIDATION_TIMEOUT_MS,
+  )
 
-  it('asserts the Conqueror expert bot achieves win rate > 65%', () => {
-    const { winRate } = measure(conquerorBotStrategy, 3001, 20)
-    expect(winRate).toBeGreaterThan(0.65)
-  })
+  it(
+    'asserts the Conqueror expert bot achieves win rate > 65%',
+    () => {
+      const { winRate } = measure(conquerorBotStrategy, 3001, 20)
+      expect(winRate).toBeGreaterThan(0.65)
+    },
+    VALIDATION_TIMEOUT_MS,
+  )
 
   it('validates dominance test: no unit exceeds 60% of total expenditure after Deadline 3', () => {
     const result = runSimulation(greedyRoiBotStrategy, 4001)

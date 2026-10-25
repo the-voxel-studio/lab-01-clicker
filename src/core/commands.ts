@@ -847,7 +847,7 @@ export function dispatch(
         }
       }
       for (const eff of choice.effects) {
-        applyEffect(eff, state, dilemmaNetApRate)
+        applyEffect(eff, state, dilemmaNetApRate, config)
       }
       transitionToNextInterDeadlinePhase(state, config)
       return { success: true, events: [`Resolved dilemma '${dilemma.name}': ${choice.text}`] }
@@ -887,7 +887,7 @@ export function dispatch(
         return { success: false, error: `Cannot afford requirements to enact law ${law.name}.` }
       }
       for (const eff of law.effects) {
-        applyEffect(eff, state, lawNetApRate)
+        applyEffect(eff, state, lawNetApRate, config)
       }
       state.activeLaws.push(command.lawId)
       state.peakActiveLaws = Math.max(state.peakActiveLaws, state.activeLaws.length)

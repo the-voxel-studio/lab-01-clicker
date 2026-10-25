@@ -139,6 +139,7 @@ export const BALANCE = {
   PAPERWORK_REDUCTION_MAX: 0.95, // ratio: highest paperwork mitigation from archivists
   PAPERWORK_FRICTION_MAX: 0.99, // ratio: highest paperwork friction
   MILITARY_UPKEEP_MIN_FACTOR: 0.2, // ratio: floor of military upkeep after quartermaster and marshal discounts
+  PRINCELY_COUSIN_UPKEEP_SHARE: 0.35, // ratio: military upkeep over gross income above which the Princely Cousin appears
   OFFICER_ACADEMIES_BONUS_FACTOR: 2, // ratio: factor on sergeant and captain power bonuses under Officer Academies
   BULK_100_MIN_DEADLINE: 8, // deadline index: x100 bulk purchase unlocks (eligible units)
   BULK_50_MIN_DEADLINE: 6, // deadline index: x50 bulk purchase unlocks

@@ -117,4 +117,35 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
       expect(curr.military).toBeGreaterThan(prev.military)
     }
   })
+
+  it('keeps the calibrated quota table and the threat figures of GAME_RULES §8.1', () => {
+    expect(DEADLINE_QUOTAS.map((q) => [q.apRate, q.pop, q.military])).toEqual([
+      [12, 156, 11],
+      [22, 304, 22],
+      [33, 499, 28],
+      [55, 647, 29],
+      [144, 744, 108],
+      [254, 827, 169],
+      [443, 905, 289],
+      [945, 1097, 859],
+      [1802, 3483, 1333],
+      [2784, 6364, 2216],
+    ])
+
+    const documentedThreats = [
+      [3, 22, 660],
+      [4, 23, 1100],
+      [5, 86, 2880],
+      [6, 135, 5080],
+      [7, 231, 8860],
+      [8, 687, 18900],
+      [9, 1066, 36040],
+      [10, 1773, 55680],
+    ]
+    const computed = DEADLINE_QUOTAS.filter((q) => q.deadline >= 3).map((q) => {
+      const threat = getDeadlineThreat(q)
+      return [threat.deadline, threat.power, threat.tributeAp]
+    })
+    expect(computed).toEqual(documentedThreats)
+  })
 })

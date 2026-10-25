@@ -221,6 +221,8 @@ export type Effect =
     }
   | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
   | { type: 'rule_flag'; flag: RuleFlag }
+  /** Restarts the bankruptcy grace countdown from its full duration. */
+  | { type: 'end_bankruptcy_countdown' }
   /** AP cost of `seconds` times the current net AP rate (no cost when that rate is not positive). */
   | { type: 'ap_cost_income_seconds'; seconds: number }
 

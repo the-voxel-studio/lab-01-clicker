@@ -29,6 +29,7 @@ import {
   resolveDefensiveClash,
   resolveOffensiveCampaign,
 } from '@/core/battle'
+import { dilemmaOf } from './catalog_lookup'
 import { PRNG } from '@/core/prng'
 import { getStateHash } from '@/core/replay'
 import type { Command, GameState, Modifier } from '@/core/types'
@@ -413,6 +414,11 @@ const scenario = {
       c,
     ),
   ),
+  princelyCousin: scenarioOf((c) =>
+    String(
+      dilemmaOf('dilemma:princely_cousin').trigger(realm(1, { man_at_arms: 10, scribe: 77 }), c),
+    ),
+  ),
   clickRefill: scenarioOf((c) => ticked(realm(1, {}, { clickTokens: 0 }), 1, c)),
   taxPledge: scenarioOf((c) => ticked(realm(1, {}, { taxRate: 16 }), 0.05, c)),
   deadlineEnd: scenarioOf((c) =>
@@ -754,6 +760,7 @@ const ROWS: readonly Row[] = [
   row('PAPERWORK_REDUCTION_MAX', scenario.paperworkReduction),
   row('PAPERWORK_FRICTION_MAX', scenario.paperworkCeiling),
   row('MILITARY_UPKEEP_MIN_FACTOR', economy),
+  row('PRINCELY_COUSIN_UPKEEP_SHARE', scenario.princelyCousin),
   // Unrest stages
   row('UNREST_FISCAL_BOYCOTT_THRESHOLD', scenario.boycott),
   row('FISCAL_BOYCOTT_TAX_FACTOR', scenario.boycott),

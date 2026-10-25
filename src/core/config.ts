@@ -93,6 +93,7 @@ export interface BalanceConfig {
   readonly PAPERWORK_FRICTION_MAX: number
   readonly MILITARY_UPKEEP_MIN_FACTOR: number
   readonly OFFICER_ACADEMIES_BONUS_FACTOR: number
+  readonly PRINCELY_COUSIN_UPKEEP_SHARE: number
   readonly BULK_100_MIN_DEADLINE: number
   readonly BULK_50_MIN_DEADLINE: number
   readonly BULK_50_MIN_POPULATION: number

@@ -17,10 +17,15 @@ import {
   recordPeakPopulation,
 } from './formulas'
 import { getHousingBase, removeLastProvince } from './provinces'
-import { composeStat, composeUnitStat, extractRawEvaluationState } from './modifiers'
+import {
+  calculateBankruptcyGraceSeconds,
+  composeStat,
+  composeUnitStat,
+  extractRawEvaluationState,
+} from './modifiers'
 import { hasRule } from './rules'
 import { triggerDefeat, addUnrest, applyPopulationLoss, removeUnits } from './mutations'
-import type { GameState, Modifier, TickResult, AuditOutcome } from './types'
+import type { GameState, Modifier, TickResult, AuditOutcome, UnitBalanceDef } from './types'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
 
@@ -161,11 +166,38 @@ export function calculateUpkeep(
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
   const rawState = extractRawEvaluationState(state)
+  const flatUpkeep = composeStat('flat_upkeep', 0, state.activeModifiers, rawState)
+  return Math.max(0, sumUnitUpkeep(state, config, () => true) + flatUpkeep)
+}
+
+/**
+ * Calculates the AP upkeep per second paid by military units alone, exactly as `calculateUpkeep`
+ * charges it (quartermaster and grand marshal discount, scoped `unit_upkeep` modifiers). The
+ * `flat_upkeep` stat belongs to no unit and is not included.
+ *
+ * @param state - Current GameState.
+ * @param config - Balance configuration.
+ * @returns Military upkeep in AP per second, never below 0.
+ */
+export function calculateMilitaryUpkeep(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  return sumUnitUpkeep(state, config, (def) => def.order === 'military')
+}
+
+/** Sums count times upkeep over the unit types accepted by `include` (units only, no flat stat). */
+function sumUnitUpkeep(
+  state: GameState,
+  config: EngineConfig,
+  include: (def: UnitBalanceDef) => boolean,
+): number {
+  const rawState = extractRawEvaluationState(state)
   let totalUpkeep = 0
   for (const [id, count] of Object.entries(state.units) as [UnitId, number][]) {
     if (count <= 0) continue
     const def = UNITS_DATA[id]
-    if (!def) continue
+    if (!def || !include(def)) continue
     let unitUpkeep = def.upkeepAp
     if (def.order === 'military' && unitUpkeep > 0) {
       const qmDiscount = (state.units.quartermaster ?? 0) * UNITS_DATA.quartermaster.baseValue
@@ -178,8 +210,7 @@ export function calculateUpkeep(
     unitUpkeep = composeUnitStat('unit_upkeep', unitUpkeep, def, state.activeModifiers, rawState)
     if (unitUpkeep > 0) totalUpkeep += count * unitUpkeep
   }
-  totalUpkeep += composeStat('flat_upkeep', 0, state.activeModifiers, rawState)
-  return Math.max(0, totalUpkeep)
+  return totalUpkeep
 }
 
 /**
@@ -876,14 +907,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
       }
     }
   } else if (state.ap > 0) {
-    const auditChamberCount = state.units.audit_chamber ?? 0
-    state.bankruptcyGraceTimer = composeStat(
-      'bankruptcy_grace_seconds',
-      config.balance.BANKRUPTCY_GRACE_BASE_SECONDS +
-        auditChamberCount * config.balance.BANKRUPTCY_GRACE_PER_AUDIT_CHAMBER_SECONDS,
-      state.activeModifiers,
-      rawState,
-    )
+    state.bankruptcyGraceTimer = calculateBankruptcyGraceSeconds(state, config)
   }
 
   // Spontaneous Surprise Border Raids (GAME_RULES §8.3)

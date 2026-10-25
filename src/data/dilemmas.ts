@@ -7,7 +7,7 @@
 import type { Effect, GameState } from '@/core/types'
 import type { EngineConfig } from '@/core/config'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
-import { calculateGrossApRate, calculateNetPaperwork } from '@/core/engine'
+import { calculateGrossApRate, calculateMilitaryUpkeep, calculateNetPaperwork } from '@/core/engine'
 
 export interface DilemmaChoice {
   text: string
@@ -115,16 +115,9 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     name: 'The Princely Cousin',
     description:
       'A highborn relative demands an exorbitant sovereign pension for nominal military command.',
-    trigger: (state) => {
-      let militaryUpkeep = 0
-      for (const [id, count] of Object.entries(state.units)) {
-        if (id === 'soldier') militaryUpkeep += count * 0.1
-        if (id === 'man_at_arms') militaryUpkeep += count * 0.5
-        if (id === 'sergeant') militaryUpkeep += count * 1.0
-        if (id === 'captain') militaryUpkeep += count * 2.0
-      }
-      return militaryUpkeep > 15
-    },
+    trigger: (state, config = DEFAULT_ENGINE_CONFIG) =>
+      calculateMilitaryUpkeep(state, config) >
+      config.balance.PRINCELY_COUSIN_UPKEEP_SHARE * calculateGrossApRate(state, config).total,
     choices: [
       {
         text: 'Pay his extravagant stipend (-500 AP, -15 Unrest)',
@@ -540,13 +533,14 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
         ],
       },
       {
-        text: 'Disband 10 soldiers and let them disperse (-10 Soldiers)',
+        text: 'Disband 10 soldiers and let them disperse (-10 Soldiers, cancels bankruptcy)',
         effects: [
           {
             type: 'grant_units',
             unitId: 'soldier',
             count: -10,
           },
+          { type: 'end_bankruptcy_countdown' },
         ],
       },
     ],
