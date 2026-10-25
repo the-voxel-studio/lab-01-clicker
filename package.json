@@ -10,6 +10,7 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:sim": "vitest run src/__tests__/simulation",
+    "repl": "node --import jiti/register scripts/repl.ts",
     "balance:report": "node --import jiti/register scripts/generate-balance-report.ts",
     "test:e2e": "playwright test",
     "test:e2e:firefox": "playwright test --project=firefox",
