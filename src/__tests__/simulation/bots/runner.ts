@@ -48,6 +48,16 @@ export interface AuditSnapshot {
   military: number
 }
 
+/** One successful `BUY_UNIT` command of a run, with the AP it cost. */
+export interface UnitPurchase {
+  /** Game time at which the command was dispatched. */
+  timeSeconds: number
+  unitId: UnitId
+  count: number
+  /** AP paid, the only currency a unit purchase spends. */
+  cost: number
+}
+
 /** Result metrics from a completed bot simulation run. */
 export interface BotRunResult {
   seed: number
@@ -60,6 +70,8 @@ export interface BotRunResult {
   finalMilitary: number
   /** AP spent on each unit through successful `BUY_UNIT` commands. */
   unitExpenditures: Record<UnitId, number>
+  /** Every successful unit purchase, in dispatch order. */
+  purchases: UnitPurchase[]
   /** One snapshot per audit the run reached, in deadline order. */
   audits: AuditSnapshot[]
   /** Every command the runner dispatched, with its game time, in the `executeReplay` format. */
@@ -143,6 +155,7 @@ export function runSimulation(
   const unitExpenditures = createEmptyUnitRoster()
   const entries: ReplayEntry[] = []
   const audits: AuditSnapshot[] = []
+  const purchases: UnitPurchase[] = []
   let lastAudit = state.lastAuditOutcome
   const recordAudit = (): void => {
     const outcome = state.lastAuditOutcome
@@ -152,7 +165,8 @@ export function runSimulation(
   }
 
   const send = (command: Command): DispatchResult => {
-    entries.push({ timeSeconds: state.totalElapsedSeconds, command })
+    const timeSeconds = state.totalElapsedSeconds
+    entries.push({ timeSeconds, command })
     const cost =
       command.type === 'BUY_UNIT'
         ? calculateUnitCost(
@@ -165,6 +179,12 @@ export function runSimulation(
         : 0
     const result = dispatch(state, command, config)
     if (result.success && command.type === 'BUY_UNIT') {
+      purchases.push({
+        timeSeconds,
+        unitId: command.unitId,
+        count: command.count,
+        cost,
+      })
       unitExpenditures[command.unitId] += cost
     }
     recordAudit()
@@ -207,6 +227,7 @@ export function runSimulation(
     finalPopulation: state.totalPopulation,
     finalMilitary: calculateMilitaryPower(state, config),
     unitExpenditures,
+    purchases,
     audits,
     journal: { seed, entries },
     finalStateHash: getStateHash(state),

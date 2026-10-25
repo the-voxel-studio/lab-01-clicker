@@ -8,6 +8,7 @@ export {
   runSimulation,
   type AuditSnapshot,
   type BotRunResult,
+  type UnitPurchase,
   type SimulationOptions,
 } from './bots/runner'
 export type { BotContext, BotStrategy, ThreatResponse } from './bots/strategy'

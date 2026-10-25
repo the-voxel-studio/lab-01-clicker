@@ -627,7 +627,7 @@ To guarantee that the game tests actual player skill rather than arbitrary bot p
    - The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable determined algorithmically by the calibration solver script (`scripts/generate-balance-report.ts`) via bisection until the quota aware Greedy ROI Bot (the bisection target, on validation seeds) stabilizes strictly within the target win rate band of **35% – 65%**.
 3. **Dominance & Sensitivity Testing:**
    - *Dominance:* Beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate), asserts that no unit role is purchased 0 times across 1,000 runs, and no single unit exceeds 60% of total expenditure within a given archetype build.
-   - *Sensitivity:* Modulates parameters ($r_0$, cost ratios, tax rates) by $\pm 10\%$ to verify that win rates remain stable without sudden catastrophic collapse.
+   - *Sensitivity:* Modulates parameters ($r_0$, cost ratios, tax rates) by $\pm 10\%$ to verify that win rates remain stable without sudden catastrophic collapse; cost ratios are modulated on their growth part ($r - 1$).
 
 
 
