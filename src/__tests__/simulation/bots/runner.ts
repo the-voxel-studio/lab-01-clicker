@@ -10,7 +10,7 @@
 
 import type { UnitId } from '@/data/balance'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
-import type { Command, DefeatReason, DispatchResult, GameState } from '@/core/types'
+import type { AuditOutcome, Command, DefeatReason, DispatchResult, GameState } from '@/core/types'
 import { createEmptyUnitRoster, createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 import { tick, calculateMilitaryPower } from '@/core/engine'
@@ -37,6 +37,17 @@ export interface SimulationOptions {
   maxDeadlines?: number
 }
 
+/** The three audited metrics of one deadline, read when its audit ran. */
+export interface AuditSnapshot {
+  deadline: number
+  /** Gross AP rate the audit compared with its quota (`calculateGrossApRate(state).total`). */
+  apRate: number
+  /** Total population right after the audit (a censure removes a province, not people). */
+  pop: number
+  /** Military power right after the audit. */
+  military: number
+}
+
 /** Result metrics from a completed bot simulation run. */
 export interface BotRunResult {
   seed: number
@@ -49,6 +60,8 @@ export interface BotRunResult {
   finalMilitary: number
   /** AP spent on each unit through successful `BUY_UNIT` commands. */
   unitExpenditures: Record<UnitId, number>
+  /** One snapshot per audit the run reached, in deadline order. */
+  audits: AuditSnapshot[]
   /** Every command the runner dispatched, with its game time, in the `executeReplay` format. */
   journal: ReplayJournal
   /** `getStateHash` of the final state. */
@@ -92,6 +105,20 @@ function frozenPhaseCommand(
   }
 }
 
+/** Snapshot of the audit the state just ran. */
+function auditSnapshot(
+  state: GameState,
+  outcome: AuditOutcome,
+  config: EngineConfig,
+): AuditSnapshot {
+  return {
+    deadline: outcome.deadline,
+    apRate: outcome.grossApRate,
+    pop: state.totalPopulation,
+    military: calculateMilitaryPower(state, config),
+  }
+}
+
 /**
  * Runs a single high-speed headless game simulation with the provided bot.
  *
@@ -115,6 +142,14 @@ export function runSimulation(
   const ctx: BotContext = { config, rng: new PRNG(deriveSeed(seed, BOT_RNG_LABEL)) }
   const unitExpenditures = createEmptyUnitRoster()
   const entries: ReplayEntry[] = []
+  const audits: AuditSnapshot[] = []
+  let lastAudit = state.lastAuditOutcome
+  const recordAudit = (): void => {
+    const outcome = state.lastAuditOutcome
+    if (outcome === lastAudit) return
+    lastAudit = outcome
+    if (outcome) audits.push(auditSnapshot(state, outcome, config))
+  }
 
   const send = (command: Command): DispatchResult => {
     entries.push({ timeSeconds: state.totalElapsedSeconds, command })
@@ -132,6 +167,7 @@ export function runSimulation(
     if (result.success && command.type === 'BUY_UNIT') {
       unitExpenditures[command.unitId] += cost
     }
+    recordAudit()
     return result
   }
 
@@ -140,6 +176,7 @@ export function runSimulation(
     if (state.phase === 'ACTIVE_CYCLE') {
       for (const command of strategy.governActive(state, ctx)) send(command)
       tick(state, DECISION_INTERVAL_SECONDS, config)
+      recordAudit()
       frozenCommands = 0
       continue
     }
@@ -170,6 +207,7 @@ export function runSimulation(
     finalPopulation: state.totalPopulation,
     finalMilitary: calculateMilitaryPower(state, config),
     unitExpenditures,
+    audits,
     journal: { seed, entries },
     finalStateHash: getStateHash(state),
   }

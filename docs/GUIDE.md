@@ -76,21 +76,21 @@
 
 #### 2.2 Calibrated Quota Matrix Across All 10 Deadlines
 > [!NOTE]
-> **Matrix Status: Provisional (recalibrated by the Task 3.2 solver) (`src/data/balance.generated.ts`).**  
-> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$. The coefficient $c$ is solved algorithmically by the script until the greedy bot (evaluating balanced utility across AP, Population, and Military) stabilizes strictly within the target band of **35% – 65% win rate**.
+> **Matrix Status: calibrated by the solver (`src/data/balance.generated.ts`).**  
+> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$, where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% – 65% win rate**.
 
 | Deadline | Gross AP Rate Quota (AP/s) | Total Population | Military Combat Power | Unlocks & Key Milestones |
 | :---: | :---: | :---: | :---: | :--- |
-| **1** | 5 AP/s | 180 Pop | 12 Power | Clicks, Scribes, Peasants, Tax Slider, FTUE Tutorial |
-| **2** | 12 AP/s | 300 Pop | 22 Power | Supervisors, Archivists, Artisans, Clergy, First Law |
-| **3** | 22 AP/s | 450 Pop | 30 Power | Soldiers, Collectors, First Threat, 10× Bulk Buy |
-| **4** | 35 AP/s | 600 Pop | 40 Power | Tier II Patents, Sergeants, Scouts, Civil Colonisation |
-| **5** | 55 AP/s | 780 Pop | 55 Power | All Tier II roles accessible, 2× Fast-Forward toggle |
-| **6** | 85 AP/s | 980 Pop | 75 Power | 50× Bulk Buy, Escalated threats |
-| **7** | 130 AP/s | 1,200 Pop | 105 Power | High-level threats, severe paperwork pressure |
-| **8** | 195 AP/s | 1,480 Pop | 140 Power | 100× Bulk Buy (Peasants & Scribes), Imperial Invasions |
-| **9** | 285 AP/s | 1,800 Pop | 180 Power | Penultimate Crown Audit, Grand Host armies |
-| **10** | 420 AP/s | 2,200 Pop | 230 Power | **The Grand Audit Final Inspection (Victory)** |
+| **1** | 12 AP/s | 156 Pop | 11 Power | Clicks, Scribes, Peasants, Tax Slider, FTUE Tutorial |
+| **2** | 22 AP/s | 304 Pop | 22 Power | Supervisors, Archivists, Artisans, Clergy, First Law |
+| **3** | 33 AP/s | 499 Pop | 28 Power | Soldiers, Collectors, First Threat, 10× Bulk Buy |
+| **4** | 55 AP/s | 647 Pop | 29 Power | Tier II Patents, Sergeants, Scouts, Civil Colonisation |
+| **5** | 145 AP/s | 744 Pop | 108 Power | All Tier II roles accessible, 2× Fast-Forward toggle |
+| **6** | 261 AP/s | 827 Pop | 170 Power | 50× Bulk Buy, Escalated threats |
+| **7** | 443 AP/s | 907 Pop | 290 Power | High-level threats, severe paperwork pressure |
+| **8** | 960 AP/s | 1,114 Pop | 862 Power | 100× Bulk Buy (Peasants & Scribes), Imperial Invasions |
+| **9** | 1,835 AP/s | 3,425 Pop | 1,360 Power | Penultimate Crown Audit, Grand Host armies |
+| **10** | 2,830 AP/s | 6,103 Pop | 2,265 Power | **The Grand Audit Final Inspection (Victory)** |
 
 ### 2.3 The Royal Pardon (Yellow Card Grace Rule)
 - **One Strike Permitted (Deadlines 1 to 9):** The first time a player meets fewer than 2 out of 3 quotas at a deadline prior to Deadline 10, the Crown issues a **Royal Censure**:
@@ -423,14 +423,14 @@ The realm faces two distinct vectors of military hostility:
 
 | Threat Deadline | Scheduled Threat | Faction | Base Power (80% Mil Quota) | Tribute (20s Gross AP Rate) | Failure Penalty (Defensive Collapse) |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| **3** | *Border Raiders & Deserters* | Outlaw Bandits | 24 | 440 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **4** | *The Rebellious Marches Baron* | Feudal Dissidents | 32 | 700 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **5** | *Nomadic Steppe Horde* | Steppe Raiders | 44 | 1,100 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **6** | *The Renegade Free Companies* | Mercenary Armies | 60 | 1,700 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **7** | *The Holy League Crusade* | Religious Zealots | 84 | 2,600 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **8** | *The Pretender Duke's Vanguard* | Rebel Nobility | 112 | 3,900 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **9** | *The Grand Inquisitorial Armada* | Imperial Church | 144 | 5,700 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **10** | *The Royal Auditor's Iron Host* | Crown Imperial Army | 184 | 8,400 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **3** | *Border Raiders & Deserters* | Outlaw Bandits | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **4** | *The Rebellious Marches Baron* | Feudal Dissidents | 23 | 1,100 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **5** | *Nomadic Steppe Horde* | Steppe Raiders | 86 | 2,900 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **6** | *The Renegade Free Companies* | Mercenary Armies | 136 | 5,220 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **7** | *The Holy League Crusade* | Religious Zealots | 232 | 8,860 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **8** | *The Pretender Duke's Vanguard* | Rebel Nobility | 690 | 19,200 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **9** | *The Grand Inquisitorial Armada* | Imperial Church | 1,088 | 36,700 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **10** | *The Royal Auditor's Iron Host* | Crown Imperial Army | 1,812 | 56,600 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 
 ### 8.2 The Three Responses to Scheduled Threats
 1. **Defend with Armed Forces (`defense`):** Resolves via the generalized battle system where the player acts as **Defender** (+20% fortification bonus + Stronghold defense).

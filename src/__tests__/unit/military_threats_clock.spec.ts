@@ -322,11 +322,11 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(outcomeNoRate.grossApRate).toBeLessThan(quotaD1.apRate)
     expect(outcomeNoRate.apMet).toBe(false)
 
-    // Case B: Negative treasury (-200 AP) but high gross rate (10 Scribes) -> PASSES AP quota
+    // Case B: Negative treasury (-200 AP) but high gross rate (25 Scribes) -> PASSES AP quota
     const stateWithRate = createInitialGameState()
     stateWithRate.deadline = 1
     stateWithRate.ap = -200
-    stateWithRate.units.scribe = 10 // 10 Scribes = 10 AP/s > 5 AP/s quota
+    stateWithRate.units.scribe = 25 // 25 Scribes: 13.5 AP/s gross > 12 AP/s quota
     stateWithRate.freeSerfs = 50
 
     const outcomeWithRate = evaluateDeadlineAudit(stateWithRate, config)
@@ -343,7 +343,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     stateA.deadline = 1
     stateA.deadlineTimeSeconds = 49.5
     stateA.totalPopulation = quotaD1.pop + 10
-    stateA.units.scribe = 10 // >= 5 AP/s
+    stateA.units.scribe = 25 // 14.5 AP/s gross >= 12 AP/s quota
     stateA.units.soldier = 0 // < quota.military
 
     tick(stateA, 1.0, config)
@@ -356,7 +356,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     stateB.deadlineTimeSeconds = 49.5
     stateB.totalPopulation = quotaD1.pop + 10
     stateB.freeSerfs = 0
-    stateB.units.scribe = 0 // 0 AP/s < 5
+    stateB.units.scribe = 0 // 0 AP/s < 12
     stateB.units.soldier = 0 // < quota.military
 
     tick(stateB, 1.0, config)
@@ -681,7 +681,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
         const state = createInitialGameState()
         state.phase = 'SURPRISE_RAID'
         state.deadline = 6
-        state.units.soldier = 18
+        state.units.soldier = 41
         state.units.man_at_arms = 0
         if (law) {
           for (const effect of lawOf('law:standing_garrisons').effects) {
@@ -693,7 +693,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       const state = setup(true)
       const res = dispatch(state, { type: 'RESOLVE_RAID_DEFENSE' })
       const raidPower = Math.round(Math.round(0.5 * quota.military) * 0.4)
-      expect(raidPower).toBe(15)
+      expect(raidPower).toBe(34)
       const reference = setup(true)
       const expected = resolveDefensiveClash(
         reference,

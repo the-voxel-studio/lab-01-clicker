@@ -8,6 +8,7 @@
  * rate quota). Population is the closed form projection at the audit. Payback seconds = AP cost /
  * value; an option is scored by its payback plus the seconds of net income needed to afford it,
  * and the lowest score wins. A purchase that would drive net income below 0 is never chosen.
+ * The `relative` valuation replaces the quotas by the realm's own current metrics (quota blind).
  *
  * @module __tests__/simulation/bots/payback
  */
@@ -48,6 +49,13 @@ export interface PaybackProfile {
   readonly excludedUnits: readonly UnitId[]
   /** Whether civil colonisation is an option. */
   readonly colonise: boolean
+  /**
+   * How audited metrics are valued: `quota` (default) values a metric below its target as a share
+   * of its quota; `relative` never reads a quota and values every metric as a share of its own
+   * current level (one more percent of population or military power is worth one percent of the
+   * gross AP rate). `targets` is ignored by `relative`.
+   */
+  readonly valuation?: 'quota' | 'relative'
 }
 
 /** Last deadline of the expert opening (Tier II patents need deadline 4). */
@@ -131,6 +139,22 @@ function valueOf(
     needs.pop * rate(after.population - before.population, quota.pop) +
     needs.military * rate(after.military - before.military, quota.military)
   )
+}
+
+/** Under `relative` valuation every metric is always wanted. */
+const EVERY_METRIC: MetricNeeds = { apRate: 1, pop: 1, military: 1 }
+
+/**
+ * Scale of the `relative` valuation: the realm's own metrics stand where the quotas would, so a
+ * change is worth its share of the current level times the gross AP rate. Population and military
+ * power are floored at 1 so that a realm without an army still values its first soldier.
+ */
+function relativeScale(before: RealmMetrics): EffectiveQuota {
+  return {
+    apRate: before.grossApRate,
+    pop: Math.max(1, before.population),
+    military: Math.max(1, before.military),
+  }
 }
 
 /** Shared inputs of one ranking. */
@@ -219,15 +243,16 @@ export function rankOptions(
   config: EngineConfig,
   profile: PaybackProfile,
 ): PaybackOption[] {
-  const quota = currentQuota(state, config)
   const horizon = Math.max(profile.minHorizonSeconds, secondsToAudit(state, config))
   const before = realmMetrics(state, config, horizon)
+  const relative = profile.valuation === 'relative'
+  const quota = relative ? relativeScale(before) : currentQuota(state, config)
   const frame: RankingFrame = {
     config,
     quota,
     horizon,
     before,
-    needs: metricNeeds(before, quota, profile.targets),
+    needs: relative ? EVERY_METRIC : metricNeeds(before, quota, profile.targets),
   }
   return [
     ...unitOptions(frame, state, profile),

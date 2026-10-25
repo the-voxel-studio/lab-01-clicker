@@ -245,10 +245,10 @@ describe('Task 4: rolled casualties and campaign details', () => {
     const state = createInitialGameState()
     state.deadline = 6
     const base = calculateBaseCampaignLoot(state, config)
-    expect(base).toBe(850)
+    expect(base).toBe(2610)
     const variance = new PRNG(9).nextBetween(0.8, 1.2)
     const loot = resolveCampaignLoot('ap', base, 1, new PRNG(9), state)
-    expect(loot.ap).toBe(Math.round(850 * variance))
+    expect(loot.ap).toBe(Math.round(2610 * variance))
   })
 
   it('sanctioned plunder multiplies AP loot by 1.5', () => {

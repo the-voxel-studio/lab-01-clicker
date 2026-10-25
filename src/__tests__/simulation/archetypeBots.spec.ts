@@ -16,10 +16,14 @@ import {
   runSimulation,
   randomBotStrategy,
   greedyRoiBotStrategy,
+  blindGreedyBotStrategy,
   bureaucratBotStrategy,
   conquerorBotStrategy,
   type BotStrategy,
 } from './botRunner'
+
+/** Time allowed to the 100 run validation sample of the Greedy band test (about 13 s alone). */
+const VALIDATION_TIMEOUT_MS = 60_000
 
 /** Every source file that holds runner or bot code. */
 function botSourceFiles(): string[] {
@@ -97,6 +101,7 @@ describe('Task 1: honest bots', () => {
     const strategies = [
       randomBotStrategy,
       greedyRoiBotStrategy,
+      blindGreedyBotStrategy,
       bureaucratBotStrategy,
       conquerorBotStrategy,
     ]
@@ -115,19 +120,64 @@ describe('Task 1: honest bots', () => {
   })
 })
 
+describe('Plan 04 Task 2: quota blind calibration bot', () => {
+  it('the blind Greedy bot decides the same under any quota table and announced threat', () => {
+    const config = DEFAULT_ENGINE_CONFIG
+    const tripled = {
+      ...config,
+      quotas: config.quotas.map((quota) => ({
+        ...quota,
+        apRate: 3 * quota.apRate,
+        pop: 3 * quota.pop,
+        military: 3 * quota.military,
+      })),
+    }
+    const stateAt = (seed: number, deadlines: number) => {
+      const run = runSimulation(greedyRoiBotStrategy, seed, { config, maxDeadlines: deadlines })
+      const durationSeconds = deadlines * config.balance.DEADLINE_DURATION_SECONDS
+      return executeReplay(run.journal, 1.0, durationSeconds, config).state
+    }
+    const decide = (view: ReturnType<typeof stateAt>, engineConfig: typeof config) => {
+      const ctx = { config: engineConfig, rng: new PRNG(1) }
+      return {
+        govern: blindGreedyBotStrategy.governActive(view, ctx),
+        threat: blindGreedyBotStrategy.answerThreat(view, ctx),
+      }
+    }
+    const mid = stateAt(4444, 5)
+    const early = stateAt(4445, 1)
+    const calm = { ...mid, unrest: 10 }
+    const unstable = { ...mid, unrest: 70 }
+    const states = [mid, early, calm, unstable]
+
+    expect(decide(mid, config).govern.length).toBeGreaterThan(0)
+    expect(decide(calm, config).threat).toBe('levy')
+    expect(decide(unstable, config).threat).toBe('defense')
+    for (const state of states) {
+      const threatened = { ...state, currentThreatPower: 10_000, currentThreatTributeAp: 1 }
+      expect(decide(threatened, tripled)).toEqual(decide(state, config))
+      expect(decide(state, tripled)).toEqual(decide(state, config))
+    }
+    const greedyCtx = { config, rng: new PRNG(1) }
+    const threatenedMid = { ...mid, currentThreatPower: 10_000, currentThreatTributeAp: 1 }
+    expect(greedyRoiBotStrategy.answerThreat(threatenedMid, greedyCtx)).toBe('tribute')
+  })
+})
+
 describe('Automated Bot Archetype Simulations & Balance Calibration', () => {
   it('asserts Random Noise Bot achieves win rate < 5%', () => {
     const { winRate } = measure(randomBotStrategy, 1001, 20)
     expect(winRate).toBeLessThan(0.05)
   })
 
-  it.fails(
-    'asserts Greedy ROI Bot stabilizes within target win rate band [35%, 65%] (quotas recalibrated in plan 04 Task 2)',
+  it(
+    'asserts Greedy ROI Bot stays within its target win rate band [35%, 65%] on the solver validation seeds',
     () => {
-      const { winRate } = measure(greedyRoiBotStrategy, 2001, 25)
+      const { winRate } = measure(greedyRoiBotStrategy, 20001, 100)
       expect(winRate).toBeGreaterThanOrEqual(0.35)
       expect(winRate).toBeLessThanOrEqual(0.65)
     },
+    VALIDATION_TIMEOUT_MS,
   )
 
   it('asserts the Bureaucrat expert bot achieves win rate > 65%', () => {

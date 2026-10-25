@@ -17,14 +17,14 @@ export interface DeadlineQuota {
  * Master calibrated deadline quotas derived via simulation solver across 200 fixed seeds.
  */
 export const DEADLINE_QUOTAS: readonly DeadlineQuota[] = [
-  { deadline: 1, apRate: 5, pop: 180, military: 12 },
-  { deadline: 2, apRate: 12, pop: 300, military: 22 },
-  { deadline: 3, apRate: 22, pop: 450, military: 30 },
-  { deadline: 4, apRate: 35, pop: 600, military: 40 },
-  { deadline: 5, apRate: 55, pop: 780, military: 55 },
-  { deadline: 6, apRate: 85, pop: 980, military: 75 },
-  { deadline: 7, apRate: 130, pop: 1200, military: 105 },
-  { deadline: 8, apRate: 195, pop: 1480, military: 140 },
-  { deadline: 9, apRate: 285, pop: 1800, military: 180 },
-  { deadline: 10, apRate: 420, pop: 2200, military: 230 },
+  { deadline: 1, apRate: 12, pop: 156, military: 11 },
+  { deadline: 2, apRate: 22, pop: 304, military: 22 },
+  { deadline: 3, apRate: 33, pop: 499, military: 28 },
+  { deadline: 4, apRate: 55, pop: 647, military: 29 },
+  { deadline: 5, apRate: 145, pop: 744, military: 108 },
+  { deadline: 6, apRate: 261, pop: 827, military: 170 },
+  { deadline: 7, apRate: 443, pop: 907, military: 290 },
+  { deadline: 8, apRate: 960, pop: 1114, military: 862 },
+  { deadline: 9, apRate: 1835, pop: 3425, military: 1360 },
+  { deadline: 10, apRate: 2830, pop: 6103, military: 2265 },
 ] as const

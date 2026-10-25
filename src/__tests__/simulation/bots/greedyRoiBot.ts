@@ -18,14 +18,17 @@ import {
 } from './council'
 import type { BotStrategy } from './strategy'
 
-/** Stamps per second of a human clicking steadily (the engine allows 12). */
-const STAMPS_PER_SECOND = 10
+/**
+ * Stamps per second of the reference human: GAME_RULES §2.1 counts a player clicking 4 times per
+ * second (the engine allows 12).
+ */
+export const GREEDY_STAMPS_PER_SECOND = 4
 
 /** Purchases per decision at most. */
-const MAX_PURCHASES = 3
+export const GREEDY_MAX_PURCHASES = 3
 
 /** Payback weighing: every metric aimed at 110% of the current quota. */
-const PROFILE: PaybackProfile = {
+export const GREEDY_PROFILE: PaybackProfile = {
   targets: { apRate: 1.1, pop: 1.1, military: 1.1 },
   minHorizonSeconds: 20,
   excludedUnits: ['clergy', 'prelate', 'scout', 'spymaster'],
@@ -33,7 +36,7 @@ const PROFILE: PaybackProfile = {
 }
 
 /** Unrest care thresholds. */
-const UNREST_POLICY: UnrestPolicy = { calmAt: 40, festivalAt: 75 }
+export const GREEDY_UNREST_POLICY: UnrestPolicy = { calmAt: 40, festivalAt: 75 }
 
 /** Dilemma choice ceiling on unrest. */
 const DILEMMA_UNREST_CEILING = 60
@@ -59,24 +62,24 @@ const DILEMMA_PREFERENCES: Readonly<Record<string, number>> = {
 /**
  * Greedy ROI Bot: buys the option with the lowest payback seconds.
  *
- * Heuristic (fixed, documented, deterministic): each second 10 stamps, tax kept at the reference
- * rate, unrest care (pacifier from 40 unrest, Grand Festival from 75), then up to 3 purchases
- * ranked by payback seconds among units, patents and colonisation (`payback.ts`), every audited
- * metric aimed at 110% of the current quota. Council: the first enactable law of an economic
- * preference list, else reject; dilemmas by a fixed table under an unrest ceiling of 60; threats
- * by the safe response rule; expeditions skipped; the Lombard bailout accepted.
+ * Heuristic (fixed, documented, deterministic): each second 4 stamps (GAME_RULES §2.1), tax kept
+ * at the reference rate, unrest care (pacifier from 40 unrest, Grand Festival from 75), then up to
+ * 3 purchases ranked by payback seconds among units, patents and colonisation (`payback.ts`),
+ * every audited metric aimed at 110% of the current quota. Council: the first enactable law of an
+ * economic preference list, else reject; dilemmas by a fixed table under an unrest ceiling of 60;
+ * threats by the safe response rule; expeditions skipped; the Lombard bailout accepted.
  */
 export const greedyRoiBotStrategy: BotStrategy = {
   name: 'Greedy ROI',
 
   governActive(state, { config }): Command[] {
     const commands = [
-      ...stampCommands(state, STAMPS_PER_SECOND),
+      ...stampCommands(state, GREEDY_STAMPS_PER_SECOND),
       ...taxCommands(state, config.balance.TAX_REFERENCE_RATE),
     ]
-    const care = unrestCareCommands(state, config, UNREST_POLICY)
+    const care = unrestCareCommands(state, config, GREEDY_UNREST_POLICY)
     if (care.length > 0) return [...commands, ...care]
-    return [...commands, ...paybackPurchases(state, config, PROFILE, MAX_PURCHASES)]
+    return [...commands, ...paybackPurchases(state, config, GREEDY_PROFILE, GREEDY_MAX_PURCHASES)]
   },
 
   resolveDilemma(state, { config }, dilemma): number {

@@ -284,7 +284,7 @@ $$\text{CombatRatio} = \frac{\text{AttackerPower}}{\text{DefenderPower}}$$
 #### 7.4.1 Offensive Campaigns (Player as Attacker)
 - Player initiates the attack voluntarily; incurs the **Attacker's Siege Friction (-10%)**, while defending enemies enjoy fortification bonuses.
 - **Loot Variance & Diverse Loot Types:**
-  - Previewed spoils have an inherent estimation variance of approximately **$\pm 20\%$**. Base loot is **10 seconds of the AP rate quota** of the current deadline (D6, 85 AP/s: 850 AP), before outcome, variance and modifiers.
+  - Previewed spoils have an inherent estimation variance of approximately **$\pm 20\%$**. Base loot is **10 seconds of the AP rate quota** of the current deadline (D6, 261 AP/s: 2,610 AP), before outcome, variance and modifiers.
   - Spoils are **not limited to AP**:
     - *Treasury Plunder:* Pure AP ($\pm 20\%$). Credited strictly to `state.ap`; does not modify Gross AP Rate or increment quota tracking counters.
     - *Captive Serf Liberation:* Awards **Living Population** (+25 to +75 Free Serfs) instead of AP!
@@ -362,14 +362,14 @@ $$\text{BaseThreatPower} = 0.80 \times \text{MilitaryQuota}_{d+1}, \quad \text{T
 
 | Threat Deadline | Threat Title | Faction | Base Power | 3 Responses Available |
 | :---: | :--- | :--- | :---: | :--- |
-| **3** | *Border Raiders & Deserters* | Outlaws | 24 | Combat / 440 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **4** | *The Rebellious Marches Baron* | Dissident Barons | 32 | Combat / 700 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 44 | Combat / 1,100 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **6** | *The Renegade Free Companies* | Mercenaries | 60 | Combat / 1,700 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **7** | *The Holy League Crusade* | Holy Zealots | 84 | Combat / 2,600 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **8** | *The Pretender Duke's Vanguard* | Rebel Nobility | 112 | Combat / 3,900 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **9** | *The Grand Inquisitorial Armada* | Imperial Church | 144 | Combat / 5,700 AP Tribute / 10% Pop Levy (+30 Unrest) |
-| **10** | *The Royal Auditor's Iron Host* | Imperial Army | 184 | Combat / 8,400 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **3** | *Border Raiders & Deserters* | Outlaws | 22 | Combat / 660 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **4** | *The Rebellious Marches Baron* | Dissident Barons | 23 | Combat / 1,100 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 86 | Combat / 2,900 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **6** | *The Renegade Free Companies* | Mercenaries | 136 | Combat / 5,220 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **7** | *The Holy League Crusade* | Holy Zealots | 232 | Combat / 8,860 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **8** | *The Pretender Duke's Vanguard* | Rebel Nobility | 690 | Combat / 19,200 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **9** | *The Grand Inquisitorial Armada* | Imperial Church | 1,088 | Combat / 36,700 AP Tribute / 10% Pop Levy (+30 Unrest) |
+| **10** | *The Royal Auditor's Iron Host* | Imperial Army | 1,812 | Combat / 56,600 AP Tribute / 10% Pop Levy (+30 Unrest) |
 
 ### 8.2 Threat Response Validation & Resolution Rules
 1. **Armed Defense (`defense`):** Resolves via `resolveDefensiveClash` where the player acts as Defender (+20% fortification bonus + Stronghold defense).
@@ -621,10 +621,10 @@ To guarantee that the game tests actual player skill rather than arbitrary bot p
    - *Greedy ROI Bot (Baseline Human):* Calculates immediate payback time (amortization seconds) and purchases highest efficiency. Expected Win Rate: **35% – 65%**.
    - *Archetype Expert Bot:* Plays optimized archetype strategies (civil colonisation bureaucrat or aggressive plunder conqueror). Expected Win Rate: **> 65%**.
 2. **Dynamic Quota Generation:**
-   - Quotas are derived objectively from the median of the Greedy ROI Bot over multiple fixed seeds:
+   - Quotas are derived objectively from the median of the quota blind Greedy variant, played under relaxed quotas over multiple fixed seeds:
      $$\text{Quota}_k = c \times \text{MedianBotScore}_k$$
    - On the AP axis, the bot's score evaluated at audit $k$ is the **instantaneous Gross AP Rate (AP/s)**.
-   - The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable determined algorithmically by the calibration solver script (`scripts/generate-balance-report.ts`) via bisection until the Greedy ROI Bot stabilizes strictly within the target win rate band of **35% – 65%**. The bot's score evaluates balanced utility across AP, Population, and Military.
+   - The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable determined algorithmically by the calibration solver script (`scripts/generate-balance-report.ts`) via bisection until the quota aware Greedy ROI Bot (the bisection target, on validation seeds) stabilizes strictly within the target win rate band of **35% – 65%**.
 3. **Dominance & Sensitivity Testing:**
    - *Dominance:* Beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate), asserts that no unit role is purchased 0 times across 1,000 runs, and no single unit exceeds 60% of total expenditure within a given archetype build.
    - *Sensitivity:* Modulates parameters ($r_0$, cost ratios, tax rates) by $\pm 10\%$ to verify that win rates remain stable without sudden catastrophic collapse.
