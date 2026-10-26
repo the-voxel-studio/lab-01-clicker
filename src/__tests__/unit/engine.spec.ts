@@ -6,7 +6,15 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { tick, evaluateDeadlineAudit, calculateMaxPopulation } from '@/core/engine'
+import {
+  tick,
+  evaluateDeadlineAudit,
+  calculateMaxPopulation,
+  calculateGrossApRate,
+  calculateMilitaryPower,
+  calculateNetPaperwork,
+  calculateUpkeep,
+} from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 import { getStateHash } from '@/core/replay'
@@ -288,5 +296,172 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     expect(calculateMaxPopulation(state)).toBeGreaterThan(before)
     // GAME_RULES 6.1: 3 heartland x 250 = 750; 750 x (1 + 0.015 x 10) = 862.5, rounded up to 863
     expect(calculateMaxPopulation(state)).toBe(863)
+  })
+
+  it('charges 500, 600 and 700 AP for the People, Administration and Military patents', () => {
+    const fees = { people: 500, admin: 600, military: 700 } as const
+    const tierIUnit = { people: 'peasant', admin: 'scribe', military: 'soldier' } as const
+    for (const order of ['people', 'admin', 'military'] as const) {
+      const state = createInitialGameState()
+      state.deadline = 4
+      state.ap = 1000
+      state.units[tierIUnit[order]] = 12
+      const res = dispatch(state, { type: 'UNLOCK_PATENT', order })
+      expect(res.success).toBe(true)
+      expect(state.ap).toBe(1000 - fees[order])
+      expect(state.unlockedPatents[order]).toBe(true)
+    }
+
+    const poor = createInitialGameState()
+    poor.deadline = 4
+    poor.ap = 599
+    poor.units.scribe = 12
+    expect(dispatch(poor, { type: 'UNLOCK_PATENT', order: 'admin' }).success).toBe(false)
+    expect(poor.unlockedPatents.admin).toBe(false)
+  })
+
+  it('applies only half of the net paperwork to a click', () => {
+    const state = createInitialGameState()
+    state.units.scribe = 10
+    state.clickTokens = 5
+    state.rngStreams.click = 1
+    state.ap = 0
+    const paperwork = calculateNetPaperwork(state)
+    expect(paperwork).toBeGreaterThan(0.1)
+    const gross = calculateGrossApRate(state).total
+
+    const res = dispatch(state, { type: 'STAMP_DOCUMENT' })
+    expect(res.success).toBe(true)
+    expect(res.events?.[0]).toContain('Affixed Royal Decree')
+    const expected = (1 + gross * 0.035) * (1 - 0.5 * paperwork)
+    expect(state.ap).toBeCloseTo(expected, 2)
+  })
+
+  it('rejects a click once the 12 token bucket is empty', () => {
+    const state = createInitialGameState()
+    state.clickTokens = 1
+    expect(dispatch(state, { type: 'STAMP_DOCUMENT' }).success).toBe(true)
+    const rejected = dispatch(state, { type: 'STAMP_DOCUMENT' })
+    expect(rejected.success).toBe(false)
+    expect(rejected.error).toContain('has not yet dried')
+    expect(createInitialGameState().clickTokens).toBe(12)
+  })
+
+  it('uses the Lombard bailout up when the offer is refused', () => {
+    const state = createInitialGameState()
+    state.ap = 0
+    state.units.soldier = 50
+    tick(state, 11.0)
+    expect(state.phase).toBe('LOMBARD_OFFER')
+    const timerAtOffer = state.bankruptcyGraceTimer
+    expect(timerAtOffer).toBeLessThanOrEqual(20)
+
+    const refused = dispatch(state, { type: 'REFUSE_LOMBARD_LOAN' })
+    expect(refused.success).toBe(true)
+    expect(state.phase).toBe('ACTIVE_CYCLE')
+    expect(state.lombardBailoutAvailable).toBe(false)
+    expect(state.bankruptcyGraceTimer).toBe(timerAtOffer)
+
+    tick(state, 5.0)
+    expect(state.phase).toBe('ACTIVE_CYCLE')
+    expect(state.provinces).toBe(3)
+  })
+})
+
+describe('GAME_RULES §4: per unit effect magnitudes', () => {
+  it('raises the poll tax by 0.5% per Artisan and 3.5% per Guild', () => {
+    const base = createInitialGameState()
+    const taxed = createInitialGameState()
+    taxed.units.artisan = 10
+    taxed.units.guild = 2
+    const ratio = calculateGrossApRate(taxed).pollTax / calculateGrossApRate(base).pollTax
+    expect(ratio).toBeCloseTo(1 + 10 * 0.005 + 2 * 0.035, 10)
+  })
+
+  it('raises Scribe and Clerk output by 2% per Supervisor and 9% per Provincial Steward', () => {
+    const state = createInitialGameState()
+    state.units.scribe = 10
+    state.units.clerk = 5
+    const plain = calculateGrossApRate(state)
+    state.units.supervisor = 10
+    state.units.provincial_steward = 2
+    const boosted = calculateGrossApRate(state)
+    const production = (rate: { total: number; pollTax: number }) => rate.total - rate.pollTax
+    expect(production(boosted) / production(plain)).toBeCloseTo(1 + 10 * 0.02 + 2 * 0.09, 10)
+  })
+
+  it('lets Farmers-General cover the free serfs before the Collectors', () => {
+    const state = createInitialGameState()
+    state.freeSerfs = 150
+    state.units.farmer_general = 1
+    state.units.collector = 1
+    const { total, pollTax } = calculateGrossApRate(state)
+    expect(total - pollTax).toBeCloseTo(4.5 * 1 + 0.8 * 0.5, 10)
+  })
+
+  it('adds 1.5% military power per Sergeant and 7% per Captain on Soldiers and Men-at-Arms', () => {
+    const state = createInitialGameState()
+    state.units.soldier = 100
+    state.units.man_at_arms = 10
+    state.units.sergeant = 10
+    state.units.captain = 2
+    expect(calculateMilitaryPower(state)).toBeCloseTo(
+      (100 + 10 * 7) * (1 + 10 * 0.015 + 2 * 0.07),
+      1,
+    )
+  })
+
+  it('cuts military upkeep by 1.5% per Quartermaster and 7% per Grand Marshal, with a 20% floor', () => {
+    const state = createInitialGameState()
+    state.units.soldier = 100
+    state.units.quartermaster = 10
+    expect(calculateUpkeep(state)).toBeCloseTo(100 * 0.3 * (1 - 10 * 0.015), 10)
+    state.units.grand_marshal = 2
+    expect(calculateUpkeep(state)).toBeCloseTo(
+      (100 * 0.3 + 2 * 1.0) * (1 - 10 * 0.015 - 2 * 0.07),
+      10,
+    )
+    state.units.quartermaster = 100
+    expect(calculateUpkeep(state)).toBeCloseTo((100 * 0.3 + 2 * 1.0) * 0.2, 10)
+  })
+
+  it('cuts the poll tax by 20% from 50 Unrest and halves Scribe and Clerk output from 90 Unrest', () => {
+    const state = createInitialGameState()
+    state.units.scribe = 10
+    state.units.clerk = 5
+    const production = (): { pollTax: number; offices: number } => {
+      const rate = calculateGrossApRate(state)
+      return { pollTax: rate.pollTax, offices: rate.total - rate.pollTax }
+    }
+
+    state.unrest = 49
+    const calm = production()
+    state.unrest = 50
+    expect(production().pollTax).toBeCloseTo(calm.pollTax * 0.8, 10)
+    expect(production().offices).toBeCloseTo(calm.offices, 10)
+    state.unrest = 89
+    expect(production().offices).toBeCloseTo(calm.offices, 10)
+    state.unrest = 90
+    expect(production().pollTax).toBeCloseTo(calm.pollTax * 0.8, 10)
+    expect(production().offices).toBeCloseTo(calm.offices * 0.5, 10)
+  })
+
+  it('pacifies 0.02 Unrest/s per Clergy and 0.15 per Prelate', () => {
+    const state = createInitialGameState()
+    state.unrest = 40
+    state.units.clergy = 10
+    state.units.prelate = 2
+    tick(state, 1.0)
+    expect(state.unrest).toBeCloseTo(40 - (10 * 0.02 + 2 * 0.15), 6)
+  })
+
+  it('adds 0.05% to the growth rate r per Peasant and 0.30% per Farmer', () => {
+    const state = createInitialGameState()
+    state.units.peasant = 100
+    state.units.farmer = 10
+    const maxPop = calculateMaxPopulation(state)
+    const r = 0.005 + 100 * 0.0005 + 10 * 0.003
+    const expected = r * state.totalPopulation * (1 - state.totalPopulation / maxPop) * 0.05
+    expect(tick(state, 0.05).popGrowth).toBeCloseTo(expected, 10)
   })
 })

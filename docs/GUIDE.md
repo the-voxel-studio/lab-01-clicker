@@ -1,4 +1,4 @@
-# The Grand Audit (Le Grand Audit) – Technical & Game Design Guide
+# The Grand Audit (Le Grand Audit): Technical & Game Design Guide
 
 > **Master Reference & Technical Specification Guide**  
 > Feudal Roguelike Bureaucratic Incremental Game. 100% offline, self-contained single-page application compiled into a standalone `dist/index.html`.
@@ -77,27 +77,27 @@
 #### 2.2 Calibrated Quota Matrix Across All 10 Deadlines
 > [!NOTE]
 > **Matrix Status: calibrated by the solver (`src/data/balance.generated.ts`).**  
-> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$, where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% – 65% win rate**.
+> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$, where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% to 65% win rate**.
 
-| Deadline | Gross AP Rate Quota (AP/s) | Total Population | Military Combat Power | Unlocks & Key Milestones |
+| Deadline | Gross AP Rate Quota (AP/s) | Total Population | Military Combat Power | Unlocks & Key Milestones (engine gates) |
 | :---: | :---: | :---: | :---: | :--- |
-| **1** | 12 AP/s | 156 Pop | 11 Power | Clicks, Scribes, Peasants, Tax Slider, FTUE Tutorial |
-| **2** | 22 AP/s | 304 Pop | 22 Power | Supervisors, Archivists, Artisans, Clergy, First Law |
-| **3** | 33 AP/s | 499 Pop | 28 Power | Soldiers, Collectors, First Threat, 10× Bulk Buy |
-| **4** | 55 AP/s | 647 Pop | 29 Power | Tier II Patents, Sergeants, Scouts, Civil Colonisation |
-| **5** | 145 AP/s | 744 Pop | 108 Power | All Tier II roles accessible, 2× Fast-Forward toggle |
-| **6** | 261 AP/s | 827 Pop | 170 Power | 50× Bulk Buy, Escalated threats |
-| **7** | 443 AP/s | 907 Pop | 290 Power | High-level threats, severe paperwork pressure |
-| **8** | 960 AP/s | 1,114 Pop | 862 Power | 100× Bulk Buy (Peasants & Scribes), Imperial Invasions |
-| **9** | 1,835 AP/s | 3,425 Pop | 1,360 Power | Penultimate Crown Audit, Grand Host armies |
-| **10** | 2,830 AP/s | 6,103 Pop | 2,265 Power | **The Grand Audit Final Inspection (Victory)** |
+| **1** | 12 AP/s | 156 Pop | 11 Power | All Tier I units, clicks, tax slider |
+| **2** | 22 AP/s | 304 Pop | 22 Power | Threat Herald opens after this audit |
+| **3** | 33 AP/s | 499 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy |
+| **4** | 55 AP/s | 647 Pop | 29 Power | Tier II patents can be bought |
+| **5** | 144 AP/s | 744 Pop | 108 Power | 2× Fast-Forward |
+| **6** | 254 AP/s | 827 Pop | 169 Power | 50× Bulk Buy |
+| **7** | 443 AP/s | 905 Pop | 289 Power | Holy League Crusade |
+| **8** | 945 AP/s | 1,097 Pop | 859 Power | 100× Bulk Buy (Peasants & Scribes) |
+| **9** | 1,802 AP/s | 3,483 Pop | 1,333 Power | Penultimate Crown audit |
+| **10** | 2,784 AP/s | 6,364 Pop | 2,216 Power | **The Grand Audit Final Inspection (Victory)** |
 
 ### 2.3 The Royal Pardon (Yellow Card Grace Rule)
 - **One Strike Permitted (Deadlines 1 to 9):** The first time a player meets fewer than 2 out of 3 quotas at a deadline prior to Deadline 10, the Crown issues a **Royal Censure**:
   - The Crown forcibly confiscates **1 Province** (the last acquired province in LIFO order) and **50% of the player's positive AP treasury** ($\text{Fine} = 0.50 \times \max(0, \text{AP})$). Debt (negative AP) is never halved or erased.
   - **The Hard Province Floor Rule:** Fines and bailouts (Royal Censure, Lombard Loan) enforce a **hard floor of 1 province**. The Crown never strips the player's final sovereign seat through administrative censure. However, this floor **does not protect against foreign military conquest**: a defensive collapse in battle when holding only 1 province seizes that final province and immediately triggers defeat by conquest (`conquest`).
   - The run continues into the next deadline.
-- **Second Failure or Final Inspection (Deadline 10) Failure:** A second quota failure—or failing the **Deadline 10 Grand Audit** even with zero prior strikes—results in immediate royal execution (Game Over, `quota_failure`).
+- **Second Failure or Final Inspection (Deadline 10) Failure:** A second quota failure, or failing the **Deadline 10 Grand Audit** even with zero prior strikes, results in immediate royal execution (Game Over, `quota_failure`).
 
 ### 2.4 Mid-Deadline Audit Warning (50-Second Mark)
 - At exactly $t = 50\text{ s}$ of each deadline, a deterministic interim projection (`interimWarningOnTrack: boolean`) checks:
@@ -111,7 +111,7 @@
 - **Defeat Modes:**
   1. *Quota Failure:* Failing 2 out of 3 quotas for a second time, or failing Deadline 10 (even with 0 strikes).
   2. *Peasant Revolution:* Unrest reaches 100% at any moment in any phase (instant defeat, `revolution`).
-  3. *Bankruptcy:* Net AP negative for 30 consecutive seconds without recovery.
+  3. *Bankruptcy:* Treasury at or below 0 with a negative net AP for 30 seconds in a row (the countdown resets when the treasury is above 0).
   4. *Invasion / Conquest:* Losing the last province to foreign military conquest (0 provinces remaining, `conquest`).
 
 ---
@@ -160,14 +160,14 @@ $$\text{Net AP/s} = \text{Gross AP/s} \times (1 - \text{NetPaperwork}) - \text{T
 ### 4.1 Demographic Balance Equation
 $$\text{Total Population} = \text{Free Serfs} + \sum \text{People Roles} + \sum \text{Administrators} + \sum \text{Soldiers}$$
 - **Direct Deduction:** Every recruited administrator or soldier converts 1 Free Serf.
-- **Poll Tax Base:** Only Free Serfs pay the direct poll tax ($0.02\text{ AP/s} \times \text{TaxRate}$).
+- **Poll Tax Base:** Only Free Serfs pay the direct poll tax ($0.02\text{ AP/s} \times \text{TaxRate} / 25$ per serf, so 0.02 AP/s at the 25% reference rate).
 - **Permanent Casualties:** Combat losses permanently reduce Total Population.
 
 ### 4.2 Housing Capacity & Civil Colonisation
 $$\text{BaseCap} = 250 \times \text{Provinces} \quad (\text{Starting capacity: } 3 \text{ provinces} = 750)$$
 $$\text{MaxPopulation} = \text{BaseCap} \times \big[1 + (0.015 \times \text{Notables}) + (0.06 \times \text{Barons}) + \text{Modifiers}\big]$$
 
-- **The Civil Colonisation Route:** To allow Bureaucrat players to expand without an army, players can peacefully colonise wilderness provinces via executive decree:
+- **The Civil Colonisation Route:** To allow Bureaucrat players to expand without an army, players can peacefully colonise Heartland provinces via executive decree:
   $$\text{ColonisationCost}(k) = 1500 \times 2^k \text{ AP}$$
   *(where $k$ is the number of previously colonised provinces).*
 
@@ -242,7 +242,7 @@ $$\text{CollectorOutput} = \text{YieldRate} \times \min\left(n, \frac{\text{Free
 
 During the Inter-Deadline Council phase, the player receives 3 cards (1 from the Chancellor, 1 from the Prelate, 1 from the Marshal). The player may enact 1 law (max 5 active slots) or reject all for +1 Archive Point.
 
-### 6.1 The Chancellor's Decrees (Administration & Treasury – 10 Laws)
+### 6.1 The Chancellor's Decrees (Administration & Treasury, 10 Laws)
 1. **Royal Scriptorium:** +50% Scribe gross AP production | +20% paperwork inertia.
 2. **General Cadastre:** -25% paperwork inertia | +2.0 AP/s maintenance upkeep per owned province.
 3. **Exceptional Tithe:** +80% gross AP production until the next audit | +30 immediate Unrest at that audit, then the law is repealed and frees its slot.
@@ -254,19 +254,19 @@ During the Inter-Deadline Council phase, the player receives 3 cards (1 from the
 9. **Auditors' Inquisition:** Audit Chamber units grant double paperwork mitigation | Generates +15 Unrest at each deadline audit.
 10. **Imperial Bond Floating:** Instantly grants +3,000 AP treasury | Siphons -10% gross AP/s continuously to service imperial debt.
 
-### 6.2 The Prelate's Ordinances (The People & Church – 10 Laws)
+### 6.2 The Prelate's Ordinances (The People & Church, 10 Laws)
 1. **Census Edict:** +25% maximum population capacity | Administration order cap reduced by 20%.
 2. **Holy Days & Vigils:** -0.20 Unrest/s continuous pacification | -10% AP production across all sources.
 3. **Primogeniture Decrees:** +20% province population capacity | Base demographic growth rate reduced by -20%.
 4. **Grand Kermesse:** -25 Unrest immediately upon enactment | Costs 40 seconds of current net AP income (nothing when net income is not positive; refused when AP is below the cost).
-5. **Sanctuary Rights:** Prevents soldier desertions when Unrest is below 90% only (desertions resume at 90%–99%) | Military unit recruit costs increased by +30%.
+5. **Sanctuary Rights:** Prevents soldier desertions when Unrest is below 90% only (desertions resume at 90% to 99%) | Military unit recruit costs increased by +30%.
 6. **Monastic Granaries:** +0.08 pop growth/s per 100 free serfs | Free serfs evade 10% of baseline poll taxes.
 7. **Tithe Commutation:** Village Priests and Prelates have zero ongoing upkeep | Total realm tax revenue efficiency reduced by -10%.
-8. **Sumptuary Edicts:** -15% civil upkeep across all People units | Click critical stamp probability reduced by 50%.
+8. **Sumptuary Edicts:** -15% upkeep across all People and Administration units | Click critical stamp probability reduced by 50%.
 9. **Parish Relief Registers:** Completely prevents demographic stagnation during housing overcrowding | Consumes -5% gross AP/s.
 10. **Papal Concordat:** -40% base Unrest generation | 1 active law slot is permanently pledged to the Holy See (cannot be replaced).
 
-### 6.3 The Marshal's Mandates (The Military & War – 10 Laws)
+### 6.3 The Marshal's Mandates (The Military & War, 10 Laws)
 1. **Standing Garrisons:** 60% of upcoming threat power is automatically absorbed | Total military upkeep increased by +30%.
 2. **Merit Pay:** -30% total military upkeep costs | Only takes effect if the realm holds $\le 3$ provinces.
 3. **Sanctioned Plunder:** Campaign battle loot value multiplied by $1.5\times$ | Each campaign battle causes +15 immediate Unrest.
@@ -291,16 +291,16 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 - **Choice B:** Forbid the tax, letting them have their light (-10 Unrest, gain +1 Archive Point).
 
 ### 2. The Scribe Who Counted Too Much
-- **Trigger:** Previous deadline passed with $< 15\%$ safety margin on Gross AP Rate ($\text{GrossAP/s} / \text{ApRateQuota} < 1.15$).
+- **Trigger:** Gross AP Rate at the last audit under 115% of its quota ($\text{GrossAP/s} / \text{ApRateQuota} < 1.15$).
 - **Narrative:** *"A miserable clerk has uncovered three ledgers of missing grain, Sire. He threatens to report to the King's Auditor unless given a velvet doublet."*
 - **Choice A:** Promote him to Royal Clerk (+1 Royal Clerk, +0.5 AP/s upkeep).
 - **Choice B:** Discard his ledgers in the moat (-5% paperwork, +10 Unrest).
 
 ### 3. The Princely Cousin
-- **Trigger:** Military upkeep $> 35\%$ of total AP income.
+- **Trigger:** Military upkeep $> 35\%$ of the Gross AP Rate (`PRINCELY_COUSIN_UPKEEP_SHARE` = 0.35).
 - **Narrative:** *"Your cousin the Duke arrives with forty unwashed retainers and demands imperial board, Sire."*
 - **Choice A:** Pay him a lavish stipend (-500 AP, -15 Unrest).
-- **Choice B:** Send him to garrison the frontier (-10% military upkeep, +15% threat power next deadline).
+- **Choice B:** Send him to garrison the frontier (-10% military upkeep, +15% threat power).
 
 ### 4. The Great Archive Fire
 - **Trigger:** Net paperwork $> 45\%$.
@@ -354,7 +354,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 - **Trigger:** AP treasury $\le 0$ or Bankruptcy countdown active.
 - **Narrative:** *"The sword-for-hire companies stand outside your hall banging pommels against iron pots. They demand their gold!"*
 - **Choice A:** Melt down reliquaries (+400 AP, +15 Unrest).
-- **Choice B:** Disband 10 Foot Soldiers (lose soldiers, cancels bankruptcy timer).
+- **Choice B:** Disband 10 Foot Soldiers (lose soldiers, ends the bankruptcy countdown and restores the full grace timer).
 
 ### 13. The Ghost Scribes
 - **Trigger:** Total Scribes $\ge 20$.
@@ -393,7 +393,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 - **Choice B:** Plead poverty and hide gold (-15% gross AP for 30s in accounting tricks).
 
 ### 19. The Mutinous Quartermaster
-- **Trigger:** Total military units $\ge 25$.
+- **Trigger:** Soldiers, Men-at-Arms, Sergeants and Captains together $\ge 25$.
 - **Narrative:** *"A quartermaster was caught selling imperial spears to forest bandits."*
 - **Choice A:** Hang him publicly (-1 Quartermaster, -10 Unrest).
 - **Choice B:** Blackmail him into double bookkeeping (+300 AP, +5% military upkeep).
@@ -401,7 +401,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 ### 20. The Astrologer's Comet
 - **Trigger:** Deadline 8 or 9.
 - **Narrative:** *"A fiery comet streaks across the night sky. The people wail, predicting the doom of dynasties."*
-- **Choice A:** Declare it a sign of imperial victory (+10% military power for deadline, +10 Unrest).
+- **Choice A:** Declare it a sign of imperial victory (+10% military power, +10 Unrest).
 - **Choice B:** Fund mass intercession prayers (-500 AP, -25 Unrest).
 
 ---
@@ -411,11 +411,11 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 Crown threats activate commencing after the Deadline 2 audit. During the Inter-Deadline Council phase following deadline $d$ ($2 \le d \le 9$), the Threat Herald reveals and resolves the upcoming threat for deadline **$d+1$**:
 $$\text{BaseThreatPower} = 0.80 \times \text{MilitaryQuota}_{d+1}, \quad \text{TributeCost} = 20 \times \text{ApRateQuota}_{d+1}$$
 
-#### 8.1 Threat Matrix & Spontaneous Surprise Raids ("Attaques par surprise")
+#### 8.1 Threat Matrix & Spontaneous Surprise Raids
 The realm faces two distinct vectors of military hostility:
 1. **Scheduled Crown Threats (Deadlines 3 to 10):** Official imperial audits and major feudal incursions heralded during the Inter-Deadline Council phase for deadline $d+1$.
 2. **Spontaneous Surprise Raids (`SURPRISE_RAID`):** Independent border marauders, rebel barons, or foreign mercenaries may launch surprise raids during `ACTIVE_CYCLE` starting at **Deadline 3**:
-   - *Check Interval & Probability:* Evaluated every **10 seconds** of active cycle time via persisted `prngState`. Base chance **2%**, doubled ($\times 2$) if `ap > 2000`, $+2\%$ if `militaryPower < 0.50 * MilitaryQuota`, $+2\%$ if `unrest > 60`.
+   - *Check Interval & Probability:* Evaluated every **10 seconds** of active cycle time via persisted `prngState`. Base chance **2%**, doubled ($\times 2$, the base only) if `ap > 2000`, $+2\%$ if `militaryPower < 0.50 * MilitaryQuota`, $+2\%$ if `unrest > 60`.
    - *Hard Caps & Cooldown:* Maximum **1 surprise raid per deadline**, minimum **60-second cooldown** between raids. Raid power equals **$0.50 \times \text{MilitaryQuota}$**.
 > [!NOTE]
 > **Values derived from `src/data/balance.generated.ts`.**  
@@ -423,19 +423,21 @@ The realm faces two distinct vectors of military hostility:
 
 | Threat Deadline | Scheduled Threat | Faction | Base Power (80% Mil Quota) | Tribute (20s Gross AP Rate) | Failure Penalty (Defensive Collapse) |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| **3** | *Border Raiders & Deserters* | Outlaw Bandits | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **4** | *The Rebellious Marches Baron* | Feudal Dissidents | 23 | 1,100 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **5** | *Nomadic Steppe Horde* | Steppe Raiders | 86 | 2,900 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **6** | *The Renegade Free Companies* | Mercenary Armies | 136 | 5,220 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **7** | *The Holy League Crusade* | Religious Zealots | 232 | 8,860 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **8** | *The Pretender Duke's Vanguard* | Rebel Nobility | 690 | 19,200 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **9** | *The Grand Inquisitorial Armada* | Imperial Church | 1,088 | 36,700 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **10** | *The Royal Auditor's Iron Host* | Crown Imperial Army | 1,812 | 56,600 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **3** | *Border Raiders & Deserters* | Outlaw Bandits & Marauders | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **4** | *The Rebellious Marches Baron* | Rebel Barons | 23 | 1,100 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 86 | 2,880 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 135 | 5,080 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **7** | *The Holy League Crusade* | Holy League Zealots | 231 | 8,860 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 687 | 18,900 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,066 | 36,040 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 1,773 | 55,680 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+
+The figures are the base values: the faction trait (§9.1) adjusts them when the threat is announced (Rebel Barons +10% power against a large army, Mercenaries +25% tribute, Imperial Crown Legions take 2 provinces).
 
 ### 8.2 The Three Responses to Scheduled Threats
 1. **Defend with Armed Forces (`defense`):** Resolves via the generalized battle system where the player acts as **Defender** (+20% fortification bonus + Stronghold defense).
-2. **Pay Crown Tribute (`tribute`):** Costs $20 \times \text{ApRateQuota}_{d+1}$ in gold treasury. Bypasses combat entirely. **Requires `state.ap >= TributeCost`; if unaffordable, the command is strictly rejected (`success: false`) and the phase remains `THREAT_HERALD`**—the player must select `defense` or `levy`.
-3. **Levy en Masse (`levy`):** Always available regardless of AP. Mobilizes **10% of Total Population** as emergency militia. Repels the threat, but causes **+30 immediate Unrest** (via `addUnrest`; if Unrest reaches 100, revolution defeat triggers immediately and is never overwritten) and **5% population casualties** (preserving the §4.1 Population Balance Equation via demographic mutation helper).
+2. **Pay Crown Tribute (`tribute`):** Costs $20 \times \text{ApRateQuota}_{d+1}$ in gold treasury. Bypasses combat entirely. **Requires `state.ap >= TributeCost`; if unaffordable, the command is strictly rejected (`success: false`) and the phase remains `THREAT_HERALD`**; the player must select `defense` or `levy`.
+3. **Levy en Masse (`levy`):** Always available regardless of AP. Repels the threat automatically, but causes **+30 immediate Unrest** (via `addUnrest`; if Unrest reaches 100, revolution defeat triggers immediately and is never overwritten) and **5% population casualties** (preserving the §4.1 Population Balance Equation via demographic mutation helper).
 
 ---
 
@@ -478,7 +480,7 @@ Factions are nuanced and dynamically adapt their tactical behavior to the player
    - *Victory Loot:* Pious converts (**Population**) and sacred relics.
    - *Reactive Trait:* If player Unrest $> 60\%$, zealots trigger *Religious Defection* (+15 Unrest and soldier desertion).
 5. **Steppe Horsemen:**
-   - *Behavior:* Lightning-fast cavalry raids; scout uncertainty margin is doubled ($\pm 30\%$).
+   - *Behavior:* Lightning-fast cavalry raids; scout uncertainty margin is doubled (base $\pm 45\%$ becomes $\pm 90\%$).
 6. **Imperial Crown Legions:**
    - *Behavior:* Professional host with siege sappers; threaten 2 provinces if defensive collapse occurs.
 
@@ -486,7 +488,7 @@ Factions are nuanced and dynamically adapt their tactical behavior to the player
 
 ## 10. Generalized Asymmetric Battle System (Attacker vs Defender)
 
-All armed engagements—voluntary campaigns, scheduled threats, and spontaneous surprise raids—follow a unified, asymmetric combat engine:
+All armed engagements (voluntary campaigns, scheduled threats, and spontaneous surprise raids) follow a unified, asymmetric combat engine:
 
 $$\text{AttackerEffectivePower} = \text{AttackerForce} \times (1 - \text{SiegeFriction [10\%]}) \times \text{Roll}(0.92, 1.08)$$
 $$\text{DefenderEffectivePower} = \big(\text{DefenderForce} \times (1 + \text{FortificationBonus [20\%]}) + \text{StrongholdDefense}\big) \times \text{Roll}(0.95, 1.10)$$
@@ -506,11 +508,11 @@ $$\text{ClashRatio} = \frac{\text{AttackerEffectivePower}}{\text{DefenderEffecti
 - **Offensive Outcome Matrix ($R = \frac{\text{PlayerAttackingPower}}{\text{EnemyDefendingPower}}$):**
   - **Decisive Victory ($R \ge 1.40$):** Province Captured! Loot $120\%$, light casualties (8-12%), -5 Unrest.
   - **Clear Victory ($1.05 < R < 1.40$):** Province Captured! Full loot $100\%$, moderate casualties (20-30%), 0 Unrest.
-  - **Razor-Thin Victory ("Victoire sur le fil", $1.00 \le R \le 1.05$ – within 5% of defeat):** **NO PROVINCE CAPTURED!** The army barely survived the assault; too bloodied and exhausted to occupy territory. Receives 50% loot, heavy casualties (45-55%), +5 Unrest.
+  - **Razor-Thin Victory ($1.00 \le R \le 1.05$, within 5% of defeat):** **NO PROVINCE CAPTURED!** The army barely survived the assault; too bloodied and exhausted to occupy territory. Receives 50% loot, heavy casualties (45-55%), +5 Unrest.
   - **Pyrrhic Standoff ($0.80 \le R < 1.00$):** Defeat. No province, no loot, 70-80% casualties, +15 Unrest.
   - **Crushing Defeat ($R < 0.80$):** Defeat. No province, **100% of committed soldiers killed**, +25 Unrest.
 
-### 10.2 Defensive Battles (Surprise Raids & Threats – Player is Defender)
+### 10.2 Defensive Battles (Surprise Raids & Threats, Player is Defender)
 - The player is attacked in their realm: Gains the **Defender's Fortification Bonus (+20%)** plus any passive **Border Stronghold Defense (+12 flat)** and **Man-at-Arms garrison bonus (+0.5 flat per Man-at-Arms)**.
 - **If the Player Wins:** Enemy repelled! Minor casualties (10%, mitigated by Captains) distributed proportionally across `soldier` and `man_at_arms`. Awards defensive salvage plunder:
   $$\text{SalvageAP} = \text{round}\big(0.25 \times \text{TributeCost}_{\text{repelled threat}} \times \text{Roll}(0.8, 1.2)\big)$$
@@ -518,7 +520,7 @@ $$\text{ClashRatio} = \frac{\text{AttackerEffectivePower}}{\text{DefenderEffecti
 - **If the Player LOSES in Defense (Devastating Defensive Collapse):**
   1. **1 Province Permanently Lost:** Enemy captures a province (removing the last acquired province in LIFO order). **No province floor applies to battle defeat**: if the realm holds only 1 province, it is lost, immediately triggering defeat by conquest (`conquest`).
   2. **Entire Army Annihilated:** **100% of the active military forces are slaughtered** in the breach and deducted from `totalPopulation`.
-  3. **Civilian Massacre & Enslavement:** **15% to 25% of living population slaughtered or abducted** (deducted from `freeSerfs` first, then civil/admin units if needed to preserve the §4.1 Population Balance Equation).
+  3. **Civilian Massacre & Enslavement:** **15% to 25% of the remaining total population slaughtered or abducted** (deducted from `freeSerfs` first, then civil/admin units if needed to preserve the §4.1 Population Balance Equation).
   4. **Treasury Pillaged:** **30% to 50% of current positive AP treasury looted** ($\text{lostAp} = \text{round}(\max(0, \text{ap}) \times \text{frac})$ deducted as $\text{state.ap} -= \text{lostAp}$; existing debt is never reset or erased).
   5. **Immediate Overcrowding Crisis & Demographic Bleed:**
      - With one fewer province, housing capacity drops: $\text{MaxPop}_{\text{new}} = 250 \times (\text{Provinces} - 1) \times \text{CapMultiplier}$.
@@ -534,7 +536,7 @@ $$\text{ClashRatio} = \frac{\text{AttackerEffectivePower}}{\text{DefenderEffecti
 
 ### 10.4 Province Biomes & Mechanical Traits
 Captured provinces permanently grant unique realm-wide bonuses:
-- **Heartland (Cœur du Domaine):** Neutral starting and colonised biome: capacity multiplier $\times 1.0$ (250 capacity), $\Delta r = 0$, no defense bonus, no paperwork reduction.
+- **Heartland:** Neutral starting and colonised biome: capacity multiplier $\times 1.0$ (250 capacity), $\Delta r = 0$, no defense bonus, no paperwork reduction.
 - **Arable Plains (Farmlands):** Housing capacity multiplier **$\times 1.5$** ($375$ capacity) and **$\Delta r = +0.001$** ($+0.1\%/\text{s}$ to base logistic growth).
 - **Trade Hub (Market):** **+15% total tax revenue efficiency** across the realm.
 - **Border Stronghold (Military):** **+12 passive military defense** automatically added to all defensive battles.
@@ -547,12 +549,12 @@ Captured provinces permanently grant unique realm-wide bonuses:
 ## 11. Crisis Mechanics & Emergency Edicts
 
 ### 11.1 Non-Linear Unrest Thresholds & Dual-Stat Composition
-- **0% – 49% (Tranquility):** Normal governance.
-- **50% – 74% (Fiscal Boycott):** Peasants refuse collectors $\rightarrow$ **-20% Tax Revenue** (cumulative across 50%–99%).
-- **75% – 89% (Strife & Desertion):** Growth frozen to 0; **1 Foot Soldier (`soldier`) deserts every 15s** (if 0 `soldier` remain, **1 Man-at-Arms (`man_at_arms`) deserts every 30s**; officers and scouts do not desert). Cumulative from 75% to 99%. Persisted in `GameState.desertionTimer` (reset to 0 when no eligible units exist or Unrest drops below 75%).
-- **90% – 99% (Urban Rebellion):** Scribe/Clerk gross AP output cut by **50%**. Strife desertion, demographic freeze, and fiscal boycott remain active!
+- **0% to 49% (Tranquility):** Normal governance.
+- **50% to 74% (Fiscal Boycott):** Peasants refuse collectors $\rightarrow$ **-20% Tax Revenue** (cumulative across 50% to 99%).
+- **75% to 89% (Strife & Desertion):** Growth frozen to 0; **1 Foot Soldier (`soldier`) deserts every 15s** (if 0 `soldier` remain, **1 Man-at-Arms (`man_at_arms`) deserts every 30s**; officers and scouts do not desert). Cumulative from 75% to 99%. Persisted in `GameState.desertionTimer` (reset to 0 when no eligible units exist or Unrest drops below 75%).
+- **90% to 99% (Urban Rebellion):** Scribe/Clerk gross AP output cut by **50%**. Strife desertion, demographic freeze, and fiscal boycott remain active!
 - **100% (Total Revolution):** Realm collapses $\rightarrow$ **Instant Defeat (`revolution`)** at any moment in any phase. Transitions `phase` to `RUN_DEFEAT` (never overwritten).
-- **Cumulative Desertion & Sanctuary Rights:** Desertion applies across 75%–99% Unrest. The *Sanctuary Rights* law (§6.2 #5) suppresses desertion **strictly below 90% Unrest** (desertions resume at 90%–99%).
+- **Cumulative Desertion & Sanctuary Rights:** Desertion applies across 75% to 99% Unrest. The *Sanctuary Rights* law (§6.2 #5) suppresses desertion **strictly below 90% Unrest** (desertions resume at 90% to 99%).
 - **Dual-Stat Unrest Composition:** Positive unrest sources (`unrest_generation`) and pacification sources (`unrest_pacification`) are composed separately before computing $\Delta\text{Unrest/s} = \text{ComposedGeneration} - \text{ComposedPacification}$.
 
 ### 11.2 Emergency Edicts (Executive Last Resorts)
@@ -562,8 +564,8 @@ Subject to **at most 1 edict per deadline**, **+50% escalating penalty per prior
 3. **The Grand Festival (`grand_festival`):** Instantly removes **-20 Unrest** (via `addUnrest(state, -20)`) | Costs and deducts **$\max(100, 0.20 \times \max(0, \text{state.ap}), 30 \times \text{Gross AP/s})$ AP**. Strictly rejected if `state.ap < cost` (debt is never erased).
 
 ### 11.3 Bankruptcy & The Lombard Loan
-- When net AP is negative, a 30-second countdown initiates.
-- At **20 seconds**, if the realm controls **at least 2 provinces** (`provinces >= 2`) and the bailout is unused, the **Lombard Bailout** is offered: Cede **1 Province** permanently (LIFO order) in exchange for an immediate infusion of **2,000 AP** into treasury `state.ap` (capital transfer; does not alter gross AP rate). Permitted strictly once per run. If holding only 1 province, the offer is not presented and the countdown continues to bankruptcy.
+- When the treasury is at or below 0 and net AP is negative, a 30-second countdown runs (it resets when the treasury is above 0).
+- At **20 seconds**, if the realm controls **at least 2 provinces** (`provinces >= 2`) and the bailout is unused, the **Lombard Bailout** is offered: Cede **1 Province** permanently (LIFO order) in exchange for an immediate infusion of **2,000 AP** into treasury `state.ap` (capital transfer; does not alter gross AP rate). Permitted strictly once per run; refusing the offer also uses it up. If holding only 1 province, the offer is not presented and the countdown continues to bankruptcy.
 
 ---
 
@@ -602,7 +604,7 @@ Follows [`AUDIO_BEST_PRACTICES.md`](./AUDIO_BEST_PRACTICES.md):
 - **Autoplay Lifecycle:** Silent unlock on the first `pointerdown` or `keydown`.
 - **Anti-Fatigue & Polyphony:**
   - Hard limit of 3-4 concurrent voices per SFX key with automatic voice stealing.
-  - Cooldown throttling of 40–50ms between identical trigger calls.
+  - Cooldown throttling of 40 to 50 ms between identical trigger calls.
   - Pitch randomization of $\pm 5\%$ on every click to prevent acoustic fatigue.
 - **Soundtrack Streaming:** Dynamic HTML5 audio streaming from `dist/soundtrack/` (`Angevin B.mp3`, `Folk Round.mp3`, `Minstrel Guild.mp3`, `Pippin the Hunchback.mp3`) with cross-fading.
 
@@ -626,7 +628,7 @@ Balancing is validated objectively via automated headless bots in `src/__tests__
 ### 15.1 The Three Bot Tiers (Skill Gradient Testing)
 The simulation tests game fairness across three distinct player skill levels:
 1. **Random Noise Bot:** Selects arbitrary purchases and laws without economic heuristics. Expected Win Rate: **< 5%**.
-2. **Greedy ROI Bot (Baseline Human):** Calculates immediate payback time (amortization seconds) balancing a composite utility function (AP, Population, Military power). Expected Win Rate: **35% – 65%**.
+2. **Greedy ROI Bot (Baseline Human):** Calculates immediate payback time (amortization seconds) balancing a composite utility function (AP, Population, Military power). Expected Win Rate: **35% to 65%**.
 3. **Archetype Expert Bot:** Implements specialized builds (pure bureaucratic taxation with civil colonisation, or aggressive military conquest). Expected Win Rate: **> 65%**.
 
 ### 15.2 Reference Bot Quota Generation Script
@@ -634,11 +636,12 @@ Quotas are not guessed or hardcoded arbitrarily. They are derived directly from 
 $$\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$$
 
 On the AP axis, the bot's score evaluated at audit $k$ is the **instantaneous Gross AP Rate (AP/s)**.
-The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable solved algorithmically by the script `scripts/generate-balance-report.ts` via bisection until the greedy bot (evaluating balanced utility across AP, Population, and Military) stabilizes strictly within the target band of **35% – 65% win rate**.
+The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable solved algorithmically by the script `scripts/generate-balance-report.ts` via bisection until the greedy bot (evaluating balanced utility across AP, Population, and Military) stabilizes strictly within the target band of **35% to 65% win rate**.
 
 ### 15.3 Dominance & Sensitivity Metrics
-- **Dominance Detection (Per Archetype):** Tracks unit purchase distributions. Beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate), if any unit is purchased 0 times across 1,000 runs, or if a single unit exceeds 60% of total expenditure within a given archetype build, tests alert for rebalancing.
-- **Sensitivity Testing:** Variates core balance parameters (such as $r_0$ growth rate, cost scaling $1.07/1.05$, or tax multipliers) by $\pm 10\%$ to verify that win rates do not swing catastrophically.
+- **Dominance Detection (Per Archetype):** Tracks unit purchase distributions over 200 runs per archetype (`dominance.bureaucrat.spec.ts`, `dominance.conqueror.spec.ts`). Every unit role must be bought at least once, and beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate, spending after 300 s) no single unit may exceed 60% of the spending within a given archetype build.
+- **Sensitivity Testing (`sensitivity.*.spec.ts`, shared body `sensitivitySuite.ts`, one file per key so Vitest runs them in parallel):** Scales $r_0$, the two cost ratios ($1.07/1.05$, scaled on their growth part $r - 1$) and the poll tax rate by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline. The tier I cost ratio growth $\times 1.1$ variant (baseline 0.49, variant 0.28, gap 0.21) is a known balance follow up and its test is marked `it.fails`.
+- **Step Size Invariance (`stepSize.spec.ts`):** Replays 20 Greedy runs at $\Delta t = 0.05\text{ s}$ and $1.0\text{ s}$ and asserts the same phase, deadline, state hash, and AP, population and military within 1%.
 
 ---
 
@@ -657,6 +660,7 @@ export interface Modifier {
   value: number
   appliedAt?: number      // Application timestamp in seconds or tick
   expiresAt?: number      // Expiration timestamp in seconds
+  durationSeconds?: number // Lifetime on a catalog template, converted to expiresAt when applied
   resolverKey?: ResolverKey // Strongly typed literal union identifier (e.g. 'max_3_provinces')
   scope?: ModifierScope   // { order?, tier?, unitId? }: units targeted by unit_upkeep, recruit_cost, unit_output (order only on order_cap)
   untilNextAudit?: true   // Active until the next audit (counts for it), removed right after it whatever its outcome
@@ -665,14 +669,14 @@ export interface Modifier {
 export type Effect =
   | { type: 'stat_modifier'; modifier: Modifier }
   | { type: 'instant_resource'; resource: 'ap' | 'population' | 'unrest' | 'provinces' | 'archive_points'; amount: number }
-  | { type: 'grant_units'; unitId: UnitId; count: number }
+  | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
   | { type: 'rule_flag'; flag: RuleFlag } // recorded once in GameState.ruleFlags, read through hasRule
   | { type: 'ap_cost_income_seconds'; seconds: number } // costs seconds x max(0, net AP/s)
 ```
 
 ### 16.1 Dynamic Conditional Modifiers
 For laws and perks featuring dynamic conditions (e.g. *"only if holding $\le 3$ provinces"* or *"+2 AP/s per owned province"*), the `Modifier` contract remains strictly JSON-serializable without embedding closures or serialized functions.  
-A strongly typed `ResolverKey` literal union points to a pure function registry in `src/data/balance.ts` with signature:
+A strongly typed `ResolverKey` literal union points to a pure function registry (`DYNAMIC_MODIFIER_RESOLVERS` in `src/core/modifiers.ts`) with signature:
 ```typescript
 export type DynamicModifierResolver = (
   state: Readonly<RawEvaluationState>,
@@ -683,16 +687,16 @@ export type DynamicModifierResolver = (
 1. **Literal Union Typing:** `ResolverKey` is typed as a literal union (`'per_province' | 'per_100_free_serfs' | 'per_clergy' | 'max_3_provinces' | 'unrest_at_least_30'`), never an arbitrary `string`.
 2. **Cycle Prevention:** Resolvers only read the raw state (`state.provinces`, `state.units.clergy`, `state.unrest`, etc.) and are strictly forbidden from invoking `getStat` or recursive evaluators.
 
-### 16.2 Fixed Composition Order & Per-Tick Stat Caching
-When evaluating any stat via `composeStat(baseValue, modifiers, state)`:
+### 16.2 Fixed Composition Order
+When evaluating any stat via `composeStat(statKey, baseValue, modifiers, rawState)`:
 1. Start with the canonical base value from `src/data/balance.ts`.
 2. Sum all applicable `add` modifiers: $\text{Base}' = \text{Base} + \sum \text{Add}$.
 3. Factor in percentage additions: $\text{Base}'' = \text{Base}' \times (1 + \sum \text{AddPct})$.
 4. Multiply by all applicable `mul` modifiers: $\text{Base}''' = \text{Base}'' \times \prod \text{Mul}$.
 5. If any active `set` modifier exists, override: $\text{Val} = \text{SetValue}$ (latest timestamp).
 
-**Per-Tick Caching:**
-Because `composeStat` is called dozens of times per second for UI tooltips and HUD breakdowns, evaluations are cached per tick index via `TickStatCache`. Recalculations are completely bypassed when the tick index and active modifiers have not changed.
+**Optimization note:**
+`composeStat` recomputes every stat on each call. A per tick stat cache is a possible optimization if profiling justifies it.
 
 ---
 
@@ -726,35 +730,35 @@ To guarantee absolute economic balance, bulletproof state transitions, and high-
 > [!IMPORTANT]
 > **Strict Architecture Boundary: Zero user interface (UI) development will be undertaken before Validation Gate E is verified and frozen.**
 
-- **Validation Gate A – Core Economy, 24 Units & Minimal Run Validation:**
+- **Validation Gate A: Core Economy, 24 Units & Minimal Run Validation**:
   - Fundamental mathematical formulas in `src/core/formulas.ts` & `src/data/balance.ts`.
-  - Complete 24-unit catalog (`src/data/units.ts`) integrated in Gate A.
+  - Complete 24-unit catalog (`UNITS_DATA` in `src/data/balance.ts`) integrated in Gate A.
   - Complete Tiers I and II (ratios 1.07 and 1.05).
-  - Universal modifiers (`add`, `addPct`, `mul`, `set`) and 4 Province Biomes.
+  - Universal modifiers (`add`, `addPct`, `mul`, `set`) and the neutral Heartland biome plus 4 trait biomes.
   - Minimal run core: state factory, unconstrained economic command dispatch, tick integration loop, tax promulgation delay (8s), unrest model, and 2-out-of-3 deadline quota audit.
   - Greedy ROI Bot v0 and provisional coefficient $c$ solver on pure economy (without laws or dilemmas).
-  - **Pass Criteria:** Quotas generated in `src/data/balance.generated.ts`, target win rate band of 35% – 65% reached by greedy bot, zero deadline cliffs.
-- **Validation Gate B – Complete Run Loop, State Machine & Determinism:**
-  - Configurable simulation step loop (20 Hz in UI, 1–2 Hz in headless simulation) with step-size invariance testing ($\Delta t = 0.05\text{s}$ vs $0.5\text{s}$ vs $1.0\text{s}$, AP output delta $< 1-2\%$, outcome match $\ge 99\%$).
-  - Complete `RunPhase` finite state machine (`AUDIT_ASSESSMENT`, `COUNCIL_DILEMMA`, `COUNCIL_LAWS`, `THREAT_HERALD`, `EXPEDITION`, `AWAIT_RESUME`, `ACTIVE_CYCLE`, `SURPRISE_RAID`, `LOMBARD_OFFER`, `COMBAT_RESOLUTION`, `RUN_VICTORY`, `RUN_DEFEAT`) and phase permissions table (`phases.ts`). `LOMBARD_OFFER` pauses the 30-second bankruptcy countdown.
+  - **Pass Criteria:** Quotas generated in `src/data/balance.generated.ts`, target win rate band of 35% to 65% reached by greedy bot, zero deadline cliffs.
+- **Validation Gate B: Complete Run Loop, State Machine & Determinism**:
+  - Fixed-step simulation loop (`tick(dt)` runs whole steps of 0.05 s whatever `dt` is, so 20 Hz in UI and 1 s steps in headless simulation) with step-size invariance testing ($\Delta t = 0.05\text{s}$ vs $0.5\text{s}$ vs $1.0\text{s}$ give the same state hash).
+  - Complete `RunPhase` finite state machine (`AUDIT_ASSESSMENT`, `COUNCIL_DILEMMA`, `COUNCIL_LAWS`, `THREAT_HERALD`, `EXPEDITION`, `AWAIT_RESUME`, `ACTIVE_CYCLE`, `SURPRISE_RAID`, `LOMBARD_OFFER`, `RUN_VICTORY`, `RUN_DEFEAT`) and phase permissions table (`phases.ts`). `LOMBARD_OFFER` pauses the 30-second bankruptcy countdown.
   - Interim warning materialized via state flag (`interimWarningShown: boolean` at $t=50\text{s}$) without phase interruption.
   - Single dispatch API `dispatch(Command)`.
   - Replayable journal `{ seed: number, entries: Array<{ timeSeconds: number, command: Command }> }` indexed by game seconds (not tick count) and end-to-end determinism testing ("same journal and step size $\implies$ identical state hash").
   - Versioned save system with sequential typed migrations (`unknown`, zero `any`).
-- **Validation Gate C – Asymmetric Combat & Dynamic Threats:**
+- **Validation Gate C: Asymmetric Combat & Dynamic Threats**:
   - Asymmetric tactical combat model (Attacker -10% friction vs Defender +20% fortification).
   - Razor-thin victory rule ($\le 5\%$ victory margin $\to$ no province awarded).
   - Dynamically calculated threats and tributes ($0.80 \times \text{MilitaryQuota}_{d+1}$ and $20 \times \text{ApRateQuota}_{d+1}$ via `getThreatPower()` and `getThreatTributeAp()`).
   - Reactive surprise border raids and adaptive enemy factions.
   - Province floor rule (hard floor = 1 province) on royal fines and Lombard bailouts (does not protect against battle collapse; 0 provinces triggers `conquest` defeat).
-- **Validation Gate D – Complete Narrative & System Content:**
-  - 30 laws without serialized functions supporting dynamic conditions via `resolverKey` (`laws.ts`), 20 steward dilemmas (`dilemmas.ts`), 4 biomes (`biomes.ts`), 3 emergency edicts (`edicts.ts`), 8 archive charters (`archives.ts`), 8 feats (`feats.ts`).
-- **Validation Gate E – Full Simulation, Final Calibration & Freeze:**
+- **Validation Gate D: Complete Narrative & System Content**:
+  - 30 laws without serialized functions supporting dynamic conditions via `resolverKey` (`laws.ts`), 20 steward dilemmas (`dilemmas.ts`), 5 biomes (`biomes.ts`), 3 emergency edicts (`edicts.ts`), 8 archive charters (`archives.ts`), 8 feats (`feats.ts`).
+- **Validation Gate E: Full Simulation, Final Calibration & Freeze**:
   - Strict test suite decoupling: `npm run test:unit` (fast unit tests) and `npm run test:sim` (long simulation runs).
-  - Simulation optimizations: 0.5–1.0s integration steps, in-place state mutation (no tick-by-tick cloning), `worker_threads` parallelization.
-  - 3 autonomous bots: Random Noise (< 5% win rate), Greedy ROI (35% – 65% win rate), Archetype Experts (> 65% win rate).
-  - Calibration of coefficient $c$ on 200 fixed seeds, verified over 1,000 runs in `scripts/generate-balance-report.ts`.
-  - Dominance testing per archetype (no unit $> 60\%$ of expenditure after Deadline 3).
+  - Simulation speed: the bots tick 1 s per decision and mutate the state in place (no tick-by-tick cloning), single threaded; `npm run test:sim` takes about one minute.
+  - 3 autonomous bots: Random Noise (< 5% win rate), Greedy ROI (35% to 65% win rate), Archetype Experts (> 65% win rate).
+  - Calibration of coefficient $c$ on 200 fixed seeds, validated on 100 seeds, in `scripts/generate-balance-report.ts` (`npm run balance:report`).
+  - Dominance testing per archetype (no unit $> 60\%$ of expenditure after Deadline 3), sensitivity testing and step size invariance testing.
   - Interactive command-line REPL (`scripts/repl.ts`).
   - **CORE ENGINE CODE FREEZE.**
 

@@ -66,11 +66,24 @@ npm run build
 # Preview production build
 npm run preview
 
-# Lint code and detect errors
+# Lint and apply the automatic fixes (rewrites files)
 npm run lint
 
-# Format code with Prettier
+# Format code with Prettier (rewrites files)
 npm run format
+
+# Check only, without modifying files
+npm run lint:check
+npm run format:check
+
+# Full check: type-check, lint:check, format:check and the unit tests
+npm run check
+
+# Play or inspect a headless run from the terminal (the engine REPL)
+npm run repl
+
+# Recalibrate the deadline quotas and write a balance report (rewrites src/data/balance.generated.ts when the solver succeeds)
+npm run balance:report -- <report.md>
 ```
 
 ### Testing Commands Matrix (Vitest & Playwright)
@@ -81,6 +94,9 @@ npm run test:unit
 
 # Run unit tests in watch mode
 npm run test:unit:watch
+
+# Run the bot simulation suites (about one minute; wrap in `timeout 180` to bound a stuck bot)
+npm run test:sim
 
 # Run Playwright E2E & Browser tests targeting Firefox specifically
 npm run test:e2e:firefox

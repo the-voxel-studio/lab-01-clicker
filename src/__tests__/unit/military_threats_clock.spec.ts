@@ -1005,3 +1005,83 @@ describe('Campaign target faction on save import', () => {
     }
   })
 })
+
+describe('GAME_RULES §8.3: surprise raid probability, cooldown and cap', () => {
+  /**
+   * Builds a Deadline 3 realm one step before the 10 second raid check.
+   *
+   * @param seed - Run seed, which fixes the first draw of the events stream.
+   * @param realm - Treasury, soldiers and Unrest of the realm.
+   * @returns The prepared state.
+   */
+  function realmBeforeRaidCheck(
+    seed: number,
+    realm: { ap: number; soldiers: number; unrest: number },
+  ) {
+    const state = createInitialGameState({ seed })
+    state.deadline = 3
+    state.totalElapsedSeconds = 120
+    state.lastSurpriseRaidTime = 0
+    state.deadlineTimeSeconds = 9.95
+    state.ap = realm.ap
+    state.units.soldier = realm.soldiers
+    state.freeSerfs -= realm.soldiers
+    state.unrest = realm.unrest
+    return state
+  }
+
+  /** Default configuration whose base raid probability is certain, to isolate the guards. */
+  const certainRaid = {
+    ...DEFAULT_ENGINE_CONFIG,
+    balance: { ...DEFAULT_ENGINE_CONFIG.balance, RAID_BASE_PROBABILITY: 1 },
+  }
+
+  const scenarios = [
+    { name: 'base only', realm: { ap: 100, soldiers: 20, unrest: 10 }, p: 0.02 },
+    {
+      name: 'treasury above 2000 doubles the base',
+      realm: { ap: 3000, soldiers: 20, unrest: 10 },
+      p: 0.04,
+    },
+    { name: 'weak army adds 2%', realm: { ap: 100, soldiers: 0, unrest: 10 }, p: 0.04 },
+    { name: 'unrest above 60 adds 2%', realm: { ap: 100, soldiers: 20, unrest: 61 }, p: 0.04 },
+    {
+      name: 'all three add up without doubling the additions',
+      realm: { ap: 3000, soldiers: 0, unrest: 61 },
+      p: 0.08,
+    },
+  ] as const
+
+  it.each(scenarios)('rolls $p in the 10 second check: $name', ({ realm, p }) => {
+    let raids = 0
+    for (let seed = 1; seed <= 600; seed++) {
+      const state = realmBeforeRaidCheck(seed, realm)
+      const draw = new PRNG(state.rngStreams.events).next()
+      tick(state, 0.05, DEFAULT_ENGINE_CONFIG)
+      const raided = state.phase === 'SURPRISE_RAID'
+      expect(raided, `seed ${seed}, draw ${draw}`).toBe(draw < p)
+      if (raided) raids++
+    }
+    expect(raids).toBeGreaterThan(0)
+    expect(raids).toBeLessThan(600)
+  })
+
+  it('waits for the 60 second cooldown since the last raid', () => {
+    const tooSoon = realmBeforeRaidCheck(1, { ap: 100, soldiers: 20, unrest: 10 })
+    tooSoon.lastSurpriseRaidTime = 60.2
+    tick(tooSoon, 0.05, certainRaid)
+    expect(tooSoon.phase).toBe('ACTIVE_CYCLE')
+
+    const ready = realmBeforeRaidCheck(1, { ap: 100, soldiers: 20, unrest: 10 })
+    ready.lastSurpriseRaidTime = 60
+    tick(ready, 0.05, certainRaid)
+    expect(ready.phase).toBe('SURPRISE_RAID')
+  })
+
+  it('allows one raid per deadline', () => {
+    const state = realmBeforeRaidCheck(1, { ap: 100, soldiers: 20, unrest: 10 })
+    state.surpriseRaidTriggeredThisDeadline = true
+    tick(state, 0.05, certainRaid)
+    expect(state.phase).toBe('ACTIVE_CYCLE')
+  })
+})
