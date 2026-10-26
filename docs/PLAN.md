@@ -304,8 +304,8 @@ PHASE V2: PLAYABILITY & PRESENTATION
   - Interactive terminal REPL (`scripts/repl.ts`, `npm run repl`) to inspect and play headless runs via CLI, covered by `repl.spec.ts`.
   - Status: done (`fc2acdd` sensitivity, `ed4bd9e` step size and REPL, `7856ba5` 100 seeds in four files, tier I cost ratio growth $\times 1.1$ known `it.fails`).
 - **Task 3.6: Engine Validation Gate E Freeze [V1]**
-  - All unit tests, invariant checks, replay step-size invariance, and 100-seed bot simulations pass with 0 warnings/errors before unlocking Phase V2 UI work.
-  - Status: docs audited against the code (GAME_RULES, GUIDE, this plan); the freeze waits for the final review.
+  - All unit tests, invariant checks, replay step-size invariance, and 100-seed bot simulations pass with 0 warnings/errors (one known `it.fails`: tier I cost ratio growth $\times 1.1$, balance follow up) before unlocking Phase V2 UI work.
+  - Status: done (`98514e1` docs audit, final review of plan 04).
   - Open point (user decision 2026-10-25): a deferred audit (raid or Lombard offer on the deadline step) opens only on the next tick, so commands still apply between the deadline and the audit evaluation; the engine rule fix is to be decided.
 
 **Follow ups after Gate E (V2 balance and engine):**
@@ -313,6 +313,7 @@ PHASE V2: PLAYABILITY & PRESENTATION
 - The calibration curve is steep (Greedy 80% at $c = 0.975$, 11% at $c = 1.088$): rerun the solver (`npm run balance:report`) after any balance change.
 - The Deadline 10 tribute is about 56,000 AP (55,680), effectively unpayable, and the late quotas jump (D8 to D10); review the late curve.
 - Deferred audit window: a raid or Lombard offer on the deadline step opens the audit on the next tick while commands still apply in between; the engine fix is to be decided.
+- Bankruptcy grace: the Lombard bailout resets the bankruptcy timer to the base grace, while the tick reset and Deserting Mercenaries choice B use the full composed grace (audit chambers, Chancery Red Tape); decide which is intended.
 
 ---
 

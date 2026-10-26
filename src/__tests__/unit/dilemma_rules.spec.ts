@@ -98,7 +98,7 @@ describe('Plan 04 Task 5b: dilemmas follow GAME_RULES', () => {
       expect(state.bankruptcyGraceTimer).toBe(timer)
     })
 
-    it('choice B disbands 10 soldiers and ends the running countdown', () => {
+    it('choice B disbands 10 soldiers and restarts the bankruptcy countdown from its full grace', () => {
       const state = bankruptRealm(50)
       expect(state.bankruptcyGraceTimer).toBeLessThan(config.balance.BANKRUPTCY_GRACE_BASE_SECONDS)
       resolve(state, mercenaries, 1)

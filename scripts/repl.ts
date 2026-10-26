@@ -2,12 +2,12 @@
  * Engine REPL: plays The Grand Audit from the terminal.
  *
  * Reads one line per command from stdin and prints a short state summary after each. `TICK <seconds>`
- * advances game time through `tick`; every other line is `<COMMAND_TYPE> <args...>`, turned into a
- * `Command` and passed to `dispatch`, the only way the REPL changes the state. A malformed or
- * unknown line prints an error line and the loop goes on.
+ * advances game time through `tick`, the only line that does not go through `dispatch`. Every other line is
+ * `<COMMAND_TYPE> <args...>`, turned into a `Command` and passed to `dispatch`. `SET_TAX_RATE` takes a whole
+ * percentage. A malformed or unknown line prints an error line and the loop goes on.
  *
  * Usage: `npm run repl -- [--seed <n>]` (seed defaults to 1), then type lines such as
- * `BUY_UNIT scribe 1`, `TICK 10`, `SET_TAX_RATE 0.2`, `STAMP_DOCUMENT`. The REPL exits 0 at the end
+ * `BUY_UNIT scribe 1`, `TICK 10`, `SET_TAX_RATE 20`, `STAMP_DOCUMENT`. The REPL exits 0 at the end
  * of the input.
  *
  * @module scripts/repl

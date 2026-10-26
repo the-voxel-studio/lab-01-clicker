@@ -533,7 +533,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
         ],
       },
       {
-        text: 'Disband 10 soldiers and let them disperse (-10 Soldiers, cancels bankruptcy)',
+        text: 'Disband 10 soldiers and let them disperse (-10 Soldiers, restarts the bankruptcy countdown from its full grace)',
         effects: [
           {
             type: 'grant_units',

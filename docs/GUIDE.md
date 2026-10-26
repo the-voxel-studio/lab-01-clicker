@@ -354,7 +354,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 - **Trigger:** AP treasury $\le 0$ or Bankruptcy countdown active.
 - **Narrative:** *"The sword-for-hire companies stand outside your hall banging pommels against iron pots. They demand their gold!"*
 - **Choice A:** Melt down reliquaries (+400 AP, +15 Unrest).
-- **Choice B:** Disband 10 Foot Soldiers (lose soldiers, ends the bankruptcy countdown and restores the full grace timer).
+- **Choice B:** Disband 10 Foot Soldiers (lose soldiers, restores the full grace timer and restarts the bankruptcy countdown, which runs again if AP stays at or below 0 with negative net AP).
 
 ### 13. The Ghost Scribes
 - **Trigger:** Total Scribes $\ge 20$.
@@ -672,6 +672,7 @@ export type Effect =
   | { type: 'grant_units'; unitId: UnitId; count: number; external?: boolean }
   | { type: 'rule_flag'; flag: RuleFlag } // recorded once in GameState.ruleFlags, read through hasRule
   | { type: 'ap_cost_income_seconds'; seconds: number } // costs seconds x max(0, net AP/s)
+  | { type: 'end_bankruptcy_countdown' } // restores the full composed bankruptcy grace; the countdown restarts if AP stays <= 0 with negative net AP
 ```
 
 ### 16.1 Dynamic Conditional Modifiers

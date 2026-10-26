@@ -410,7 +410,7 @@ Occurs once at the end of each deadline, responding dynamically to player state.
 9. **The False Relic Merchant** (Priests/Prelates $\ge 5$): A) Purchase bone for abbey (-450 AP, -20 Unrest, +5% Prelate efficiency) | B) Expose fraud (+150 AP seized, +10 Unrest).
 10. **The Foreign Envoy's Bribe** (Provinces $\ge 4$): A) Accept gold (+1,200 AP, +15 Unrest) | B) Expel envoy (+1 Archive, -10 Unrest).
 11. **The Rotting Grain Silos** (Farmlands held): A) Feed to peasants (-30 Pop, saves coin) | B) Buy emergency grain (-350 AP, population saved).
-12. **The Deserting Mercenaries** (AP $\le 0$ / Bankruptcy countdown): A) Melt reliquaries (+400 AP, +15 Unrest) | B) Disband 10 Soldiers (ends the bankruptcy countdown and restores the full grace timer).
+12. **The Deserting Mercenaries** (AP $\le 0$ / Bankruptcy countdown): A) Melt reliquaries (+400 AP, +15 Unrest) | B) Disband 10 Soldiers (restarts the bankruptcy countdown from its full grace; it restarts again if AP stays at or below 0 with negative net AP).
 13. **The Ghost Scribes** (Scribes $\ge 20$): A) Claw back wages (+500 AP, +15 Unrest) | B) Reallocate to supervisors (+10% Supervisor output).
 14. **The Inquisitor's Demand** (Unrest $\ge 70\%$): A) Hand over heretics (-25 Pop, -30 Unrest) | B) Deny Church (+10 Unrest, +2 Archives).
 15. **The Auditor's Nephew** (Deadline $\ge 5$): A) Appoint Crown Bailiff (+1 Supervisor, the Bailiff has no unit of its own, +15% paperwork) | B) Refuse post (Royal Pardon forfeited at the next audit only: a failed audit there is a `quota_failure` defeat even with 0 strikes; +1 Archive).
