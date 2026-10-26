@@ -16,6 +16,7 @@ import {
   calculateUpkeep,
 } from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
+import { calculateBankruptcyGraceSeconds } from '@/core/modifiers'
 import { dispatch } from '@/core/commands'
 import { getStateHash } from '@/core/replay'
 
@@ -188,6 +189,16 @@ describe('Simulation Engine Tick Loop & Governance (Gate A & B)', () => {
     expect(state.ap).toBeGreaterThan(1800)
     expect(state.provinces).toBe(2)
     expect(state.phase).toBe('ACTIVE_CYCLE')
+  })
+
+  it('restores the full composed bankruptcy grace when the Lombard loan is accepted', () => {
+    const state = createInitialGameState()
+    state.phase = 'LOMBARD_OFFER'
+    state.bankruptcyGraceTimer = 20
+    state.units.audit_chamber = 2
+    expect(dispatch(state, { type: 'ACCEPT_LOMBARD_LOAN' }).success).toBe(true)
+    expect(state.bankruptcyGraceTimer).toBe(calculateBankruptcyGraceSeconds(state))
+    expect(state.bankruptcyGraceTimer).toBe(50)
   })
 
   it('triggers bankruptcy defeat if countdown expires without bailout', () => {

@@ -195,13 +195,8 @@ export function runSimulation(
   while (!state.isGameOver && state.deadline <= maxDeadlines) {
     if (state.phase === 'ACTIVE_CYCLE') {
       for (const command of strategy.governActive(state, ctx)) send(command)
-      if (state.pendingDeadlineAudit) {
-        // A deferred audit opens on a zero time tick, which only a journaled TICK lets a replay repeat
-        send({ type: 'TICK', dt: DECISION_INTERVAL_SECONDS })
-      } else {
-        tick(state, DECISION_INTERVAL_SECONDS, config)
-        recordAudit()
-      }
+      tick(state, DECISION_INTERVAL_SECONDS, config)
+      recordAudit()
       frozenCommands = 0
       continue
     }

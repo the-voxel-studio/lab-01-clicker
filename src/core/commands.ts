@@ -15,7 +15,13 @@ import {
   getMaxBulkSize,
 } from './formulas'
 import { deriveSeed, withStatePrng } from './prng'
-import { composeStat, extractRawEvaluationState, canAffordEffects, applyEffect } from './modifiers'
+import {
+  composeStat,
+  extractRawEvaluationState,
+  canAffordEffects,
+  applyEffect,
+  calculateBankruptcyGraceSeconds,
+} from './modifiers'
 import { hasRule } from './rules'
 import { LAWS_DATA } from '@/data/laws'
 import {
@@ -34,6 +40,7 @@ import {
   calculateMilitaryPower,
   effectiveQuota,
   calculateNetApRate,
+  openDeferredDeadlineAudit,
 } from './engine'
 import { createInitialGameState } from './state'
 import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
@@ -525,8 +532,9 @@ function handleAcceptLombardLoan(
   state.ap += config.balance.LOMBARD_BAILOUT_AP
   state.lombardBailoutAvailable = false
   state.lombardBailoutAccepted = true
-  state.bankruptcyGraceTimer = config.balance.BANKRUPTCY_GRACE_BASE_SECONDS
   state.phase = 'ACTIVE_CYCLE'
+  state.bankruptcyGraceTimer = calculateBankruptcyGraceSeconds(state, config)
+  openDeferredDeadlineAudit(state, config)
 
   return {
     success: true,
@@ -549,6 +557,7 @@ function handleRefuseLombardLoan(
 
   state.lombardBailoutAvailable = false
   state.phase = 'ACTIVE_CYCLE'
+  openDeferredDeadlineAudit(state, config)
 
   return {
     success: true,
@@ -1022,6 +1031,7 @@ export function dispatch(
       )
       if (!state.isGameOver) {
         state.phase = 'ACTIVE_CYCLE'
+        openDeferredDeadlineAudit(state, config)
       }
       return { success: true, events: res.events }
     }

@@ -288,7 +288,7 @@ PHASE V2: PLAYABILITY & PRESENTATION
   - Status: done (`cd4ccd7`).
 - **Task 3.2: Three-Tier Bot Implementations [V1]**
   - **Random Noise Bot:** Arbitrary purchases, laws, and dilemma choices. Win rate **< 5%** (asserted on 20 seeds, 0% on the 100 validation seeds).
-  - **Greedy ROI Bot (Baseline Human):** Deterministic marginal ROI payback scoring across AP, Pop, and Military, with no seed parity shortcut and no PRNG. Win rate **35% - 65%** asserted on the 100 validation seeds 20001 to 20100 (57% with the current table).
+  - **Greedy ROI Bot (Baseline Human):** Deterministic marginal ROI payback scoring across AP, Pop, and Military, with no seed parity shortcut and no PRNG. Win rate **35% - 65%** asserted on the 100 validation seeds 20001 to 20100 (56% with the current table).
   - **Archetype Expert Bots:** Specialized Bureaucrat (civil colonisation + admin synergies) and Conqueror (military campaigns + plunder, launched from the perceived power band only) bots enacting synergistic laws. Win rate **> 65%** asserted on 20 seeds each (100% and 96% on the 100 validation seeds).
   - Status: done (`cd4ccd7`).
 - **Task 3.3: Quota Derivation & Balance Report Script (`scripts/generate-balance-report.ts`) [V1]**
@@ -306,14 +306,12 @@ PHASE V2: PLAYABILITY & PRESENTATION
 - **Task 3.6: Engine Validation Gate E Freeze [V1]**
   - All unit tests, invariant checks, replay step-size invariance, and 100-seed bot simulations pass with 0 warnings/errors (one known `it.fails`: tier I cost ratio growth $\times 1.1$, balance follow up) before unlocking Phase V2 UI work.
   - Status: done (`98514e1` docs audit, final review of plan 04).
-  - Open point (user decision 2026-10-25): a deferred audit (raid or Lombard offer on the deadline step) opens only on the next tick, so commands still apply between the deadline and the audit evaluation; the engine rule fix is to be decided.
+  - Deferred audit window closed after the freeze: a deferred audit is evaluated as soon as the raid or Lombard offer resolves (`openDeferredDeadlineAudit`), so no command applies between the deadline and the audit.
 
 **Follow ups after Gate E (V2 balance and engine):**
 - Soften the tier I cost curve: the sensitivity variant tier I cost ratio growth $\times 1.1$ gives a Greedy win rate of 0.28 against a baseline of 0.49 (gap 0.21, above 0.20); its test is marked `it.fails` until the economy is rebalanced.
 - The calibration curve is steep (Greedy 80% at $c = 0.975$, 11% at $c = 1.088$): rerun the solver (`npm run balance:report`) after any balance change.
 - The Deadline 10 tribute is about 56,000 AP (55,680), effectively unpayable, and the late quotas jump (D8 to D10); review the late curve.
-- Deferred audit window: a raid or Lombard offer on the deadline step opens the audit on the next tick while commands still apply in between; the engine fix is to be decided.
-- Bankruptcy grace: the Lombard bailout resets the bankruptcy timer to the base grace, while the tick reset and Deserting Mercenaries choice B use the full composed grace (audit chambers, Chancery Red Tape); decide which is intended.
 
 ---
 

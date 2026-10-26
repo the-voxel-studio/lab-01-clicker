@@ -14,6 +14,7 @@ This document defines the comprehensive game systems, unit tiers, mathematical s
   2. **Total Population:** Current living population across all provinces at the moment of inspection.
   3. **Military Power:** Total active military combat power at the moment of inspection.
 - The player must satisfy at least **2 out of 3 criteria** to pass.
+- **Deferred Inspection:** If the 100-second mark is reached during a surprise raid or a Lombard offer, the inspection waits for that crisis and is evaluated the moment it resolves (`RESOLVE_RAID_DEFENSE`, `ACCEPT_LOMBARD_LOAN` or `REFUSE_LOMBARD_LOAN`), before any other command applies.
 
 ### 1.2 The Single Royal Pardon (Yellow Card Grace Rule)
 Failing a quota early in a run shouldn't arbitrarily kill a good attempt without a chance for redemption:
@@ -368,7 +369,7 @@ $$\text{BaseThreatPower} = 0.80 \times \text{MilitaryQuota}_{d+1}, \quad \text{T
 | Threat Deadline | Threat Title | Faction | Base Power | 3 Responses Available |
 | :---: | :--- | :--- | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaws | 22 | Combat / 660 AP Tribute / Levy (+30 Unrest) |
-| **4** | *The Rebellious Marches Baron* | Rebel Barons | 23 | Combat / 1,100 AP Tribute / Levy (+30 Unrest) |
+| **4** | *The Rebellious Marches Baron* | Rebel Barons | 23 | Combat / 1,080 AP Tribute / Levy (+30 Unrest) |
 | **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 86 | Combat / 2,880 AP Tribute / Levy (+30 Unrest) |
 | **6** | *The Renegade Free Companies* | Free Company Mercenaries | 135 | Combat / 5,080 AP Tribute / Levy (+30 Unrest) |
 | **7** | *The Holy League Crusade* | Holy League Zealots | 231 | Combat / 8,860 AP Tribute / Levy (+30 Unrest) |
@@ -536,7 +537,7 @@ The bankruptcy countdown (30 seconds, +10 per Audit Chamber, +20 under Chancery 
 
 1. At **20 seconds** of the 30-second bankruptcy countdown, if the realm possesses **at least 2 provinces** (`provinces >= 2`) and the bailout has not yet been used, the game enters the `LOMBARD_OFFER` phase where an urgent Crown emissary offers the **Lombard Bailout**. If the player holds only 1 province, the offer is not presented and the countdown continues uninterrupted to bankruptcy.
 2. **Countdown Pause:** The 30-second bankruptcy countdown is paused while the player considers the offer in the `LOMBARD_OFFER` phase.
-3. **Terms:** The realm permanently cedes **1 Province** (the last acquired province in LIFO order) in exchange for an immediate infusion of **2,000 AP** into treasury `state.ap` (as a capital transfer, it does not alter the Gross AP Rate).
+3. **Terms:** The realm permanently cedes **1 Province** (the last acquired province in LIFO order) in exchange for an immediate infusion of **2,000 AP** into treasury `state.ap` (as a capital transfer, it does not alter the Gross AP Rate). The bankruptcy countdown is restored to its full grace (30 seconds plus Audit Chamber and Chancery Red Tape bonuses).
 4. **Usage:** Permitted **strictly once per run**; refusing the offer also uses it up.
 5. **Rejection:** Refusing the offer returns the game to `ACTIVE_CYCLE` and resumes the bankruptcy countdown from the 20-second mark.
 
@@ -638,7 +639,7 @@ To guarantee that the game tests actual player skill rather than arbitrary bot p
    - Quotas are derived objectively from the median of the quota blind Greedy variant, played under relaxed quotas over multiple fixed seeds:
      $$\text{Quota}_k = c \times \text{MedianBotScore}_k$$
    - On the AP axis, the bot's score evaluated at audit $k$ is the **instantaneous Gross AP Rate (AP/s)**.
-   - Current table: $c = 1.0313$, medians over the 200 calibration seeds 10001 to 10200, win rates measured on the 100 validation seeds 20001 to 20100 (Random 0%, Greedy 57%, Bureaucrat 100%, Conqueror 96%). The Random bot is also asserted on 20 seeds and each expert bot on 20 seeds.
+   - Current table: $c = 1.0313$, medians over the 200 calibration seeds 10001 to 10200, win rates measured on the 100 validation seeds 20001 to 20100 (Random 0%, Greedy 56%, Bureaucrat 100%, Conqueror 95%). The Random bot is also asserted on 20 seeds and each expert bot on 20 seeds.
    - The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable determined algorithmically by the calibration solver script (`scripts/generate-balance-report.ts`) via bisection until the quota aware Greedy ROI Bot (the bisection target, on validation seeds) stabilizes strictly within the target win rate band of **35% to 65%**.
 3. **Dominance & Sensitivity Testing:**
    - *Dominance:* Beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate), asserts across 200 runs per archetype (seeds 50001 to 50200) that every unit role of the catalog is purchased at least once, and no single unit exceeds 60% of the spending after 300 s within a given archetype build.

@@ -485,7 +485,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(state.deadline).toBe(10)
   })
 
-  it('arms pendingDeadlineAudit if 100s deadline mark is reached during a crisis phase, executing it on active cycle resumption', () => {
+  it('arms pendingDeadlineAudit if 100s deadline mark is reached during a crisis phase', () => {
     const state = createInitialGameState()
     state.deadline = 1
     state.deadlineTimeSeconds = 99.5
@@ -495,22 +495,61 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     state.lombardBailoutAvailable = true
     state.bankruptcyGraceTimer = 20.5 // Crosses into LOMBARD_OFFER
 
-    // Tick 1.0s: deadlineTimeSeconds reaches 100.0s while phase switches to LOMBARD_OFFER
     tick(state, 1.0, DEFAULT_ENGINE_CONFIG)
     expect(state.phase).toBe('LOMBARD_OFFER')
     expect(state.deadlineTimeSeconds).toBe(100.0)
     expect(state.pendingDeadlineAudit).toBe(true)
+  })
 
-    // Resolve Lombard offer
-    dispatch(state, { type: 'ACCEPT_LOMBARD_LOAN' }, DEFAULT_ENGINE_CONFIG)
-    expect(state.phase).toBe('ACTIVE_CYCLE')
+  describe('deferred audit opens when the crisis resolves', () => {
+    const deferredLombard = () => {
+      const state = createInitialGameState()
+      state.deadline = 1
+      state.deadlineTimeSeconds = 100
+      state.phase = 'LOMBARD_OFFER'
+      state.pendingDeadlineAudit = true
+      state.provinces = 2
+      state.lombardBailoutAvailable = true
+      return state
+    }
 
-    // Next tick in ACTIVE_CYCLE immediately triggers the deferred audit assessment without integrating economy
-    const tickAudit = tick(state, 1.0, DEFAULT_ENGINE_CONFIG)
-    expect(state.pendingDeadlineAudit).toBe(false)
-    expect(state.phase).toBe('AUDIT_ASSESSMENT')
-    expect(tickAudit.deadlineCompleted).toBe(true)
-    expect(tickAudit.consumedDt).toBe(0)
+    it('evaluates the audit on ACCEPT_LOMBARD_LOAN', () => {
+      const state = deferredLombard()
+      expect(dispatch(state, { type: 'ACCEPT_LOMBARD_LOAN' }).success).toBe(true)
+      expect(state.pendingDeadlineAudit).toBe(false)
+      expect(state.phase).toBe('AUDIT_ASSESSMENT')
+      expect(state.lastAuditOutcome).not.toBeNull()
+    })
+
+    it('evaluates the audit on REFUSE_LOMBARD_LOAN', () => {
+      const state = deferredLombard()
+      expect(dispatch(state, { type: 'REFUSE_LOMBARD_LOAN' }).success).toBe(true)
+      expect(state.pendingDeadlineAudit).toBe(false)
+      expect(state.phase).toBe('AUDIT_ASSESSMENT')
+      expect(state.lastAuditOutcome).not.toBeNull()
+    })
+
+    it('evaluates the audit on RESOLVE_RAID_DEFENSE', () => {
+      const state = createInitialGameState()
+      state.deadline = 3
+      state.deadlineTimeSeconds = 100
+      state.phase = 'SURPRISE_RAID'
+      state.pendingDeadlineAudit = true
+      state.units.soldier = 500
+      expect(dispatch(state, { type: 'RESOLVE_RAID_DEFENSE' }).success).toBe(true)
+      expect(state.isGameOver).toBe(false)
+      expect(state.pendingDeadlineAudit).toBe(false)
+      expect(state.phase).toBe('AUDIT_ASSESSMENT')
+      expect(state.lastAuditOutcome).not.toBeNull()
+    })
+
+    it('lets no governance command apply between the crisis and the audit', () => {
+      const state = deferredLombard()
+      dispatch(state, { type: 'ACCEPT_LOMBARD_LOAN' })
+      const before = state.units.scribe
+      expect(dispatch(state, { type: 'BUY_UNIT', unitId: 'scribe', count: 1 }).success).toBe(false)
+      expect(state.units.scribe).toBe(before)
+    })
   })
 
   it('rejects an attack with no army', () => {

@@ -512,6 +512,29 @@ function applyAuditAftermath(state: GameState, config: EngineConfig): void {
 }
 
 /**
+ * Opens a deadline audit that was deferred because the deadline was reached during a crisis
+ * (surprise raid or Lombard offer), so no command applies between the deadline and the audit.
+ * Does nothing outside `ACTIVE_CYCLE`, after game over, or without a pending audit.
+ *
+ * @param state - The active GameState; moved to `AUDIT_ASSESSMENT` when an audit opens.
+ * @param config - Engine configuration (defaults to DEFAULT_ENGINE_CONFIG).
+ * @returns True when the deferred audit was evaluated.
+ */
+export function openDeferredDeadlineAudit(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): boolean {
+  if (!state.pendingDeadlineAudit || state.isGameOver || state.phase !== 'ACTIVE_CYCLE') {
+    return false
+  }
+  state.deadlineTimeSeconds = config.balance.DEADLINE_DURATION_SECONDS
+  state.pendingDeadlineAudit = false
+  state.phase = 'AUDIT_ASSESSMENT'
+  evaluateDeadlineAudit(state, config)
+  return true
+}
+
+/**
  * Reports whether the fast forward control is unlocked for the current deadline.
  * Fast forward unlocks from `FAST_FORWARD_MIN_DEADLINE` onward.
  *

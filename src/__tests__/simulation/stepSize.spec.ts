@@ -28,7 +28,7 @@ const TOLERANCE = 0.01
 /** Replay duration limit covering the 10 deadlines of 100 s with a wide margin. */
 const REPLAY_LIMIT_SECONDS = 2000
 
-/** Seeds whose run defers an audit behind a raid: their journal holds a TICK entry. */
+/** Seeds whose run defers an audit behind a raid: the audit opens when the raid resolves. */
 const DEFERRED_AUDIT_SEEDS: readonly number[] = [30017, 30020]
 
 /** Time allowed to the 20 runs and 40 replays. */
@@ -82,11 +82,13 @@ describe('Plan 04 Task 4: step size invariance of full runs', () => {
     },
   )
 
-  it('journals the zero time tick that opens a deferred audit', () => {
+  it('replays the runs that defer an audit behind a raid without a rejected entry', () => {
     for (const seed of DEFERRED_AUDIT_SEEDS) {
       const entry = all.find((runs) => runs.seed === seed)
-      const ticks = entry?.run.journal.entries.filter(({ command }) => command.type === 'TICK')
-      expect(ticks?.length, `seed ${seed} TICK entries`).toBeGreaterThan(0)
+      expect(entry?.fine.rejected, `seed ${seed} rejected`).toEqual([])
+      expect(entry && getStateHash(entry.fine.state), `seed ${seed} hash`).toBe(
+        entry?.run.finalStateHash,
+      )
     }
   })
 

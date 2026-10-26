@@ -84,13 +84,13 @@
 | **1** | 12 AP/s | 156 Pop | 11 Power | All Tier I units, clicks, tax slider |
 | **2** | 22 AP/s | 304 Pop | 22 Power | Threat Herald opens after this audit |
 | **3** | 33 AP/s | 499 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy |
-| **4** | 55 AP/s | 647 Pop | 29 Power | Tier II patents can be bought |
+| **4** | 54 AP/s | 647 Pop | 29 Power | Tier II patents can be bought |
 | **5** | 144 AP/s | 744 Pop | 108 Power | 2× Fast-Forward |
 | **6** | 254 AP/s | 827 Pop | 169 Power | 50× Bulk Buy |
 | **7** | 443 AP/s | 905 Pop | 289 Power | Holy League Crusade |
 | **8** | 945 AP/s | 1,097 Pop | 859 Power | 100× Bulk Buy (Peasants & Scribes) |
-| **9** | 1,802 AP/s | 3,483 Pop | 1,333 Power | Penultimate Crown audit |
-| **10** | 2,784 AP/s | 6,364 Pop | 2,216 Power | **The Grand Audit Final Inspection (Victory)** |
+| **9** | 1,802 AP/s | 3,484 Pop | 1,333 Power | Penultimate Crown audit |
+| **10** | 2,784 AP/s | 6,363 Pop | 2,216 Power | **The Grand Audit Final Inspection (Victory)** |
 
 ### 2.3 The Royal Pardon (Yellow Card Grace Rule)
 - **One Strike Permitted (Deadlines 1 to 9):** The first time a player meets fewer than 2 out of 3 quotas at a deadline prior to Deadline 10, the Crown issues a **Royal Censure**:
@@ -424,7 +424,7 @@ The realm faces two distinct vectors of military hostility:
 | Threat Deadline | Scheduled Threat | Faction | Base Power (80% Mil Quota) | Tribute (20s Gross AP Rate) | Failure Penalty (Defensive Collapse) |
 | :---: | :--- | :--- | :---: | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaw Bandits & Marauders | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **4** | *The Rebellious Marches Baron* | Rebel Barons | 23 | 1,100 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **4** | *The Rebellious Marches Baron* | Rebel Barons | 23 | 1,080 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 86 | 2,880 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **6** | *The Renegade Free Companies* | Free Company Mercenaries | 135 | 5,080 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **7** | *The Holy League Crusade* | Holy League Zealots | 231 | 8,860 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
@@ -565,7 +565,7 @@ Subject to **at most 1 edict per deadline**, **+50% escalating penalty per prior
 
 ### 11.3 Bankruptcy & The Lombard Loan
 - When the treasury is at or below 0 and net AP is negative, a 30-second countdown runs (it resets when the treasury is above 0).
-- At **20 seconds**, if the realm controls **at least 2 provinces** (`provinces >= 2`) and the bailout is unused, the **Lombard Bailout** is offered: Cede **1 Province** permanently (LIFO order) in exchange for an immediate infusion of **2,000 AP** into treasury `state.ap` (capital transfer; does not alter gross AP rate). Permitted strictly once per run; refusing the offer also uses it up. If holding only 1 province, the offer is not presented and the countdown continues to bankruptcy.
+- At **20 seconds**, if the realm controls **at least 2 provinces** (`provinces >= 2`) and the bailout is unused, the **Lombard Bailout** is offered: Cede **1 Province** permanently (LIFO order) in exchange for an immediate infusion of **2,000 AP** into treasury `state.ap` (capital transfer; does not alter gross AP rate). Permitted strictly once per run; refusing the offer also uses it up. Accepting restores the countdown to its full grace (Audit Chambers and Chancery Red Tape included). If holding only 1 province, the offer is not presented and the countdown continues to bankruptcy.
 
 ---
 
