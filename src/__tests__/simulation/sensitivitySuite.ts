@@ -35,6 +35,15 @@ const SEED_COUNT = 100
 /** Largest allowed gap between a variant win rate and the baseline win rate. */
 const MAX_WIN_RATE_GAP = 0.2
 
+/** Greedy ROI win rate band of GAME_RULES §21, asserted on the out of sample baseline. */
+const GREEDY_BAND = { min: 0.35, max: 0.65 } as const
+
+/**
+ * Key whose spec also asserts the baseline band. The baseline is the same for every key, so only
+ * one registration avoids repeating the check four times.
+ */
+const BASELINE_BAND_KEY: SensitiveKey = 'BASE_POP_GROWTH_RATE_R'
+
 /** Time allowed to the three 100 run samples of one key (about 38 s measured). */
 const SAMPLE_TIMEOUT_MS = 90_000
 
@@ -135,6 +144,14 @@ export function describeSensitivity(
       baseline = greedyWinRate(DEFAULT_ENGINE_CONFIG)
       for (const scale of SCALES) winRates.set(scale, greedyWinRate(scaledConfig(key, scale)))
     }, SAMPLE_TIMEOUT_MS)
+
+    it.runIf(key === BASELINE_BAND_KEY)(
+      'keeps the baseline Greedy win rate on the out of sample seeds within the §21 band',
+      () => {
+        expect(baseline).toBeGreaterThanOrEqual(GREEDY_BAND.min)
+        expect(baseline).toBeLessThanOrEqual(GREEDY_BAND.max)
+      },
+    )
 
     for (const scale of SCALES) {
       const register = knownOutOfBand.includes(scale) ? it.fails : it

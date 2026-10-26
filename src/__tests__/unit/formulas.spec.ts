@@ -21,7 +21,8 @@ import {
   getUnrestCrisisStage,
 } from '@/core/formulas'
 import { BALANCE, UNITS_DATA } from '@/data/balance'
-import type { UnitId } from '@/core/types'
+import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from '@/core/config'
+import { createEmptyUnitRoster } from '@/core/state'
 
 describe('Core Formulas & Mathematical Scaling (Gate A)', () => {
   describe('Unit Cost Geometric Scaling', () => {
@@ -86,6 +87,44 @@ describe('Core Formulas & Mathematical Scaling (Gate A)', () => {
       expect(calculateMaxAffordableUnits('scribe', 0, 5000, 0, 100)).toBe(0)
       expect(calculateMaxAffordableUnits('scribe', 0, 5000, 100, 0)).toBe(0)
     })
+  })
+
+  describe('Buy Max across cost ratios', () => {
+    const withRatio = (ratio: number): EngineConfig => ({
+      ...DEFAULT_ENGINE_CONFIG,
+      balance: { ...DEFAULT_ENGINE_CONFIG.balance, TIER_I_COST_RATIO: ratio },
+    })
+
+    /** Largest count whose bulk cost stays within the budget, found one unit at a time. */
+    function bruteForceMax(owned: number, ap: number, config: EngineConfig, cap: number): number {
+      let count = 0
+      while (count < cap && calculateUnitCost('scribe', owned, count + 1, config) <= ap) count++
+      return count
+    }
+
+    const cases: ReadonlyArray<readonly [string, EngineConfig]> = [
+      ['ratio 0.95', withRatio(0.95)],
+      ['ratio 1.0', withRatio(1.0)],
+      ['default ratio', DEFAULT_ENGINE_CONFIG],
+    ]
+
+    for (const [label, config] of cases) {
+      it(`matches a brute force count for ${label}`, () => {
+        for (const owned of [0, 3, 40]) {
+          for (const ap of [0.5, 15, 16, 100, 200, 1234.5, 5000]) {
+            const expected = bruteForceMax(owned, ap, config, 500)
+            const actual = calculateMaxAffordableUnits('scribe', owned, ap, 500, 500, 500, config)
+            expect(actual, `owned=${owned} ap=${ap}`).toBe(expected)
+          }
+        }
+      })
+
+      it(`still honours the serf, headroom and bulk caps for ${label}`, () => {
+        expect(calculateMaxAffordableUnits('scribe', 0, 1e9, 4, 100, 100, config)).toBe(4)
+        expect(calculateMaxAffordableUnits('scribe', 0, 1e9, 100, 3, 100, config)).toBe(3)
+        expect(calculateMaxAffordableUnits('scribe', 0, 1e9, 100, 100, 10, config)).toBe(10)
+      })
+    }
   })
 
   describe('Clicker Ergonomics & Token Bucket', () => {
@@ -179,7 +218,7 @@ describe('Core Formulas & Mathematical Scaling (Gate A)', () => {
 
   describe('Bureaucracy, Caps & Crisis Stages', () => {
     it('calculates paperwork friction and archivist mitigations', () => {
-      const emptyUnits = {} as Record<UnitId, number>
+      const emptyUnits = createEmptyUnitRoster()
       // 3 provinces * 10 = size 30 / (30 + 220) = 30 / 250 = 0.12 (12%)
       const basePaperwork = calculatePaperworkFriction(emptyUnits, 3, 0)
       expect(basePaperwork).toBeCloseTo(0.12, 2)

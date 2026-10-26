@@ -3,6 +3,7 @@ import { createInitialGameState } from '@/core/state'
 import { dispatch } from '@/core/commands'
 import { applyArchivePerks } from '@/data/archives'
 import { STAT_KEYS } from '@/core/types'
+import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from '@/core/config'
 import type { GameState } from '@/core/types'
 
 const FIVE: string[] = [
@@ -48,6 +49,7 @@ describe('Task 0: typed law slot count', () => {
     const state = councilWith(FIVE, 'law:scorched_earth')
     applyArchivePerks(state, ['sixth_law_slot'])
     expect(dispatch(state, { type: 'ENACT_LAW', lawId: 'law:scorched_earth' }).success).toBe(true)
+    expect(state.activeLaws).toHaveLength(6)
     state.phase = 'COUNCIL_LAWS'
     state.currentLawDraft = ['law:crown_monopolies']
     const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:crown_monopolies' })
@@ -62,5 +64,34 @@ describe('Task 0: typed law slot count', () => {
     const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:scorched_earth' })
     expect(res.success).toBe(false)
     expect(res.error).toBe('Maximum active law capacity (5) reached.')
+  })
+
+  it('floors a fractional slot count from the config', () => {
+    const config: EngineConfig = {
+      ...DEFAULT_ENGINE_CONFIG,
+      balance: { ...DEFAULT_ENGINE_CONFIG.balance, LAW_SLOTS_BASE: 5.5 },
+    }
+    const state = councilWith(FIVE, 'law:scorched_earth')
+    const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:scorched_earth' }, config)
+    expect(res.success).toBe(false)
+    expect(res.error).toBe('Maximum active law capacity (5) reached.')
+    expect(state.activeLaws).toHaveLength(5)
+  })
+
+  it('floors a fractional base after the perk adds a slot', () => {
+    const config: EngineConfig = {
+      ...DEFAULT_ENGINE_CONFIG,
+      balance: { ...DEFAULT_ENGINE_CONFIG.balance, LAW_SLOTS_BASE: 5.5 },
+    }
+    const state = councilWith(FIVE, 'law:scorched_earth')
+    applyArchivePerks(state, ['sixth_law_slot'])
+    expect(
+      dispatch(state, { type: 'ENACT_LAW', lawId: 'law:scorched_earth' }, config).success,
+    ).toBe(true)
+    state.phase = 'COUNCIL_LAWS'
+    state.currentLawDraft = ['law:crown_monopolies']
+    const res = dispatch(state, { type: 'ENACT_LAW', lawId: 'law:crown_monopolies' }, config)
+    expect(res.success).toBe(false)
+    expect(res.error).toBe('Maximum active law capacity (6) reached.')
   })
 })

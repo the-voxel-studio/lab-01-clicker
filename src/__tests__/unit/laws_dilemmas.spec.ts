@@ -364,9 +364,9 @@ describe('GAME_RULES §9: dilemma trigger thresholds', () => {
   }> = [
     {
       id: 'dilemma:taxable_windows',
-      holds: realm((s) => (s.units.scribe = 300)),
-      fails: realm((s) => (s.units.scribe = 290)),
-      why: 'gross AP rate above 150 AP/s',
+      holds: realm((s) => (s.units.scribe = 297)),
+      fails: realm((s) => (s.units.scribe = 296)),
+      why: 'gross AP rate above 150 AP/s (strictly)',
     },
     {
       id: 'dilemma:scribe_counted_too_much',
@@ -495,6 +495,16 @@ describe('GAME_RULES §9: dilemma trigger thresholds', () => {
   it.each(cases)('$id needs $why', ({ id, holds, fails }) => {
     expect(dilemmaOf(id).trigger(holds)).toBe(true)
     expect(dilemmaOf(id).trigger(fails)).toBe(false)
+  })
+
+  it('brackets the taxable windows threshold within 1 AP/s on both sides', () => {
+    const holds = calculateGrossApRate(cases[0]!.holds).total
+    const fails = calculateGrossApRate(cases[0]!.fails).total
+    expect(cases[0]!.id).toBe('dilemma:taxable_windows')
+    expect(holds).toBeGreaterThan(150)
+    expect(holds).toBeLessThan(151)
+    expect(fails).toBeLessThanOrEqual(150)
+    expect(fails).toBeGreaterThan(149)
   })
 
   it('opens the comet at deadline 8 and not at deadline 7', () => {

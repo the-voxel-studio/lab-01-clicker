@@ -15,12 +15,13 @@
 
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createJiti } from 'jiti'
 import type * as CommandsModule from '../src/core/commands'
 import type * as EngineModule from '../src/core/engine'
 import type * as StateModule from '../src/core/state'
 import type * as BalanceModule from '../src/data/balance'
+import { EDICTS_DATA, type EdictId } from '../src/data/edicts'
 import type { Command, GameState, UnitId, UnitOrder } from '../src/core/types'
 
 const scriptPath = fileURLToPath(import.meta.url)
@@ -61,13 +62,23 @@ const ZERO_ARGUMENT_COMMANDS: ReadonlyMap<string, Command> = new Map<string, Com
 ])
 
 /** Edict identifiers `ENACT_EDICT` accepts. */
-const EDICT_IDS = ['forced_tithe', 'church_seizure', 'grand_festival'] as const
+const EDICT_IDS = Object.keys(EDICTS_DATA) as readonly EdictId[]
 
 /** Unit orders `UNLOCK_PATENT` accepts. */
 const UNIT_ORDERS: readonly UnitOrder[] = ['people', 'admin', 'military']
 
+/** A response `SELECT_THREAT_RESPONSE` carries. */
+type ThreatResponse = Extract<Command, { type: 'SELECT_THREAT_RESPONSE' }>['response']
+
+/** One key per threat response; the compiler rejects a missing or an unknown key. */
+const THREAT_RESPONSE_KEYS = {
+  defense: true,
+  tribute: true,
+  levy: true,
+} satisfies Record<ThreatResponse, true>
+
 /** Threat responses `SELECT_THREAT_RESPONSE` accepts. */
-const THREAT_RESPONSES = ['defense', 'tribute', 'levy'] as const
+const THREAT_RESPONSES = Object.keys(THREAT_RESPONSE_KEYS) as readonly ThreatResponse[]
 
 /** Result of reading one argument: the value, or the reason it is not valid. */
 type ArgResult<T> =
@@ -335,6 +346,9 @@ async function main(): Promise<number> {
   return 0
 }
 
-if (process.argv[1] === scriptPath) {
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
   process.exitCode = await main()
 }

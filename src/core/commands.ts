@@ -873,11 +873,14 @@ export function dispatch(
       if (state.activeLaws.includes(command.lawId)) {
         return { success: false, error: `Law ${command.lawId} is already active.` }
       }
-      let maxLawSlots = composeStat(
-        'law_slots',
-        config.balance.LAW_SLOTS_BASE,
-        state.activeModifiers,
-        extractRawEvaluationState(state),
+      // Slots are whole seats: a fractional base or modifier total is floored.
+      let maxLawSlots = Math.floor(
+        composeStat(
+          'law_slots',
+          config.balance.LAW_SLOTS_BASE,
+          state.activeModifiers,
+          extractRawEvaluationState(state),
+        ),
       )
       if (hasRule(state, 'law:papal_concordat') && command.lawId !== 'law:papal_concordat') {
         maxLawSlots -= 1

@@ -97,8 +97,8 @@ export function calculateUnitCost(
   }
 
   // Geometric sum: base * r^n * (r^K - 1) / (r - 1)
-  const cost =
-    baseCost * Math.pow(ratio, currentOwned) * ((Math.pow(ratio, countToBuy) - 1) / (ratio - 1))
+  const growth = ratio === 1 ? countToBuy : (Math.pow(ratio, countToBuy) - 1) / (ratio - 1)
+  const cost = baseCost * Math.pow(ratio, currentOwned) * growth
   return Math.round(cost * 100) / 100
 }
 
@@ -147,6 +147,9 @@ export function getMaxBulkSize(
  * Inverts the geometric progression formula:
  * K = floor( log(1 + (budget * (r - 1)) / (base * r^n)) / log(r) )
  *
+ * A ratio of exactly 1 divides the budget by the flat cost; a ratio below 1 has a finite total cost, past which
+ * only the other caps limit the count.
+ *
  * @param unitId - Target unit identifier.
  * @param currentOwned - Currently owned unit count.
  * @param availableAp - Available treasury budget.
@@ -187,14 +190,21 @@ export function calculateMaxAffordableUnits(
   }
   if (availableAp < costOfCurrent) return 0
 
-  // Inverted geometric series sum:
-  // budget = costOfCurrent * (r^K - 1) / (r - 1)
-  // r^K = 1 + budget * (r - 1) / costOfCurrent
-  const term = 1 + (availableAp * (ratio - 1)) / costOfCurrent
-  if (term <= 1) return 0
+  const cap = Math.min(Math.floor(freeSerfs), Math.floor(orderHeadroom), maxBulkSize)
 
-  const theoreticalMax = Math.floor(Math.log(term) / Math.log(ratio))
-  let affordableByAp = Math.max(0, theoreticalMax)
+  let theoreticalMax: number
+  if (ratio === 1) {
+    // Flat cost: the series degenerates to a plain division.
+    theoreticalMax = Math.floor(availableAp / costOfCurrent)
+  } else {
+    // Inverted geometric series sum:
+    // budget = costOfCurrent * (r^K - 1) / (r - 1)
+    // r^K = 1 + budget * (r - 1) / costOfCurrent
+    const term = 1 + (availableAp * (ratio - 1)) / costOfCurrent
+    // A shrinking cost (r < 1) has a finite total; a budget past it affords any count.
+    theoreticalMax = term <= 0 ? Infinity : Math.floor(Math.log(term) / Math.log(ratio))
+  }
+  let affordableByAp = Math.min(Math.max(0, theoreticalMax), cap)
 
   // Floating point rounding correction: decrement until cost <= availableAp
   while (
@@ -204,7 +214,7 @@ export function calculateMaxAffordableUnits(
     affordableByAp--
   }
 
-  return Math.min(affordableByAp, Math.floor(freeSerfs), Math.floor(orderHeadroom), maxBulkSize)
+  return affordableByAp
 }
 
 /**

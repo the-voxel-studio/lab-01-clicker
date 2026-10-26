@@ -27,8 +27,8 @@ const SAMPLE_TIMEOUT_MS = 120_000
 interface ArchetypeSpending {
   /** AP spent per unit after the opening. */
   lateSpend: Map<UnitId, number>
-  /** Successful purchase commands per unit, whole run. */
-  purchaseCount: Map<UnitId, number>
+  /** Units bought per unit (sum of the purchase counts), whole run. */
+  unitsBought: Map<UnitId, number>
 }
 
 /** Every unit role of the catalog; all four are reachable in V1 (each has a purchasable unit). */
@@ -44,7 +44,7 @@ function addTo(map: Map<UnitId, number>, unitId: UnitId, amount: number): void {
 /** Folds the purchases of one run into the archetype totals. */
 function accumulate(spending: ArchetypeSpending, run: BotRunResult): void {
   for (const purchase of run.purchases) {
-    addTo(spending.purchaseCount, purchase.unitId, 1)
+    addTo(spending.unitsBought, purchase.unitId, purchase.count)
     if (purchase.timeSeconds > OPENING_SECONDS) {
       addTo(spending.lateSpend, purchase.unitId, purchase.cost)
     }
@@ -53,7 +53,7 @@ function accumulate(spending: ArchetypeSpending, run: BotRunResult): void {
 
 /** Plays every run of an archetype and sums its purchases. */
 function playArchetype(strategy: BotStrategy): ArchetypeSpending {
-  const spending: ArchetypeSpending = { lateSpend: new Map(), purchaseCount: new Map() }
+  const spending: ArchetypeSpending = { lateSpend: new Map(), unitsBought: new Map() }
   for (let seed = FIRST_SEED; seed < FIRST_SEED + RUNS_PER_ARCHETYPE; seed++) {
     accumulate(spending, runSimulation(strategy, seed))
   }
@@ -66,10 +66,10 @@ function spendingShares(spending: ArchetypeSpending): number[] {
   return [...spending.lateSpend.values()].map((value) => value / total)
 }
 
-/** Number of purchase commands per role. */
-function purchasesPerRole(spending: ArchetypeSpending): Map<UnitRole, number> {
+/** Number of units bought per role. */
+function unitsBoughtPerRole(spending: ArchetypeSpending): Map<UnitRole, number> {
   const perRole = new Map<UnitRole, number>(catalogRoles().map((role) => [role, 0]))
-  for (const [unitId, count] of spending.purchaseCount) {
+  for (const [unitId, count] of spending.unitsBought) {
     const role = UNITS_DATA[unitId].role
     perRole.set(role, (perRole.get(role) ?? 0) + count)
   }
@@ -84,7 +84,7 @@ function purchasesPerRole(spending: ArchetypeSpending): Map<UnitRole, number> {
  */
 export function describeDominance(strategy: BotStrategy): void {
   describe(`Plan 04 Task 3: dominance of the ${strategy.name} expert bot`, () => {
-    let spending: ArchetypeSpending = { lateSpend: new Map(), purchaseCount: new Map() }
+    let spending: ArchetypeSpending = { lateSpend: new Map(), unitsBought: new Map() }
 
     beforeAll(() => {
       spending = playArchetype(strategy)
@@ -97,7 +97,7 @@ export function describeDominance(strategy: BotStrategy): void {
     })
 
     it('every unit role of the catalog is bought at least once across the runs', () => {
-      const counts = [...purchasesPerRole(spending).values()]
+      const counts = [...unitsBoughtPerRole(spending).values()]
       expect(counts).toHaveLength(catalogRoles().length)
       expect(Math.min(...counts)).toBeGreaterThan(0)
     })

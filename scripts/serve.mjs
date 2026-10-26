@@ -23,8 +23,21 @@ const mimeTypes = {
 }
 
 const server = http.createServer((req, res) => {
-  const safeUrl = decodeURI(req.url?.split('?')[0] || '/')
-  let filePath = path.join(rootDir, safeUrl === '/' ? 'index.html' : safeUrl)
+  let safeUrl
+  try {
+    safeUrl = decodeURI(req.url?.split('?')[0] || '/')
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'text/plain' })
+    res.end('Bad Request')
+    return
+  }
+  let filePath = path.resolve(rootDir, '.' + (safeUrl === '/' ? '/index.html' : safeUrl))
+
+  if (filePath !== rootDir && !filePath.startsWith(rootDir + path.sep)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' })
+    res.end('Forbidden')
+    return
+  }
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
     filePath = path.join(filePath, 'index.html')

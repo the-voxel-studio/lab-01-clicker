@@ -247,8 +247,16 @@ export function roundAxis(raw: readonly number[], axis: Axis): number[] {
  *
  * @param c - Coefficient applied to the medians.
  * @param calibration - Calibration statistics.
+ * @throws Error when a scaled median is not finite.
  */
 export function quotaTable(c: number, calibration: Calibration): DeadlineQuota[] {
+  for (const entry of calibration.deadlines) {
+    for (const axis of AXES) {
+      if (!Number.isFinite(c * entry[axis].median)) {
+        throw new Error(`Quota ${axis} of deadline ${entry.deadline} is not finite.`)
+      }
+    }
+  }
   const [apRate, pop, military] = AXES.map((axis) =>
     roundAxis(
       calibration.deadlines.map((entry) => c * entry[axis].median),

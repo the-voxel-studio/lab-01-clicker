@@ -878,6 +878,8 @@ const ROWS: readonly Row[] = [
           phase: 'COUNCIL_LAWS',
           currentLawDraft: ['law:royal_scriptorium'],
           activeLaws: ['law:a', 'law:b', 'law:c', 'law:d', 'law:e'],
+          // Slots are floored: half a slot lets the 10% scale of the base cross a whole slot
+          activeModifiers: [{ source: 'test:half_slot', stat: 'law_slots', op: 'add', value: 0.5 }],
         },
       ),
       { type: 'ENACT_LAW', lawId: 'law:royal_scriptorium' },
