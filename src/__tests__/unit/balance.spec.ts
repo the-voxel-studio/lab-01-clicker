@@ -92,8 +92,8 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
   it('calculates scheduled crown threats dynamically from quotas (80% military, AP rate quota seconds)', () => {
     expect(getThreatPower(45)).toBe(36)
     expect(getThreatPower(75)).toBe(60)
-    expect(getThreatTributeAp(28)).toBe(560)
-    expect(getThreatTributeAp(55)).toBe(1100)
+    expect(getThreatTributeAp(28, 20)).toBe(560)
+    expect(getThreatTributeAp(55, 20)).toBe(1100)
 
     const threatDeadlines = DEADLINE_QUOTAS.filter((q) => q.deadline >= 3)
     expect(threatDeadlines).toHaveLength(8)
@@ -136,23 +136,23 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
       [21, 289, 21],
       [33, 500, 28],
       [57, 682, 30],
-      [152, 784, 114],
-      [268, 872, 178],
-      [468, 954, 305],
-      [997, 1157, 906],
-      [1901, 3674, 1406],
-      [2936, 6710, 2337],
+      [149, 683, 104],
+      [275, 847, 197],
+      [507, 1309, 373],
+      [935, 2024, 708],
+      [1724, 3128, 1341],
+      [3180, 4835, 2542],
     ])
 
     const documentedThreats = [
       [3, 22, 660],
       [4, 24, 1140],
-      [5, 91, 3040],
-      [6, 142, 5360],
-      [7, 244, 9360],
-      [8, 725, 3988],
-      [9, 1125, 7604],
-      [10, 1870, 11744],
+      [5, 83, 2980],
+      [6, 158, 5500],
+      [7, 298, 10140],
+      [8, 566, 3740],
+      [9, 1073, 6896],
+      [10, 2034, 12720],
     ]
     const computed = DEADLINE_QUOTAS.filter((q) => q.deadline >= 3).map((q) => {
       const threat = getDeadlineThreat(q)

@@ -49,7 +49,7 @@ import {
   openDeferredDeadlineAudit,
 } from './engine'
 import { createInitialGameState } from './state'
-import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
+import { DEFAULT_ENGINE_CONFIG, quotaForDeadline, type EngineConfig } from './config'
 import { addUnrest } from './mutations'
 import { addProvince, removeLastProvince } from './provinces'
 import {
@@ -649,8 +649,7 @@ function forecastThreatTrait(
   deadline: number,
   config: EngineConfig,
 ): FactionTraitResult {
-  const quota =
-    config.quotas.find((q) => q.deadline === deadline) ?? config.quotas[config.quotas.length - 1]!
+  const quota = quotaForDeadline(config, deadline)
   const basePower = getThreatPower(quota.military, config.balance.THREAT_POWER_QUOTA_SHARE)
   const baseTribute = getThreatTributeAp(
     quota.apRate,
@@ -1022,7 +1021,7 @@ export function dispatch(
 
     case 'RESOLVE_RAID_DEFENSE': {
       const playerPower = calculateMilitaryPower(state, config)
-      const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+      const quota = quotaForDeadline(config, state.deadline)
       const raidPower = composeThreatPower(
         state,
         Math.round(config.balance.RAID_POWER_QUOTA_SHARE * quota.military),

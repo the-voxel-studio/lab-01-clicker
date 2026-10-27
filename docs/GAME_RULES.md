@@ -290,7 +290,7 @@ $$\text{CombatRatio} = \frac{\text{AttackerPower}}{\text{DefenderPower}}$$
 #### 7.4.1 Offensive Campaigns (Player as Attacker)
 - Player initiates the attack voluntarily; incurs the **Attacker's Siege Friction (-10%)**, while defending enemies enjoy fortification bonuses.
 - **Loot Variance & Diverse Loot Types:**
-  - Previewed spoils have an inherent estimation variance of approximately **$\pm 20\%$**. Base loot is **10 seconds of the AP rate quota** of the current deadline (D6, 268 AP/s: 2,680 AP), before outcome, variance and modifiers.
+  - Previewed spoils have an inherent estimation variance of approximately **$\pm 20\%$**. Base loot is **10 seconds of the AP rate quota** of the current deadline (D6, 275 AP/s: 2,750 AP), before outcome, variance and modifiers.
   - Spoils are **not limited to AP**:
     - *Treasury Plunder:* Pure AP ($\pm 20\%$). Credited strictly to `state.ap`; does not modify Gross AP Rate or increment quota tracking counters.
     - *Captive Serf Liberation:* Awards **Living Population** (+25 to +75 Free Serfs) instead of AP!
@@ -371,14 +371,14 @@ The defensive salvage (§7.4.2) reads the same tribute rule, at the raid's own d
 | :---: | :--- | :--- | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaws | 22 | Combat / 660 AP Tribute / Levy (+30 Unrest) |
 | **4** | *The Rebellious Marches Baron* | Rebel Barons | 24 | Combat / 1,140 AP Tribute / Levy (+30 Unrest) |
-| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 91 | Combat / 3,040 AP Tribute / Levy (+30 Unrest) |
-| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 142 | Combat / 5,360 AP Tribute / Levy (+30 Unrest) |
-| **7** | *The Holy League Crusade* | Holy League Zealots | 244 | Combat / 9,360 AP Tribute / Levy (+30 Unrest) |
-| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 725 | Combat / 3,988 AP Tribute / Levy (+30 Unrest) |
-| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,125 | Combat / 7,604 AP Tribute / Levy (+30 Unrest) |
-| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 1,870 | Combat / 11,744 AP Tribute / Levy (+30 Unrest) |
+| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 83 | Combat / 2,980 AP Tribute / Levy (+30 Unrest) |
+| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 158 | Combat / 5,500 AP Tribute / Levy (+30 Unrest) |
+| **7** | *The Holy League Crusade* | Holy League Zealots | 298 | Combat / 10,140 AP Tribute / Levy (+30 Unrest) |
+| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 566 | Combat / 3,740 AP Tribute / Levy (+30 Unrest) |
+| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,073 | Combat / 6,896 AP Tribute / Levy (+30 Unrest) |
+| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 2,034 | Combat / 12,720 AP Tribute / Levy (+30 Unrest) |
 
-The figures are the base values. The faction trait (§7.5) adjusts them when the threat is announced: Rebel Barons add 10% power against a large army, and Mercenaries ask 25% more tribute (6,700 AP at deadline 6).
+The figures are the base values. The faction trait (§7.5) adjusts them when the threat is announced: Rebel Barons add 10% power against a large army, and Mercenaries ask 25% more tribute (6,875 AP at deadline 6).
 
 ### 8.2 Threat Response Validation & Resolution Rules
 1. **Armed Defense (`defense`):** Resolves via `resolveDefensiveClash` where the player acts as Defender (+20% fortification bonus + Stronghold defense).
@@ -640,12 +640,13 @@ To guarantee that the game tests actual player skill rather than arbitrary bot p
    - Quotas are derived objectively from the median of the quota blind Greedy variant, played under relaxed quotas over multiple fixed seeds:
      $$\text{Quota}_1 = \lfloor \text{MedianBotScore}_1 \rfloor, \quad \text{Quota}_k = c \times w_k \times \text{MedianBotScore}_k \ (k \ge 2), \quad w = (0.9, 0.95, 1, 1, \dots)$$
    - The opening deadlines have almost no spread across seeds, so a full $c$ turns them into a cliff: deadline 1 is pinned to the floor of its medians (all three axes pass for a median player) and deadlines 2 and 3 take a lighter share of $c$.
+   - From deadline 5, the medians of each axis are replaced by the least squares fit of their logarithm over deadlines 5 to 10 (a constant growth factor per axis), because the late medians sit between a take off mode and a stall mode and jumped (population $\times 3.2$ from D8 to D9 before the fit).
    - On the AP axis, the bot's score evaluated at audit $k$ is the **instantaneous Gross AP Rate (AP/s)**.
-   - Current table: $c = 1.0875$, medians over the 200 calibration seeds 10001 to 10200, win rates measured on the 100 validation seeds 20001 to 20100 (Random 0%, Greedy 55%, Bureaucrat 100%, Conqueror 84%). The Random bot is also asserted on 20 seeds and each expert bot on 20 seeds.
+   - Current table: $c = 1.0875$, medians over the 200 calibration seeds 10001 to 10200, win rates measured on the 100 validation seeds 20001 to 20100 (Random 0%, Greedy 54%, Bureaucrat 100%, Conqueror 76%). The Random bot is also asserted on 20 seeds and each expert bot on 20 seeds.
    - The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable determined algorithmically by the calibration solver script (`scripts/generate-balance-report.ts`) via bisection until the quota aware Greedy ROI Bot (the bisection target, on validation seeds) stabilizes strictly within the target win rate band of **35% to 65%**.
 3. **Dominance & Sensitivity Testing:**
    - *Dominance:* Beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate), asserts across 200 runs per archetype (seeds 50001 to 50200) that every unit role of the catalog is purchased at least once, and no single unit exceeds 60% of the spending after 300 s within a given archetype build.
-   - *Sensitivity:* Modulates $r_0$, the two cost ratios and the poll tax rate (`TAX_POLL_RATE`) by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline; cost ratios are modulated on their growth part ($r - 1$). Baseline 0.43 with the current table; every variant stays inside the band (worst gap 0.10, tier I cost ratio growth $\times 1.1$: 0.41).
+   - *Sensitivity:* Modulates $r_0$, the two cost ratios and the poll tax rate (`TAX_POLL_RATE`) by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline; cost ratios are modulated on their growth part ($r - 1$). Baseline 0.44 with the current table; every variant stays inside the band (worst gap 0.13, tier I cost ratio growth $\times 0.9$: 0.57; $\times 1.1$: 0.36).
 
 
 

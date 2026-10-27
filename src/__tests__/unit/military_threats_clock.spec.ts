@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { createInitialGameState } from '@/core/state'
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
 import { dispatch } from '@/core/commands'
 import { tick, evaluateDeadlineAudit } from '@/core/engine'
 import {
@@ -16,7 +16,7 @@ import {
   resolveScheduledThreat,
   generateCampaignTarget,
 } from '@/core/battle'
-import { FACTIONS_DATA, neutralTrait } from '@/data/threats'
+import { FACTIONS_DATA, SCHEDULED_THREATS_DATA, neutralTrait } from '@/data/threats'
 import { getNextInterDeadlinePhase } from '@/core/phases'
 import { UNITS_DATA, getThreatPower, getThreatTributeAp } from '@/data/balance'
 import { applyEffect } from '@/core/modifiers'
@@ -241,6 +241,20 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
   })
 
+  it('heralds the deadline 8 threat with a tribute of 4 seconds of its AP rate quota', () => {
+    const state = createInitialGameState()
+    state.deadline = 7
+    state.phase = 'COUNCIL_LAWS'
+
+    expect(dispatch(state, { type: 'REJECT_LAWS' }, DEFAULT_ENGINE_CONFIG).success).toBe(true)
+    expect(state.phase).toBe('THREAT_HERALD')
+
+    // The Rebel Barons trait changes the power only, so the tribute stays the base one.
+    expect(SCHEDULED_THREATS_DATA.find((t) => t.deadline === 8)?.factionId).toBe('barons')
+    const d8Quota = quotaForDeadline(DEFAULT_ENGINE_CONFIG, 8)
+    expect(state.currentThreatTributeAp).toBe(getThreatTributeAp(d8Quota.apRate, 4))
+  })
+
   it('automatically initializes currentThreatPower and currentThreatTributeAp when transitioning to THREAT_HERALD via ENACT_LAW / REJECT_LAWS', () => {
     const state = createInitialGameState()
     state.deadline = 2
@@ -252,7 +266,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
     const d3Quota = DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 3)!
     expect(state.currentThreatPower).toBe(getThreatPower(d3Quota.military))
-    expect(state.currentThreatTributeAp).toBe(getThreatTributeAp(d3Quota.apRate))
+    expect(state.currentThreatTributeAp).toBe(getThreatTributeAp(d3Quota.apRate, 20))
 
     // Responding to threat directly reads these fields without fallback
     state.ap = state.currentThreatTributeAp + 100
@@ -756,7 +770,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       const state = setup(true)
       const res = dispatch(state, { type: 'RESOLVE_RAID_DEFENSE' })
       const raidPower = Math.round(Math.round(0.5 * quota.military) * 0.4)
-      expect(raidPower).toBe(36)
+      expect(raidPower).toBe(40)
       const reference = setup(true)
       const expected = resolveDefensiveClash(
         reference,
@@ -765,7 +779,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
         0,
         undefined,
         DEFAULT_ENGINE_CONFIG,
-        getThreatTributeAp(quota.apRate),
+        getThreatTributeAp(quota.apRate, 20),
       )
       expect(res.events).toEqual(expected.events)
       expect(expected.success).toBe(true)
@@ -777,7 +791,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
         0,
         undefined,
         DEFAULT_ENGINE_CONFIG,
-        getThreatTributeAp(quota.apRate),
+        getThreatTributeAp(quota.apRate, 20),
       )
       expect(full.success).toBe(false)
     })

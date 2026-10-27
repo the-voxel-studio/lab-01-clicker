@@ -218,3 +218,17 @@ export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   balance: BALANCE,
   quotas: DEADLINE_QUOTAS,
 }
+
+/**
+ * Quota row of a deadline; a deadline without its own row reads the last row of the table.
+ *
+ * @param config - Engine configuration holding the quota table.
+ * @param deadline - Deadline index.
+ * @throws Error when the quota table is empty.
+ */
+export function quotaForDeadline(config: EngineConfig, deadline: number): DeadlineQuota {
+  const quota =
+    config.quotas.find((q) => q.deadline === deadline) ?? config.quotas[config.quotas.length - 1]
+  if (!quota) throw new Error('The quota table is empty.')
+  return quota
+}

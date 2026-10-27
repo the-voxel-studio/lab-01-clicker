@@ -14,7 +14,7 @@
 
 import type { GameState, CampaignTarget, BiomeId, FactionId } from './types'
 import { PRNG, withStatePrng } from './prng'
-import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
+import { DEFAULT_ENGINE_CONFIG, quotaForDeadline, type EngineConfig } from './config'
 import { addUnrest, applyPopulationLoss, removeUnits, triggerDefeat } from './mutations'
 import { calculateMilitaryPower, calculateMaxPopulation } from './engine'
 import { addProvince, removeLastProvince } from './provinces'
@@ -289,7 +289,7 @@ export function calculateBaseCampaignLoot(
   state: GameState,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): number {
-  const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+  const quota = quotaForDeadline(config, state.deadline)
   return config.balance.CAMPAIGN_BASE_LOOT_QUOTA_SECONDS * quota.apRate
 }
 
@@ -764,7 +764,7 @@ export function generateCampaignTarget(
   const lootIndex = Math.min(lootTypes.length - 1, Math.floor(prng.next() * lootTypes.length))
   const lootType = FACTION_LOOT[factionId] ?? lootTypes[lootIndex]!
 
-  const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+  const quota = quotaForDeadline(config, state.deadline)
   const basePower = Math.max(
     config.balance.TARGET_MIN_POWER,
     Math.round(

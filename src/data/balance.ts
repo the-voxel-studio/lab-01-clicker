@@ -605,16 +605,13 @@ export function getThreatTributeSeconds(
 
 /**
  * Crown tribute for an AP gross rate quota: `quotaSeconds` seconds of required throughput (pick them with
- * `getThreatTributeSeconds`; the default is the early `THREAT_TRIBUTE_QUOTA_SECONDS`).
+ * `getThreatTributeSeconds`).
  *
  * @param apRate - AP gross rate quota (AP/s).
  * @param quotaSeconds - Seconds of the AP rate quota the tribute asks.
  * @returns Tribute AP cost.
  */
-export function getThreatTributeAp(
-  apRate: number,
-  quotaSeconds: number = BALANCE.THREAT_TRIBUTE_QUOTA_SECONDS,
-): number {
+export function getThreatTributeAp(apRate: number, quotaSeconds: number): number {
   return Math.round(quotaSeconds * apRate)
 }
 

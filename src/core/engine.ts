@@ -26,7 +26,7 @@ import {
 import { hasRule } from './rules'
 import { triggerDefeat, addUnrest, applyPopulationLoss, removeUnits } from './mutations'
 import type { GameState, Modifier, TickResult, AuditOutcome, UnitBalanceDef } from './types'
-import { DEFAULT_ENGINE_CONFIG, type EngineConfig } from './config'
+import { DEFAULT_ENGINE_CONFIG, quotaForDeadline, type EngineConfig } from './config'
 import { withStatePrng } from './prng'
 
 /**
@@ -427,8 +427,7 @@ export function evaluateDeadlineAudit(
   state: GameState,
   config: EngineConfig = DEFAULT_ENGINE_CONFIG,
 ): AuditOutcome {
-  const quotas = config.quotas
-  const quota = quotas.find((q) => q.deadline === state.deadline) ?? quotas[quotas.length - 1]!
+  const quota = quotaForDeadline(config, state.deadline)
 
   const required = effectiveQuota(state, quota)
   const { total: grossApRate } = calculateGrossApRate(state, config)
@@ -944,7 +943,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     Math.floor(prevDeadlineTime / config.balance.SURPRISE_RAID_CHECK_INTERVAL_SECONDS) <
       Math.floor(state.deadlineTimeSeconds / config.balance.SURPRISE_RAID_CHECK_INTERVAL_SECONDS)
   ) {
-    const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+    const quota = quotaForDeadline(config, state.deadline)
     const milPower = calculateMilitaryPower(state, config)
     const p =
       config.balance.RAID_BASE_PROBABILITY *
@@ -978,10 +977,7 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     interimWarningTriggered = true
 
     // Compute 2-out-of-3 on-track status comparing to deadline quotas
-    const quota = effectiveQuota(
-      state,
-      config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!,
-    )
+    const quota = effectiveQuota(state, quotaForDeadline(config, state.deadline))
     const apOnTrack = grossApRate >= quota.apRate
     const popOnTrack = state.totalPopulation >= quota.pop
     const milOnTrack = calculateMilitaryPower(state, config) >= quota.military

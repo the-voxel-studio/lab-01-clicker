@@ -4,7 +4,8 @@
  * Derives the 10 deadline quotas from the Greedy bot: `Quota_k = c x w_k x Median_k` from deadline
  * 2 (`w` = 0.9, 0.95, then 1) and `Quota_1 = floor(Median_1)`, where `Median_k` is the median
  * audited metric at deadline k (gross AP rate, population, military power) of the quota blind
- * Greedy bot, the calibration variant that never reads a quota. One calibration pass
+ * Greedy bot, the calibration variant that never reads a quota, replaced from deadline 5 by the
+ * log linear least squares fit of the deadline 5 to 10 medians. One calibration pass
  * runs it on the calibration seeds under relaxed quotas, so every run reaches the 10 audits and the
  * medians carry no survivor bias. A bisection on c then looks for the table that puts the real,
  * quota aware Greedy ROI bot in its [35%, 65%] win rate band on the validation seeds; that table
@@ -64,6 +65,12 @@ const DEADLINE_COUNT = 10
  * deadlines have almost no spread, so a full c turns them into a cliff (balance study, plan 01).
  */
 const EARLY_C_WEIGHTS: Readonly<Record<number, number>> = { 2: 0.9, 3: 0.95 }
+
+/**
+ * First deadline whose medians are replaced by their log linear fit. The late medians sit between a
+ * take off and a stall mode, so the raw ones jump (balance follow ups, plan 01).
+ */
+const LATE_FIT_FIRST_DEADLINE = 5
 
 /**
  * Relaxed quotas of the calibration runs: tiny and strictly increasing, so no calibration run can
@@ -231,7 +238,7 @@ export function calibrate(toolkit: Toolkit): Calibration {
 
 /**
  * Rounds one axis of a raw table and forces it strictly increasing. Values are whole numbers; the
- * AP rate of deadline 1 keeps one decimal when it would otherwise round to 0.
+ * AP rate of deadline 1 keeps one decimal when it is below 1.
  *
  * @param raw - Raw values of one axis, deadline 1 first.
  * @param axis - The axis, for the AP rate decimal exception.
@@ -242,45 +249,82 @@ export function roundAxis(raw: readonly number[], axis: Axis): number[] {
     const previous = rounded[rounded.length - 1]
     const whole = Math.round(value)
     const first =
-      axis === 'apRate' && whole <= 0 ? Math.max(0.1, Math.round(value * 10) / 10) : whole
+      axis === 'apRate' && value < 1 ? Math.max(0.1, Math.round(value * 10) / 10) : whole
     rounded.push(previous === undefined ? first : Math.max(first, Math.floor(previous) + 1))
   }
   return rounded
 }
 
+/** Floor of a deadline 1 median, to one decimal below 1 so a slow AP rate keeps a real quota. */
+function floorFirstQuota(median: number): number {
+  return median >= 1 ? Math.floor(median) : Math.floor(median * 10) / 10
+}
+
+/** Arithmetic mean of a non empty list. */
+function mean(values: readonly number[]): number {
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
 /**
- * Raw quota of one axis at one deadline: the floor of the median at deadline 1 (whatever c), then c
- * times the early weight times the median.
+ * Medians of one axis, those from `LATE_FIT_FIRST_DEADLINE` replaced by the least squares fit of
+ * their logarithm against the deadline (a constant growth factor).
  */
-function rawQuota(c: number, entry: DeadlineCalibration, axis: Axis): number {
-  const median = entry[axis].median
-  return entry.deadline === 1
-    ? Math.floor(median)
-    : c * (EARLY_C_WEIGHTS[entry.deadline] ?? 1) * median
+function smoothedMedians(deadlines: readonly DeadlineCalibration[], axis: Axis): number[] {
+  const points = deadlines
+    .filter((entry) => entry.deadline >= LATE_FIT_FIRST_DEADLINE)
+    .map((entry) => {
+      const median = entry[axis].median
+      if (!(median > 0) || !Number.isFinite(median)) {
+        throw new Error(
+          `Median ${axis} of deadline ${entry.deadline} must be positive for the late fit.`,
+        )
+      }
+      return { x: entry.deadline, y: Math.log(median) }
+    })
+  if (points.length < 2) return deadlines.map((entry) => entry[axis].median)
+  const meanX = mean(points.map((point) => point.x))
+  const meanY = mean(points.map((point) => point.y))
+  const covariance = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0)
+  const variance = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0)
+  const slope = covariance / variance
+  return deadlines.map((entry) =>
+    entry.deadline >= LATE_FIT_FIRST_DEADLINE
+      ? Math.exp(meanY + slope * (entry.deadline - meanX))
+      : entry[axis].median,
+  )
+}
+
+/**
+ * Raw quota at one deadline: the floor of the median at deadline 1 (whatever c), then c times the
+ * early weight times the median.
+ */
+function rawQuota(c: number, deadline: number, median: number): number {
+  return deadline === 1 ? floorFirstQuota(median) : c * (EARLY_C_WEIGHTS[deadline] ?? 1) * median
 }
 
 /**
  * Quota table for a coefficient: deadline 1 at the floor of its medians, then c times the early
- * weight times the calibration medians, rounded and strictly increasing per axis.
+ * weight times the calibration medians (log linear fit from deadline 5), rounded and strictly
+ * increasing per axis.
  *
  * @param c - Coefficient applied to the medians.
  * @param calibration - Calibration statistics.
- * @throws Error when a scaled median is not finite.
+ * @throws Error when a raw quota is not finite.
  */
 export function quotaTable(c: number, calibration: Calibration): DeadlineQuota[] {
-  for (const entry of calibration.deadlines) {
-    for (const axis of AXES) {
-      if (!Number.isFinite(c * entry[axis].median)) {
-        throw new Error(`Quota ${axis} of deadline ${entry.deadline} is not finite.`)
-      }
+  const [apRate, pop, military] = AXES.map((axis) => {
+    const medians = smoothedMedians(calibration.deadlines, axis)
+    const raw = calibration.deadlines.map((entry, index) =>
+      rawQuota(c, entry.deadline, medians[index] ?? Number.NaN),
+    )
+    const broken = raw.findIndex((value) => !Number.isFinite(value))
+    if (broken >= 0) {
+      throw new Error(
+        `Quota ${axis} of deadline ${calibration.deadlines[broken]?.deadline} is not finite.`,
+      )
     }
-  }
-  const [apRate, pop, military] = AXES.map((axis) =>
-    roundAxis(
-      calibration.deadlines.map((entry) => rawQuota(c, entry, axis)),
-      axis,
-    ),
-  )
+    return roundAxis(raw, axis)
+  })
   if (!apRate || !pop || !military) throw new Error('Quota axes are missing.')
   return calibration.deadlines.map((entry, index) => {
     const row = { apRate: apRate[index], pop: pop[index], military: military[index] }
@@ -401,6 +445,28 @@ function spreadCell(spread: AxisSpread): string {
     .join(' / ')
 }
 
+/** Fitted medians of the late deadlines, the ones the quotas scale by c. */
+function lateFitMarkdown(calibration: Calibration): string {
+  const [apRate, pop, military] = AXES.map((axis) => smoothedMedians(calibration.deadlines, axis))
+  const rows = calibration.deadlines.flatMap((entry, index) =>
+    entry.deadline >= LATE_FIT_FIRST_DEADLINE
+      ? [
+          `| ${entry.deadline} | ${apRate?.[index]?.toFixed(1)} | ${pop?.[index]?.toFixed(1)} | ` +
+            `${military?.[index]?.toFixed(1)} |`,
+        ]
+      : [],
+  )
+  return [
+    `From deadline ${LATE_FIT_FIRST_DEADLINE}, quotas use the log linear least squares fit of the ` +
+      `deadline ${LATE_FIT_FIRST_DEADLINE} to ${DEADLINE_COUNT} medians (c x fitted median), not the raw ` +
+      'medians of the calibration spread.',
+    '',
+    '| Deadline | AP rate | Population | Military |',
+    '|---|---|---|---|',
+    ...rows,
+  ].join('\n')
+}
+
 /** Markdown table of the calibration spread. */
 function calibrationMarkdown(calibration: Calibration): string {
   const rows = calibration.deadlines.map(
@@ -476,6 +542,10 @@ export function renderReport(result: SolverResult, runtimeSeconds: number): stri
     '## Calibration spread',
     '',
     calibrationMarkdown(result.calibration),
+    '',
+    '## Late fit',
+    '',
+    lateFitMarkdown(result.calibration),
     '',
     '## Win rates per c (validation seeds)',
     '',

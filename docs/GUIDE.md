@@ -77,7 +77,7 @@
 #### 2.2 Calibrated Quota Matrix Across All 10 Deadlines
 > [!NOTE]
 > **Matrix Status: calibrated by the solver (`src/data/balance.generated.ts`).**  
-> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times w_k \times \text{MedianGreedyBotScore}_k$ ($w_2 = 0.9$, $w_3 = 0.95$, then 1; deadline 1 is the floor of its medians), where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% to 65% win rate**.
+> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times w_k \times \text{MedianGreedyBotScore}_k$ ($w_2 = 0.9$, $w_3 = 0.95$, then 1; deadline 1 is the floor of its medians; from deadline 5 the medians are their log linear fit over deadlines 5 to 10), where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% to 65% win rate**.
 
 | Deadline | Gross AP Rate Quota (AP/s) | Total Population | Military Combat Power | Unlocks & Key Milestones (engine gates) |
 | :---: | :---: | :---: | :---: | :--- |
@@ -85,12 +85,12 @@
 | **2** | 21 AP/s | 289 Pop | 21 Power | Threat Herald opens after this audit |
 | **3** | 33 AP/s | 500 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy |
 | **4** | 57 AP/s | 682 Pop | 30 Power | Tier II patents can be bought |
-| **5** | 152 AP/s | 784 Pop | 114 Power | 2× Fast-Forward |
-| **6** | 268 AP/s | 872 Pop | 178 Power | 50× Bulk Buy |
-| **7** | 468 AP/s | 954 Pop | 305 Power | Holy League Crusade |
-| **8** | 997 AP/s | 1,157 Pop | 906 Power | 100× Bulk Buy (Peasants & Scribes) |
-| **9** | 1,901 AP/s | 3,674 Pop | 1,406 Power | Penultimate Crown audit |
-| **10** | 2,936 AP/s | 6,710 Pop | 2,337 Power | **The Grand Audit Final Inspection (Victory)** |
+| **5** | 149 AP/s | 683 Pop | 104 Power | 2× Fast-Forward |
+| **6** | 275 AP/s | 847 Pop | 197 Power | 50× Bulk Buy |
+| **7** | 507 AP/s | 1,309 Pop | 373 Power | Holy League Crusade |
+| **8** | 935 AP/s | 2,024 Pop | 708 Power | 100× Bulk Buy (Peasants & Scribes) |
+| **9** | 1,724 AP/s | 3,128 Pop | 1,341 Power | Penultimate Crown audit |
+| **10** | 3,180 AP/s | 4,835 Pop | 2,542 Power | **The Grand Audit Final Inspection (Victory)** |
 
 ### 2.3 The Royal Pardon (Yellow Card Grace Rule)
 - **One Strike Permitted (Deadlines 1 to 9):** The first time a player meets fewer than 2 out of 3 quotas at a deadline prior to Deadline 10, the Crown issues a **Royal Censure**:
@@ -425,12 +425,12 @@ The realm faces two distinct vectors of military hostility:
 | :---: | :--- | :--- | :---: | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaw Bandits & Marauders | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **4** | *The Rebellious Marches Baron* | Rebel Barons | 24 | 1,140 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 91 | 3,040 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 142 | 5,360 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **7** | *The Holy League Crusade* | Holy League Zealots | 244 | 9,360 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 725 | 3,988 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,125 | 7,604 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 1,870 | 11,744 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 83 | 2,980 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 158 | 5,500 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **7** | *The Holy League Crusade* | Holy League Zealots | 298 | 10,140 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 566 | 3,740 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,073 | 6,896 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 2,034 | 12,720 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 
 The figures are the base values: the faction trait (§9.1) adjusts them when the threat is announced (Rebel Barons +10% power against a large army, Mercenaries +25% tribute, Imperial Crown Legions take 2 provinces).
 
@@ -634,13 +634,14 @@ The simulation tests game fairness across three distinct player skill levels:
 ### 15.2 Reference Bot Quota Generation Script
 Quotas are not guessed or hardcoded arbitrarily. They are derived directly from the median performance of the Greedy ROI Bot over multiple fixed seeds:
 $$\text{Quota}_1 = \lfloor \text{MedianGreedyBotScore}_1 \rfloor, \quad \text{Quota}_k = c \times w_k \times \text{MedianGreedyBotScore}_k \ (k \ge 2), \quad w = (0.9, 0.95, 1, 1, \dots)$$
+From deadline 5, $\text{MedianGreedyBotScore}_k$ is the log linear least squares fit of the deadline 5 to 10 medians.
 
 On the AP axis, the bot's score evaluated at audit $k$ is the **instantaneous Gross AP Rate (AP/s)**.
 The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable solved algorithmically by the script `scripts/generate-balance-report.ts` via bisection until the greedy bot (evaluating balanced utility across AP, Population, and Military) stabilizes strictly within the target band of **35% to 65% win rate**.
 
 ### 15.3 Dominance & Sensitivity Metrics
 - **Dominance Detection (Per Archetype):** Tracks unit purchase distributions over 200 runs per archetype (`dominance.bureaucrat.spec.ts`, `dominance.conqueror.spec.ts`). Every unit role must be bought at least once, and beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate, spending after 300 s) no single unit may exceed 60% of the spending within a given archetype build.
-- **Sensitivity Testing (`sensitivity.*.spec.ts`, shared body `sensitivitySuite.ts`, one file per key so Vitest runs them in parallel):** Scales $r_0$, the two cost ratios ($1.07/1.05$, scaled on their growth part $r - 1$) and the poll tax rate by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline. Baseline 0.43 with the current table; every variant stays inside the band (worst gap 0.10, tier I cost ratio growth $\times 1.1$: 0.41).
+- **Sensitivity Testing (`sensitivity.*.spec.ts`, shared body `sensitivitySuite.ts`, one file per key so Vitest runs them in parallel):** Scales $r_0$, the two cost ratios ($1.07/1.05$, scaled on their growth part $r - 1$) and the poll tax rate by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline. Baseline 0.44 with the current table; every variant stays inside the band (worst gap 0.13, tier I cost ratio growth $\times 0.9$: 0.57; $\times 1.1$: 0.36).
 - **Step Size Invariance (`stepSize.spec.ts`):** Replays 20 Greedy runs at $\Delta t = 0.05\text{ s}$ and $1.0\text{ s}$ and asserts the same phase, deadline, state hash, and AP, population and military within 1%.
 
 ---

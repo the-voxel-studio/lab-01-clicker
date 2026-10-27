@@ -6,7 +6,7 @@
 
 import type { Effect, GameState } from '@/core/types'
 import type { EngineConfig } from '@/core/config'
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
 import { calculateGrossApRate, calculateMilitaryUpkeep, calculateNetPaperwork } from '@/core/engine'
 
 export interface DilemmaChoice {
@@ -72,7 +72,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     name: 'The Scribe Who Counted Too Much',
     description: 'A zealous clerk has audited our own archives and discovered discrepancies.',
     trigger: (state, config = DEFAULT_ENGINE_CONFIG) => {
-      const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+      const quota = quotaForDeadline(config, state.deadline)
       const gross = state.lastAuditOutcome?.grossApRate ?? calculateGrossApRate(state, config).total
       return quota.apRate > 0 && gross / quota.apRate < 1.15
     },
@@ -213,7 +213,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     name: 'The Cabinet Scarcity',
     description: 'We have produced so much wealth that our storage vaults are overflowing.',
     trigger: (state, config = DEFAULT_ENGINE_CONFIG) => {
-      const quota = config.quotas.find((q) => q.deadline === state.deadline) ?? config.quotas[0]!
+      const quota = quotaForDeadline(config, state.deadline)
       const gross = state.lastAuditOutcome?.grossApRate ?? calculateGrossApRate(state, config).total
       return quota.apRate > 0 && gross / quota.apRate > 3.0
     },

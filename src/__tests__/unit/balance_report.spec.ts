@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest'
 import {
   quantile,
   quotaTable,
+  renderReport,
   roundAxis,
   type AxisSpread,
   type Calibration,
@@ -80,10 +81,11 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
       }
     })
 
-    it('keeps one decimal on the AP rate of deadline 1 when it would round to 0', () => {
+    it('keeps one decimal on an AP rate of deadline 1 below 1', () => {
       expect(roundAxis([0.34, 5], 'apRate')).toEqual([0.3, 5])
       expect(roundAxis([0.01, 5], 'apRate')).toEqual([0.1, 5])
       expect(roundAxis([0.34, 5], 'pop')).toEqual([0, 5])
+      expect(roundAxis([0.7, 5], 'apRate')).toEqual([0.7, 5])
     })
 
     it('keeps the strictly increasing rule after a decimal first value', () => {
@@ -118,6 +120,14 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
       })
     })
 
+    it('keeps one decimal of a deadline 1 AP rate median below 1 instead of rounding it to 0.1', () => {
+      const slow: Calibration = {
+        deadlines: [deadlineOf(1, [0.74, 100, 20]), deadlineOf(2, [20, 200, 40])],
+        defeats: {},
+      }
+      expect(quotaTable(1, slow)[0]!.apRate).toBe(0.7)
+    })
+
     it('weights c by 0.9 at deadline 2, 0.95 at deadline 3 and 1 from deadline 4', () => {
       const table = quotaTable(2, calibration)
       expect(table.map((row) => row.deadline)).toEqual([1, 2, 3, 4, 5])
@@ -137,6 +147,63 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
       }
       expect(quotaTable(2, calibration)[4]!.apRate).toBe(161)
       expect(quotaTable(0.3, calibration)[1]!.apRate).toBe(11)
+    })
+
+    describe('late medians (deadlines 5 to 10)', () => {
+      const early = [
+        deadlineOf(1, [10, 100, 10]),
+        deadlineOf(2, [20, 200, 20]),
+        deadlineOf(3, [30, 300, 30]),
+        deadlineOf(4, [40, 400, 40]),
+      ]
+      const late = (medians: readonly number[]): DeadlineCalibration[] =>
+        medians.map((median, index) => deadlineOf(5 + index, [median, median * 10, median]))
+
+      it('keeps a late curve that already grows by a constant factor', () => {
+        const table = quotaTable(1, {
+          deadlines: [...early, ...late([50, 100, 200, 400, 800, 1600])],
+          defeats: {},
+        })
+        expect(table.slice(4).map((row) => row.apRate)).toEqual([50, 100, 200, 400, 800, 1600])
+      })
+
+      it('names the axis and the deadline of a late median that is not positive', () => {
+        expect(() =>
+          quotaTable(1, {
+            deadlines: [...early, ...late([50, 100, 200, 400, 800, 0])],
+            defeats: {},
+          }),
+        ).toThrow('Median apRate of deadline 10 must be positive for the late fit.')
+      })
+
+      it('states the late fit and prints the fitted medians in the solver report', () => {
+        const report = renderReport(
+          {
+            calibration: {
+              deadlines: [...early, ...late([100, 100, 100, 100, 1000, 1000])],
+              defeats: {},
+            },
+            steps: [],
+            chosen: null,
+            failure: 'test',
+          },
+          1,
+        )
+        expect(report).toContain(
+          'From deadline 5, quotas use the log linear least squares fit of the deadline 5 to 10 medians',
+        )
+        expect(report).toContain('| 10 | 803.1 | 8030.9 | 803.1 |')
+      })
+
+      it('replaces a late jump by the log linear fit of the deadline 5 to 10 medians', () => {
+        const table = quotaTable(1, {
+          deadlines: [...early, ...late([100, 100, 100, 100, 1000, 1000])],
+          defeats: {},
+        })
+        const fitted = table.slice(4).map((row) => row.apRate)
+        expect(fitted).toEqual([58, 98, 166, 280, 474, 803])
+        expect(table[3]!.apRate).toBe(40)
+      })
     })
 
     it('refuses a non finite median instead of writing it into the table', () => {

@@ -7,7 +7,12 @@
 import { describe, it, expect } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { DEFAULT_ENGINE_CONFIG, type BalanceConfig, type EngineConfig } from '@/core/config'
+import {
+  DEFAULT_ENGINE_CONFIG,
+  quotaForDeadline,
+  type BalanceConfig,
+  type EngineConfig,
+} from '@/core/config'
 import {
   calculateMilitaryPower,
   evaluateDeadlineAudit,
@@ -1063,5 +1068,30 @@ describe('Task 7: every balance number is injectable', () => {
       moved = run(DEFAULT_ENGINE_CONFIG, variant) !== run(scaled, variant)
     }
     expect(moved, `${path} unmoved after ${variants} variants`).toBe(true)
+  })
+})
+
+describe('quota lookup by deadline', () => {
+  const short: EngineConfig = { ...DEFAULT_ENGINE_CONFIG, quotas: DEADLINE_QUOTAS.slice(0, 3) }
+
+  it('returns the row of the deadline, and the last row past the end of the table', () => {
+    expect(quotaForDeadline(short, 2)).toBe(DEADLINE_QUOTAS[1])
+    expect(quotaForDeadline(short, 5)).toBe(DEADLINE_QUOTAS[2])
+  })
+
+  it('reads the last row for a surprise raid past the end of a short table', () => {
+    const raidAt = (config: EngineConfig): string[] => {
+      const state = createInitialGameState({ seed: 3 })
+      state.phase = 'SURPRISE_RAID'
+      state.deadline = 5
+      state.units.soldier = 200
+      return dispatch(state, { type: 'RESOLVE_RAID_DEFENSE' }, config).events ?? []
+    }
+    const last = DEADLINE_QUOTAS[2]!
+    const explicit: EngineConfig = {
+      ...DEFAULT_ENGINE_CONFIG,
+      quotas: [...DEADLINE_QUOTAS.slice(0, 3), { ...last, deadline: 5 }],
+    }
+    expect(raidAt(short)).toEqual(raidAt(explicit))
   })
 })
