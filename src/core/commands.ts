@@ -5,7 +5,13 @@
  * @module core/commands
  */
 
-import { UNITS_DATA, type UnitId, getThreatPower, getThreatTributeAp } from '@/data/balance'
+import {
+  UNITS_DATA,
+  type UnitId,
+  getThreatPower,
+  getThreatTributeAp,
+  getThreatTributeSeconds,
+} from '@/data/balance'
 import { assertCommandAllowed, getNextInterDeadlinePhase } from './phases'
 import {
   calculateUnitCost,
@@ -646,7 +652,10 @@ function forecastThreatTrait(
   const quota =
     config.quotas.find((q) => q.deadline === deadline) ?? config.quotas[config.quotas.length - 1]!
   const basePower = getThreatPower(quota.military, config.balance.THREAT_POWER_QUOTA_SHARE)
-  const baseTribute = getThreatTributeAp(quota.apRate, config.balance.THREAT_TRIBUTE_QUOTA_SECONDS)
+  const baseTribute = getThreatTributeAp(
+    quota.apRate,
+    getThreatTributeSeconds(deadline, config.balance),
+  )
   const def = SCHEDULED_THREATS_DATA.find((t) => t.deadline === deadline)
   return def
     ? FACTIONS_DATA[def.factionId].applyReactiveTrait(state, basePower, baseTribute, {
@@ -1021,7 +1030,7 @@ export function dispatch(
       const strongholdCount = state.provinceBiomes.filter((b) => b === 'stronghold').length
       const tributeCost = getThreatTributeAp(
         quota.apRate,
-        config.balance.THREAT_TRIBUTE_QUOTA_SECONDS,
+        getThreatTributeSeconds(state.deadline, config.balance),
       )
       const res = resolveDefensiveClash(
         state,

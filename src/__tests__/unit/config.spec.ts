@@ -808,6 +808,12 @@ const ROWS: readonly Row[] = [
   row('THREAT_TRIBUTE_QUOTA_SECONDS', (c) =>
     commanded(realm(1, {}, { phase: 'COUNCIL_LAWS', deadline: 3 }), { type: 'REJECT_LAWS' }, c),
   ),
+  row('THREAT_TRIBUTE_LATE_QUOTA_SECONDS', (c) =>
+    commanded(realm(1, {}, { phase: 'COUNCIL_LAWS', deadline: 7 }), { type: 'REJECT_LAWS' }, c),
+  ),
+  row('THREAT_TRIBUTE_LATE_FIRST_DEADLINE', (c) =>
+    commanded(realm(1, {}, { phase: 'COUNCIL_LAWS', deadline: 7 }), { type: 'REJECT_LAWS' }, c),
+  ),
   row('THREAT_HERALD_FIRST_DEADLINE', (c) =>
     commanded(realm(1, {}, { phase: 'COUNCIL_LAWS', deadline: 2 }), { type: 'REJECT_LAWS' }, c),
   ),

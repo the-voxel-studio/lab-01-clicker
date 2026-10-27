@@ -714,6 +714,30 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       expect(calculateUpkeep(state, DEFAULT_ENGINE_CONFIG) - plain).toBeCloseTo(unitUpkeep * 0.3, 6)
     })
 
+    it('salvages from the late 4 second tribute on a surprise raid repelled at deadline 8', () => {
+      const quota = DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 8)!
+      const setup = (): ReturnType<typeof createInitialGameState> => {
+        const state = createInitialGameState()
+        state.phase = 'SURPRISE_RAID'
+        state.deadline = 8
+        state.units.soldier = 5000
+        return state
+      }
+      const res = dispatch(setup(), { type: 'RESOLVE_RAID_DEFENSE' })
+      const reference = setup()
+      const expected = resolveDefensiveClash(
+        reference,
+        calculateMilitaryPower(reference),
+        Math.round(0.5 * quota.military),
+        0,
+        undefined,
+        DEFAULT_ENGINE_CONFIG,
+        getThreatTributeAp(quota.apRate, 4),
+      )
+      expect(expected.success).toBe(true)
+      expect(res.events).toEqual(expected.events)
+    })
+
     it('composes threat power on a surprise raid', () => {
       const quota = DEFAULT_ENGINE_CONFIG.quotas.find((q) => q.deadline === 6)!
       const setup = (law: boolean): ReturnType<typeof createInitialGameState> => {
@@ -732,7 +756,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       const state = setup(true)
       const res = dispatch(state, { type: 'RESOLVE_RAID_DEFENSE' })
       const raidPower = Math.round(Math.round(0.5 * quota.military) * 0.4)
-      expect(raidPower).toBe(34)
+      expect(raidPower).toBe(36)
       const reference = setup(true)
       const expected = resolveDefensiveClash(
         reference,

@@ -1,9 +1,10 @@
 /**
  * Quota solver and balance report (GAME_RULES §21).
  *
- * Derives the 10 deadline quotas from the Greedy bot: `Quota_k = c x Median_k`, where `Median_k`
- * is the median audited metric at deadline k (gross AP rate, population, military power) of the
- * quota blind Greedy bot, the calibration variant that never reads a quota. One calibration pass
+ * Derives the 10 deadline quotas from the Greedy bot: `Quota_k = c x w_k x Median_k` from deadline
+ * 2 (`w` = 0.9, 0.95, then 1) and `Quota_1 = floor(Median_1)`, where `Median_k` is the median
+ * audited metric at deadline k (gross AP rate, population, military power) of the quota blind
+ * Greedy bot, the calibration variant that never reads a quota. One calibration pass
  * runs it on the calibration seeds under relaxed quotas, so every run reaches the 10 audits and the
  * medians carry no survivor bias. A bisection on c then looks for the table that puts the real,
  * quota aware Greedy ROI bot in its [35%, 65%] win rate band on the validation seeds; that table
@@ -57,6 +58,12 @@ const MAX_BISECTION_STEPS = 12
 
 /** Number of deadlines of a run. */
 const DEADLINE_COUNT = 10
+
+/**
+ * Share of c applied to the deadlines after the first, by deadline; 1 when absent. The opening
+ * deadlines have almost no spread, so a full c turns them into a cliff (balance study, plan 01).
+ */
+const EARLY_C_WEIGHTS: Readonly<Record<number, number>> = { 2: 0.9, 3: 0.95 }
 
 /**
  * Relaxed quotas of the calibration runs: tiny and strictly increasing, so no calibration run can
@@ -242,8 +249,19 @@ export function roundAxis(raw: readonly number[], axis: Axis): number[] {
 }
 
 /**
- * Quota table for a coefficient: c times the calibration medians, rounded and strictly increasing
- * per axis.
+ * Raw quota of one axis at one deadline: the floor of the median at deadline 1 (whatever c), then c
+ * times the early weight times the median.
+ */
+function rawQuota(c: number, entry: DeadlineCalibration, axis: Axis): number {
+  const median = entry[axis].median
+  return entry.deadline === 1
+    ? Math.floor(median)
+    : c * (EARLY_C_WEIGHTS[entry.deadline] ?? 1) * median
+}
+
+/**
+ * Quota table for a coefficient: deadline 1 at the floor of its medians, then c times the early
+ * weight times the calibration medians, rounded and strictly increasing per axis.
  *
  * @param c - Coefficient applied to the medians.
  * @param calibration - Calibration statistics.
@@ -259,7 +277,7 @@ export function quotaTable(c: number, calibration: Calibration): DeadlineQuota[]
   }
   const [apRate, pop, military] = AXES.map((axis) =>
     roundAxis(
-      calibration.deadlines.map((entry) => c * entry[axis].median),
+      calibration.deadlines.map((entry) => rawQuota(c, entry, axis)),
       axis,
     ),
   )

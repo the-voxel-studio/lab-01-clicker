@@ -862,7 +862,7 @@ export function performScoutReroll(
  * Handles the three responses to scheduled Crown threats (GAME_RULES §8.2).
  *
  * 1. Armed Defense: Player acts as Defender (+20% fortification).
- * 2. Pay Crown Tribute: Costs 20 seconds of AP gross rate quota (tributeAp). Bypasses combat.
+ * 2. Pay Crown Tribute: Costs the announced tribute (tributeAp, see `getThreatTributeSeconds`). Bypasses combat.
  * 3. Levy en Masse: Costs `LEVY_CASUALTY_SHARE` of the population and `LEVY_UNREST` unrest. Repels threat.
  *
  * @param state - The active mutable GameState.

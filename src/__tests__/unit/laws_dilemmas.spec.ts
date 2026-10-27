@@ -338,7 +338,7 @@ describe('GAME_RULES §9: dilemma trigger thresholds', () => {
   /**
    * Records the last audit with a given gross AP rate.
    *
-   * @param state - State to change; its deadline 1 quota is 12 AP/s.
+   * @param state - State to change; its deadline 1 quota is 11 AP/s.
    * @param grossApRate - Gross AP rate seen by the last audit.
    */
   function auditedAt(state: GameState, grossApRate: number): void {
@@ -370,14 +370,14 @@ describe('GAME_RULES §9: dilemma trigger thresholds', () => {
     },
     {
       id: 'dilemma:scribe_counted_too_much',
-      holds: realm((s) => auditedAt(s, 13)),
-      fails: realm((s) => auditedAt(s, 14)),
+      holds: realm((s) => auditedAt(s, 12)),
+      fails: realm((s) => auditedAt(s, 13)),
       why: 'gross AP rate under 115% of the audited quota',
     },
     {
       id: 'dilemma:cabinet_scarcity',
-      holds: realm((s) => auditedAt(s, 37)),
-      fails: realm((s) => auditedAt(s, 36)),
+      holds: realm((s) => auditedAt(s, 34)),
+      fails: realm((s) => auditedAt(s, 33)),
       why: 'gross AP rate above 300% of the audited quota',
     },
     {

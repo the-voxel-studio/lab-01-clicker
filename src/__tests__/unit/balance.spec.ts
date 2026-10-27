@@ -13,6 +13,7 @@ import {
   DEADLINE_QUOTAS,
   getThreatPower,
   getThreatTributeAp,
+  getThreatTributeSeconds,
   getDeadlineThreat,
   type UnitId,
 } from '@/data/balance'
@@ -88,7 +89,7 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
     expect(BIOMES_DATA.wilderness.paperworkReduction).toBe(0.05)
   })
 
-  it('calculates scheduled crown threats dynamically from quotas (80% military, 20s AP rate throughput)', () => {
+  it('calculates scheduled crown threats dynamically from quotas (80% military, AP rate quota seconds)', () => {
     expect(getThreatPower(45)).toBe(36)
     expect(getThreatPower(75)).toBe(60)
     expect(getThreatTributeAp(28)).toBe(560)
@@ -101,8 +102,19 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
       const threat = getDeadlineThreat(quota)
       expect(threat.deadline).toBe(quota.deadline)
       expect(threat.power).toBe(Math.round(quota.military * 0.8))
-      expect(threat.tributeAp).toBe(Math.round(20 * quota.apRate))
+      const seconds = quota.deadline >= 8 ? 4 : 20
+      expect(threat.tributeAp).toBe(Math.round(seconds * quota.apRate))
     }
+  })
+
+  it('asks 20 seconds of the AP rate quota as tribute up to deadline 7 and 4 seconds from deadline 8', () => {
+    expect(BALANCE.THREAT_TRIBUTE_QUOTA_SECONDS).toBe(20)
+    expect(BALANCE.THREAT_TRIBUTE_LATE_QUOTA_SECONDS).toBe(4)
+    expect(BALANCE.THREAT_TRIBUTE_LATE_FIRST_DEADLINE).toBe(8)
+    expect(getThreatTributeSeconds(3)).toBe(20)
+    expect(getThreatTributeSeconds(7)).toBe(20)
+    expect(getThreatTributeSeconds(8)).toBe(4)
+    expect(getThreatTributeSeconds(10)).toBe(4)
   })
 
   it('validates strictly ascending quotas across all 10 deadlines', () => {
@@ -120,27 +132,27 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
 
   it('keeps the calibrated quota table and the threat figures of GAME_RULES §8.1', () => {
     expect(DEADLINE_QUOTAS.map((q) => [q.apRate, q.pop, q.military])).toEqual([
-      [12, 156, 11],
-      [22, 304, 22],
-      [33, 499, 28],
-      [54, 647, 29],
-      [144, 744, 108],
-      [254, 827, 169],
-      [443, 905, 289],
-      [945, 1097, 859],
-      [1802, 3484, 1333],
-      [2784, 6363, 2216],
+      [11, 151, 11],
+      [21, 289, 21],
+      [33, 500, 28],
+      [57, 682, 30],
+      [152, 784, 114],
+      [268, 872, 178],
+      [468, 954, 305],
+      [997, 1157, 906],
+      [1901, 3674, 1406],
+      [2936, 6710, 2337],
     ])
 
     const documentedThreats = [
       [3, 22, 660],
-      [4, 23, 1080],
-      [5, 86, 2880],
-      [6, 135, 5080],
-      [7, 231, 8860],
-      [8, 687, 18900],
-      [9, 1066, 36040],
-      [10, 1773, 55680],
+      [4, 24, 1140],
+      [5, 91, 3040],
+      [6, 142, 5360],
+      [7, 244, 9360],
+      [8, 725, 3988],
+      [9, 1125, 7604],
+      [10, 1870, 11744],
     ]
     const computed = DEADLINE_QUOTAS.filter((q) => q.deadline >= 3).map((q) => {
       const threat = getDeadlineThreat(q)

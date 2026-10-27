@@ -104,7 +104,7 @@ The V1 engine is calibrated and frozen at Gate E, pending the final review. All 
   2. Cumulative desertion from 75% to 99% Unrest; *Sanctuary Rights* removes desertion below 90% only.
   3. AP quota as an instant gross debit (AP/s, `ApRateQuota`) at inspection; clicks and transfers excluded.
   4. Signed treasury: no reset of debt, solvency required for any costly choice (explicit exception: `DISBAND_UNIT` §14.1 allowed without AP, with +2 Unrest per unpaid unit).
-  5. Threat herald: after audit $d$ ($2 \le d \le 9$), announces and resolves threat $d+1$; tribute = $20 \times \text{ApRateQuota}_{d+1}$.
+  5. Threat herald: after audit $d$ ($2 \le d \le 9$), announces and resolves threat $d+1$; tribute = $20 \times \text{ApRateQuota}_{d+1}$ ($4 \times$ from deadline 8).
   6. Defeat by conquest: the 1-province floor does not protect against a military collapse (`conquest` defeat at 0 provinces).
   7. Neutral starting biome: `heartland` biome (3 starting provinces = 750 capacity); province loss in LIFO order.
   8. Bulk purchases: tiers as maximum purchase sizes (1, 10, 50, 100); validation of any integer quantity $\le$ max; Buy Max bounded by the maximum size.
@@ -285,3 +285,4 @@ The V1 engine is calibrated and frozen at Gate E, pending the final review. All 
 
 ### After the Gate E freeze
 - A deadline reached during a surprise raid or a Lombard offer is now audited as soon as the crisis resolves, so no command applies between the deadline and the audit; the simulation runner no longer journals a zero time tick for it. Accepting the Lombard loan restores the full composed bankruptcy grace (Audit Chambers, Chancery Red Tape) instead of the base 30 seconds, like the other grace resets. The solver rerun kept $c = 1.0313$ and moved three quota cells by one unit (D4 AP rate 54, D9 population 3,484, D10 population 6,363); validation Greedy 56%, Conqueror 95%.
+- Balance pass: a study showed that the opening deadlines have almost no spread across seeds, so a full $c$ turned them into a cliff (a step of 0.005 in $c$ cost the Greedy bot 28 points, every run losing its pardon at deadline 1). Deadline 1 is now the floor of its medians and $c$ is weighted 0.9 and 0.95 at deadlines 2 and 3; lowering the tier I cost ratio instead made the solver fail or the gap worse. The tributes of threats 8 to 10 ask 4 seconds of the AP rate quota instead of 20 (11,744 AP at deadline 10, against 55,680 in the previous table), since a flat cut drained the treasury at the early heralds. Solver: $c = 1.0875$, validation Random 0%, Greedy 55%, Bureaucrat 100%, Conqueror 84%; sensitivity baseline 0.43, worst gap 0.10, and the tier I $\times 1.1$ `it.fails` is removed.

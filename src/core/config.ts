@@ -119,6 +119,8 @@ export interface BalanceConfig {
   readonly RAID_POWER_QUOTA_SHARE: number
   readonly THREAT_POWER_QUOTA_SHARE: number
   readonly THREAT_TRIBUTE_QUOTA_SECONDS: number
+  readonly THREAT_TRIBUTE_LATE_QUOTA_SECONDS: number
+  readonly THREAT_TRIBUTE_LATE_FIRST_DEADLINE: number
   readonly THREAT_HERALD_FIRST_DEADLINE: number
   readonly LEVY_CASUALTY_SHARE: number
   readonly LEVY_UNREST: number

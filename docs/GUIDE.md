@@ -77,20 +77,20 @@
 #### 2.2 Calibrated Quota Matrix Across All 10 Deadlines
 > [!NOTE]
 > **Matrix Status: calibrated by the solver (`src/data/balance.generated.ts`).**  
-> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$, where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% to 65% win rate**.
+> The quotas below match `DEADLINE_QUOTAS` in `src/data/balance.generated.ts`. On the AP axis, the quota represents the **instantaneous gross AP rate (AP/s)** at audit inspection. Quotas are calibrated by the headless simulation and balance script (`scripts/generate-balance-report.ts`) via the coupled formula $\text{Quota}_k = c \times w_k \times \text{MedianGreedyBotScore}_k$ ($w_2 = 0.9$, $w_3 = 0.95$, then 1; deadline 1 is the floor of its medians), where the medians come from the quota blind Greedy variant under relaxed quotas. The coefficient $c$ is solved algorithmically by the script until the quota aware Greedy ROI bot (the bisection target, on validation seeds) stabilizes strictly within the target band of **35% to 65% win rate**.
 
 | Deadline | Gross AP Rate Quota (AP/s) | Total Population | Military Combat Power | Unlocks & Key Milestones (engine gates) |
 | :---: | :---: | :---: | :---: | :--- |
-| **1** | 12 AP/s | 156 Pop | 11 Power | All Tier I units, clicks, tax slider |
-| **2** | 22 AP/s | 304 Pop | 22 Power | Threat Herald opens after this audit |
-| **3** | 33 AP/s | 499 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy |
-| **4** | 54 AP/s | 647 Pop | 29 Power | Tier II patents can be bought |
-| **5** | 144 AP/s | 744 Pop | 108 Power | 2× Fast-Forward |
-| **6** | 254 AP/s | 827 Pop | 169 Power | 50× Bulk Buy |
-| **7** | 443 AP/s | 905 Pop | 289 Power | Holy League Crusade |
-| **8** | 945 AP/s | 1,097 Pop | 859 Power | 100× Bulk Buy (Peasants & Scribes) |
-| **9** | 1,802 AP/s | 3,484 Pop | 1,333 Power | Penultimate Crown audit |
-| **10** | 2,784 AP/s | 6,363 Pop | 2,216 Power | **The Grand Audit Final Inspection (Victory)** |
+| **1** | 11 AP/s | 151 Pop | 11 Power | All Tier I units, clicks, tax slider |
+| **2** | 21 AP/s | 289 Pop | 21 Power | Threat Herald opens after this audit |
+| **3** | 33 AP/s | 500 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy |
+| **4** | 57 AP/s | 682 Pop | 30 Power | Tier II patents can be bought |
+| **5** | 152 AP/s | 784 Pop | 114 Power | 2× Fast-Forward |
+| **6** | 268 AP/s | 872 Pop | 178 Power | 50× Bulk Buy |
+| **7** | 468 AP/s | 954 Pop | 305 Power | Holy League Crusade |
+| **8** | 997 AP/s | 1,157 Pop | 906 Power | 100× Bulk Buy (Peasants & Scribes) |
+| **9** | 1,901 AP/s | 3,674 Pop | 1,406 Power | Penultimate Crown audit |
+| **10** | 2,936 AP/s | 6,710 Pop | 2,337 Power | **The Grand Audit Final Inspection (Victory)** |
 
 ### 2.3 The Royal Pardon (Yellow Card Grace Rule)
 - **One Strike Permitted (Deadlines 1 to 9):** The first time a player meets fewer than 2 out of 3 quotas at a deadline prior to Deadline 10, the Crown issues a **Royal Censure**:
@@ -409,7 +409,7 @@ Occurs once at the conclusion of each deadline. The Steward speaks with a defere
 ## 8. The Crown Threats Catalog (Deadlines 3 to 10)
 
 Crown threats activate commencing after the Deadline 2 audit. During the Inter-Deadline Council phase following deadline $d$ ($2 \le d \le 9$), the Threat Herald reveals and resolves the upcoming threat for deadline **$d+1$**:
-$$\text{BaseThreatPower} = 0.80 \times \text{MilitaryQuota}_{d+1}, \quad \text{TributeCost} = 20 \times \text{ApRateQuota}_{d+1}$$
+$$\text{BaseThreatPower} = 0.80 \times \text{MilitaryQuota}_{d+1}, \quad \text{TributeCost} = s_{d+1} \times \text{ApRateQuota}_{d+1}, \quad s_k = 20 \text{ if } k < 8, \text{ else } 4$$
 
 #### 8.1 Threat Matrix & Spontaneous Surprise Raids
 The realm faces two distinct vectors of military hostility:
@@ -419,24 +419,24 @@ The realm faces two distinct vectors of military hostility:
    - *Hard Caps & Cooldown:* Maximum **1 surprise raid per deadline**, minimum **60-second cooldown** between raids. Raid power equals **$0.50 \times \text{MilitaryQuota}$**.
 > [!NOTE]
 > **Values derived from `src/data/balance.generated.ts`.**  
-> Base threat power ($0.80 \times \text{MilitaryQuota}_{d+1}$) and tribute ($20 \times \text{ApRateQuota}_{d+1}$) are dynamically computed by the engine via `getThreatPower()` and `getThreatTributeAp()` from active quotas and are not hardcoded. The figures below match `balance.generated.ts`.
+> Base threat power ($0.80 \times \text{MilitaryQuota}_{d+1}$) and tribute ($20 \times \text{ApRateQuota}_{d+1}$, $4 \times$ from deadline 8) are dynamically computed by the engine via `getThreatPower()`, `getThreatTributeSeconds()` and `getThreatTributeAp()` from active quotas and are not hardcoded. The figures below match `balance.generated.ts`.
 
-| Threat Deadline | Scheduled Threat | Faction | Base Power (80% Mil Quota) | Tribute (20s Gross AP Rate) | Failure Penalty (Defensive Collapse) |
+| Threat Deadline | Scheduled Threat | Faction | Base Power (80% Mil Quota) | Tribute (20s Gross AP Rate, 4s from D8) | Failure Penalty (Defensive Collapse) |
 | :---: | :--- | :--- | :---: | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaw Bandits & Marauders | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **4** | *The Rebellious Marches Baron* | Rebel Barons | 23 | 1,080 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 86 | 2,880 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 135 | 5,080 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **7** | *The Holy League Crusade* | Holy League Zealots | 231 | 8,860 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 687 | 18,900 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,066 | 36,040 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 1,773 | 55,680 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **4** | *The Rebellious Marches Baron* | Rebel Barons | 24 | 1,140 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 91 | 3,040 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **6** | *The Renegade Free Companies* | Free Company Mercenaries | 142 | 5,360 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **7** | *The Holy League Crusade* | Holy League Zealots | 244 | 9,360 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **8** | *The Pretender Duke's Vanguard* | Rebel Barons | 725 | 3,988 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **9** | *The Grand Inquisitorial Armada* | Holy League Zealots | 1,125 | 7,604 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **10** | *The Royal Auditor's Iron Host* | Imperial Crown Legions | 1,870 | 11,744 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 
 The figures are the base values: the faction trait (§9.1) adjusts them when the threat is announced (Rebel Barons +10% power against a large army, Mercenaries +25% tribute, Imperial Crown Legions take 2 provinces).
 
 ### 8.2 The Three Responses to Scheduled Threats
 1. **Defend with Armed Forces (`defense`):** Resolves via the generalized battle system where the player acts as **Defender** (+20% fortification bonus + Stronghold defense).
-2. **Pay Crown Tribute (`tribute`):** Costs $20 \times \text{ApRateQuota}_{d+1}$ in gold treasury. Bypasses combat entirely. **Requires `state.ap >= TributeCost`; if unaffordable, the command is strictly rejected (`success: false`) and the phase remains `THREAT_HERALD`**; the player must select `defense` or `levy`.
+2. **Pay Crown Tribute (`tribute`):** Costs $20 \times \text{ApRateQuota}_{d+1}$ in gold treasury ($4 \times$ from deadline 8). Bypasses combat entirely. **Requires `state.ap >= TributeCost`; if unaffordable, the command is strictly rejected (`success: false`) and the phase remains `THREAT_HERALD`**; the player must select `defense` or `levy`.
 3. **Levy en Masse (`levy`):** Always available regardless of AP. Repels the threat automatically, but causes **+30 immediate Unrest** (via `addUnrest`; if Unrest reaches 100, revolution defeat triggers immediately and is never overwritten) and **5% population casualties** (preserving the §4.1 Population Balance Equation via demographic mutation helper).
 
 ---
@@ -633,14 +633,14 @@ The simulation tests game fairness across three distinct player skill levels:
 
 ### 15.2 Reference Bot Quota Generation Script
 Quotas are not guessed or hardcoded arbitrarily. They are derived directly from the median performance of the Greedy ROI Bot over multiple fixed seeds:
-$$\text{Quota}_k = c \times \text{MedianGreedyBotScore}_k$$
+$$\text{Quota}_1 = \lfloor \text{MedianGreedyBotScore}_1 \rfloor, \quad \text{Quota}_k = c \times w_k \times \text{MedianGreedyBotScore}_k \ (k \ge 2), \quad w = (0.9, 0.95, 1, 1, \dots)$$
 
 On the AP axis, the bot's score evaluated at audit $k$ is the **instantaneous Gross AP Rate (AP/s)**.
 The scaling coefficient $c$ is not arbitrarily fixed at 0.8; it is an unknown variable solved algorithmically by the script `scripts/generate-balance-report.ts` via bisection until the greedy bot (evaluating balanced utility across AP, Population, and Military) stabilizes strictly within the target band of **35% to 65% win rate**.
 
 ### 15.3 Dominance & Sensitivity Metrics
 - **Dominance Detection (Per Archetype):** Tracks unit purchase distributions over 200 runs per archetype (`dominance.bureaucrat.spec.ts`, `dominance.conqueror.spec.ts`). Every unit role must be bought at least once, and beyond Deadline 3 (after the opening phase where Scribes and Peasants naturally dominate, spending after 300 s) no single unit may exceed 60% of the spending within a given archetype build.
-- **Sensitivity Testing (`sensitivity.*.spec.ts`, shared body `sensitivitySuite.ts`, one file per key so Vitest runs them in parallel):** Scales $r_0$, the two cost ratios ($1.07/1.05$, scaled on their growth part $r - 1$) and the poll tax rate by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline. The tier I cost ratio growth $\times 1.1$ variant (baseline 0.49, variant 0.28, gap 0.21) is a known balance follow up and its test is marked `it.fails`.
+- **Sensitivity Testing (`sensitivity.*.spec.ts`, shared body `sensitivitySuite.ts`, one file per key so Vitest runs them in parallel):** Scales $r_0$, the two cost ratios ($1.07/1.05$, scaled on their growth part $r - 1$) and the poll tax rate by $\pm 10\%$, one at a time, over 100 seeds (40001 to 40100), and asserts that the Greedy win rate stays within 0.20 of the baseline. Baseline 0.43 with the current table; every variant stays inside the band (worst gap 0.10, tier I cost ratio growth $\times 1.1$: 0.41).
 - **Step Size Invariance (`stepSize.spec.ts`):** Replays 20 Greedy runs at $\Delta t = 0.05\text{ s}$ and $1.0\text{ s}$ and asserts the same phase, deadline, state hash, and AP, population and military within 1%.
 
 ---
@@ -749,7 +749,7 @@ To guarantee absolute economic balance, bulletproof state transitions, and high-
 - **Validation Gate C: Asymmetric Combat & Dynamic Threats**:
   - Asymmetric tactical combat model (Attacker -10% friction vs Defender +20% fortification).
   - Razor-thin victory rule ($\le 5\%$ victory margin $\to$ no province awarded).
-  - Dynamically calculated threats and tributes ($0.80 \times \text{MilitaryQuota}_{d+1}$ and $20 \times \text{ApRateQuota}_{d+1}$ via `getThreatPower()` and `getThreatTributeAp()`).
+  - Dynamically calculated threats and tributes ($0.80 \times \text{MilitaryQuota}_{d+1}$ and $20 \times \text{ApRateQuota}_{d+1}$, $4 \times$ from deadline 8, via `getThreatPower()` and `getThreatTributeAp()`).
   - Reactive surprise border raids and adaptive enemy factions.
   - Province floor rule (hard floor = 1 province) on royal fines and Lombard bailouts (does not protect against battle collapse; 0 provinces triggers `conquest` defeat).
 - **Validation Gate D: Complete Narrative & System Content**:

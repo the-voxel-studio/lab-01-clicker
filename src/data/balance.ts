@@ -168,6 +168,8 @@ export const BALANCE = {
   RAID_POWER_QUOTA_SHARE: 0.5, // ratio of the military quota: power of a surprise raid
   THREAT_POWER_QUOTA_SHARE: 0.8, // ratio of the military quota: power of a Crown threat
   THREAT_TRIBUTE_QUOTA_SECONDS: 20, // seconds of the AP rate quota: Crown tribute
+  THREAT_TRIBUTE_LATE_QUOTA_SECONDS: 4, // seconds of the AP rate quota: tribute from the late deadlines
+  THREAT_TRIBUTE_LATE_FIRST_DEADLINE: 8, // deadline index: first deadline asking the late tribute
   THREAT_HERALD_FIRST_DEADLINE: 2, // deadline index: first deadline that heralds the next threat
   LEVY_CASUALTY_SHARE: 0.05, // ratio of population: lost to a Levy en Masse
   LEVY_UNREST: 30, // Unrest points: added by a Levy en Masse
@@ -579,7 +581,31 @@ export function getThreatPower(
 }
 
 /**
- * Dynamic calculation of Crown threat tribute based on deadline AP gross rate quota (`THREAT_TRIBUTE_QUOTA_SECONDS` seconds of required throughput).
+ * Seconds of the AP rate quota a tribute asks at a deadline: `THREAT_TRIBUTE_QUOTA_SECONDS`, then
+ * `THREAT_TRIBUTE_LATE_QUOTA_SECONDS` from `THREAT_TRIBUTE_LATE_FIRST_DEADLINE`.
+ *
+ * @param deadline - Deadline the tribute is asked for.
+ * @param balance - Balance numbers in force.
+ */
+export function getThreatTributeSeconds(
+  deadline: number,
+  balance: Readonly<
+    Record<
+      | 'THREAT_TRIBUTE_QUOTA_SECONDS'
+      | 'THREAT_TRIBUTE_LATE_QUOTA_SECONDS'
+      | 'THREAT_TRIBUTE_LATE_FIRST_DEADLINE',
+      number
+    >
+  > = BALANCE,
+): number {
+  return deadline >= balance.THREAT_TRIBUTE_LATE_FIRST_DEADLINE
+    ? balance.THREAT_TRIBUTE_LATE_QUOTA_SECONDS
+    : balance.THREAT_TRIBUTE_QUOTA_SECONDS
+}
+
+/**
+ * Crown tribute for an AP gross rate quota: `quotaSeconds` seconds of required throughput (pick them with
+ * `getThreatTributeSeconds`; the default is the early `THREAT_TRIBUTE_QUOTA_SECONDS`).
  *
  * @param apRate - AP gross rate quota (AP/s).
  * @param quotaSeconds - Seconds of the AP rate quota the tribute asks.
@@ -603,7 +629,7 @@ export function getDeadlineThreat(quota: DeadlineQuota): {
   return {
     deadline: quota.deadline,
     power: getThreatPower(quota.military),
-    tributeAp: getThreatTributeAp(quota.apRate),
+    tributeAp: getThreatTributeAp(quota.apRate, getThreatTributeSeconds(quota.deadline)),
   }
 }
 

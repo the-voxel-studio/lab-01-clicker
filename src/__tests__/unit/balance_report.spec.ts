@@ -94,28 +94,49 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
   describe('quotaTable', () => {
     const calibration: Calibration = {
       deadlines: [
-        deadlineOf(1, [10, 100, 20]),
+        deadlineOf(1, [10.7, 100.9, 20.2]),
         deadlineOf(2, [20, 200, 40]),
-        deadlineOf(3, [20, 300, 40]),
+        deadlineOf(3, [40, 400, 80]),
+        deadlineOf(4, [80, 800, 160]),
+        deadlineOf(5, [80, 800, 160]),
       ],
       defeats: {},
     }
 
-    it('multiplies the median of each deadline by c', () => {
-      const table = quotaTable(0.5, calibration)
-      expect(table.map((row) => row.deadline)).toEqual([1, 2, 3])
-      expect(table[0]).toEqual({ deadline: 1, apRate: 5, pop: 50, military: 10 })
-      expect(table[1]).toEqual({ deadline: 2, apRate: 10, pop: 100, military: 20 })
+    it('keeps deadline 1 at the floor of its medians whatever c', () => {
+      expect(quotaTable(1, calibration)[0]).toEqual({
+        deadline: 1,
+        apRate: 10,
+        pop: 100,
+        military: 20,
+      })
+      expect(quotaTable(2, calibration)[0]).toEqual({
+        deadline: 1,
+        apRate: 10,
+        pop: 100,
+        military: 20,
+      })
     })
 
-    it('is strictly increasing on every axis, even when the medians are flat', () => {
-      const table = quotaTable(0.5, calibration)
-      for (let index = 1; index < table.length; index++) {
-        expect(table[index]!.apRate).toBeGreaterThan(table[index - 1]!.apRate)
-        expect(table[index]!.pop).toBeGreaterThan(table[index - 1]!.pop)
-        expect(table[index]!.military).toBeGreaterThan(table[index - 1]!.military)
+    it('weights c by 0.9 at deadline 2, 0.95 at deadline 3 and 1 from deadline 4', () => {
+      const table = quotaTable(2, calibration)
+      expect(table.map((row) => row.deadline)).toEqual([1, 2, 3, 4, 5])
+      expect(table[1]).toEqual({ deadline: 2, apRate: 36, pop: 360, military: 72 })
+      expect(table[2]).toEqual({ deadline: 3, apRate: 76, pop: 760, military: 152 })
+      expect(table[3]).toEqual({ deadline: 4, apRate: 160, pop: 1600, military: 320 })
+    })
+
+    it('is strictly increasing on every axis, even when the medians are flat or c is low', () => {
+      for (const c of [0.3, 1, 2]) {
+        const table = quotaTable(c, calibration)
+        for (let index = 1; index < table.length; index++) {
+          expect(table[index]!.apRate).toBeGreaterThan(table[index - 1]!.apRate)
+          expect(table[index]!.pop).toBeGreaterThan(table[index - 1]!.pop)
+          expect(table[index]!.military).toBeGreaterThan(table[index - 1]!.military)
+        }
       }
-      expect(table[2]!.apRate).toBe(11)
+      expect(quotaTable(2, calibration)[4]!.apRate).toBe(161)
+      expect(quotaTable(0.3, calibration)[1]!.apRate).toBe(11)
     })
 
     it('refuses a non finite median instead of writing it into the table', () => {
