@@ -86,6 +86,10 @@ import checkSvg from '@assets/icons/delapouite/check-mark.svg?raw'
 import cancelSvg from '@assets/icons/sbed/cancel.svg?raw'
 import chevronSvg from '@assets/icons/delapouite/plain-arrow.svg?raw'
 import waxSealSvg from '@assets/icons/lorc/wax-seal.svg?raw'
+import padlockSvg from '@assets/icons/delapouite/plain-padlock.svg?raw'
+import candleFlameSvg from '@assets/icons/lorc/candle-flame.svg?raw'
+import fleurDeLysSvg from '@assets/icons/delapouite/fleur-de-lys.svg?raw'
+import cartwheelSvg from '@assets/icons/lorc/cartwheel.svg?raw'
 
 export type GameIconCategory =
   'royal' | 'admin' | 'people' | 'military' | 'threat' | 'economy' | 'time' | 'ui'
@@ -187,6 +191,10 @@ export type GameIconKey =
   | 'cancel'
   | 'chevron'
   | 'waxSeal'
+  | 'padlock'
+  | 'candleFlame'
+  | 'fleurDeLys'
+  | 'fortuneWheel'
 
 /**
  * Extracts inner SVG markup by stripping outer <svg> and </svg> tags.
@@ -843,5 +851,37 @@ export const GAME_ICONS: Record<GameIconKey, IconDefinition> = {
     sourcePath: 'lorc/wax-seal.svg',
     svg: waxSealSvg,
     innerHtml: extractInnerHtml(waxSealSvg),
+  },
+  padlock: {
+    key: 'padlock',
+    label: 'Locked',
+    category: 'ui',
+    sourcePath: 'delapouite/plain-padlock.svg',
+    svg: padlockSvg,
+    innerHtml: extractInnerHtml(padlockSvg),
+  },
+  candleFlame: {
+    key: 'candleFlame',
+    label: 'Candle flame',
+    category: 'time',
+    sourcePath: 'lorc/candle-flame.svg',
+    svg: candleFlameSvg,
+    innerHtml: extractInnerHtml(candleFlameSvg),
+  },
+  fleurDeLys: {
+    key: 'fleurDeLys',
+    label: 'Fleur-de-lys',
+    category: 'royal',
+    sourcePath: 'delapouite/fleur-de-lys.svg',
+    svg: fleurDeLysSvg,
+    innerHtml: extractInnerHtml(fleurDeLysSvg),
+  },
+  fortuneWheel: {
+    key: 'fortuneWheel',
+    label: 'Wheel of Fortune',
+    category: 'military',
+    sourcePath: 'lorc/cartwheel.svg',
+    svg: cartwheelSvg,
+    innerHtml: extractInnerHtml(cartwheelSvg),
   },
 }
