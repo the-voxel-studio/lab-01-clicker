@@ -21,7 +21,53 @@
   font-style: italic;
 }
 
+@font-face {
+  font-family: 'IMFellGreatPrimer';
+  src: url('@assets/fonts/im-fell-great-primer/IMFellGreatPrimer-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'IMFellGreatPrimer';
+  src: url('@assets/fonts/im-fell-great-primer/IMFellGreatPrimer-Italic.woff2') format('woff2');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'IMFellEnglishSC';
+  src: url('@assets/fonts/im-fell-english-sc/IMFellEnglishSC-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @theme {
+  --font-display: 'IMFellGreatPrimer', 'IMFellEnglish', serif;
+  --font-body: 'IMFellEnglish', serif;
+  --font-caps: 'IMFellEnglishSC', 'IMFellEnglish', serif;
+
+  --color-vellum: #efddb8;
+  --color-vellum-shade: #e2cc9f;
+  --color-ink: #2a1a10;
+  --color-ink-faded: #6b5039;
+  --color-rubric: #b8381e;
+  --color-gold: #d6a93a;
+  --color-gold-light: #f6d980;
+  --color-wax: #b5262b;
+  --color-verdigris: #2c8a6c;
+  --color-vermilion: #cf4a28;
+  --color-wood: #c2914e;
+  --color-wood-dark: #7a5228;
+  --color-bar: #2e1c12;
+  --color-cream: #fff1d0;
+  --color-blood: #7a0808;
+  /* Rose is a constraint of the project: grace of the realm and the fabled rarity (design 3.1.1). */
+  --color-rose: #f60887;
+  --color-rose-text: #c4006b;
+  --color-rose-dawn: #fbc2d9;
+  --color-rose-bloom: #fb90c9;
+
   --font-medieval: 'MedievalSharp', serif;
   --font-serif-book: 'IMFellEnglish', Georgia, serif;
 
