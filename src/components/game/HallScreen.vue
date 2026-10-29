@@ -1,24 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { importSaveFromBase64 } from '@/core/migrations'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
-import { readKey, SAVE_KEY } from '@/ui/storage'
 
 const game = useGameStore()
 const nav = useNavStore()
-
-/** Audit of the saved reign, or null when there is none to continue. */
-const savedAudit = computed<number | null>(() => {
-  if (!game.hasSave) return null
-  const raw = readKey(SAVE_KEY)
-  if (raw === null) return null
-  try {
-    return importSaveFromBase64(raw).state.deadline
-  } catch {
-    return null
-  }
-})
 
 function beginReign(): void {
   game.begin()
@@ -44,12 +29,12 @@ function continueReign(): void {
       Begin a reign
     </button>
     <a
-      v-if="savedAudit !== null"
+      v-if="game.savedDeadline !== null"
       href="#"
       class="font-body italic text-rubric underline"
       @click.prevent="continueReign"
     >
-      Continue the reign at audit {{ savedAudit }}
+      Continue the reign at audit {{ game.savedDeadline }}
     </a>
   </section>
 </template>

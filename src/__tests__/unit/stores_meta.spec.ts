@@ -88,8 +88,17 @@ describe('Task 4: storage and the archive, settings and navigation stores', () =
     expect(reloaded.music).toBe(false)
     expect(reloaded.sfx).toBe(false)
     expect(reloaded.reducedMotion).toBe(true)
-    expect(reloaded.doubleSpeed).toBe(true)
+    expect(reloaded.doubleSpeed).toBe(false)
     expect(reloaded.dreadOverride).toBeNull()
+  })
+
+  it('never persists double speed', async () => {
+    const settings = useSettingsStore()
+    settings.load()
+    settings.doubleSpeed = true
+    settings.music = false
+    await Promise.resolve()
+    expect(localStorage.getItem('grand_audit_settings')).not.toContain('doubleSpeed')
   })
 
   it('does not throw when storage refuses a write or a read', () => {

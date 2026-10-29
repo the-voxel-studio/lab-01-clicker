@@ -21,6 +21,7 @@ import {
 import { exportSaveToBase64, importSaveFromBase64 } from '@/core/migrations'
 import type { Command, DispatchResult, GameState, RunPhase } from '@/core/types'
 import { useArchivesStore } from '@/stores/archives'
+import { useChronicleStore } from '@/stores/chronicle'
 import { useNavStore } from '@/stores/nav'
 import { useSettingsStore } from '@/stores/settings'
 import { bandForScore, computeDread, type DreadBand, type DreadReading } from '@/ui/dread'
@@ -46,6 +47,28 @@ const BAND_FLOOR: Record<DreadBand, number> = {
   death_throes: 0.75,
 }
 
+/** Deadline of the stored save; an unreadable save is removed and reads as none. */
+function readSavedDeadline(): number | null {
+  const raw = readKey(SAVE_KEY)
+  if (raw === null) return null
+  try {
+    return importSaveFromBase64(raw).state.deadline
+  } catch {
+    writeKey(SAVE_KEY, null)
+    return null
+  }
+}
+
+/** Commands the chronicle tells; the others are not worth copying the run before dispatch. */
+const TOLD_COMMANDS: ReadonlySet<Command['type']> = new Set([
+  'BUY_UNIT',
+  'SET_TAX_RATE',
+  'ENACT_LAW',
+  'RESOLVE_DILEMMA',
+  'REFUSE_LOMBARD_LOAN',
+  'ACCEPT_LOMBARD_LOAN',
+])
+
 function isConcludedPhase(phase: RunPhase): boolean {
   return phase === 'RUN_DEFEAT' || phase === 'RUN_VICTORY'
 }
@@ -53,13 +76,16 @@ function isConcludedPhase(phase: RunPhase): boolean {
 /** The reign in progress and every action the interface can take on it. */
 export const useGameStore = defineStore('game', () => {
   const archives = useArchivesStore()
+  const chronicle = useChronicleStore()
   const settings = useSettingsStore()
   const nav = useNavStore()
 
   const run = shallowRef<GameState | null>(null)
   const revision = ref(0)
   const lastNetApPerSecond = ref(0)
-  const hasSave = ref(readKey(SAVE_KEY) !== null)
+  const savedDeadline = ref<number | null>(readSavedDeadline())
+  const hasSave = computed(() => savedDeadline.value !== null)
+  const lastSavedDeadline = ref<number | null>(null)
   const lastConclusion = ref<{ conclusion: RunConclusion; record: RunRecord } | null>(null)
 
   /** Reads the run after the last engine call, so computed getters track `revision`. */
@@ -69,6 +95,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   const phase = computed(() => current()?.phase ?? null)
+  const isOver = computed(() => current()?.archiveConcluded ?? false)
   const coffer = computed(() => current()?.ap ?? 0)
   const netApPerSecond = computed(() => {
     void revision.value
@@ -109,14 +136,23 @@ export const useGameStore = defineStore('game', () => {
 
   function clearSave(): void {
     writeKey(SAVE_KEY, null)
-    hasSave.value = false
+    savedDeadline.value = null
+    chronicle.clear()
   }
 
-  function setRun(state: GameState): void {
+  /**
+   * Installs a reign. Every reign starts at normal speed (double speed is a choice made within one
+   * reign) and with its chronicle: the stored one when resuming, else a new one from the coronation.
+   */
+  function setRun(state: GameState, savedAt: number | null = null): void {
     run.value = state
     lastNetApPerSecond.value = 0
     lastConclusion.value = null
+    lastSavedDeadline.value = savedAt
+    settings.doubleSpeed = false
     refresh()
+    const resumed = savedAt !== null && chronicle.load(state.runId)
+    if (!resumed) chronicle.start(state, dread.value.band)
   }
 
   /** Banks the run into the archive once; returns false when it was already concluded. */
@@ -169,7 +205,8 @@ export const useGameStore = defineStore('game', () => {
     const raw = readKey(SAVE_KEY)
     if (raw === null) return false
     try {
-      setRun(importSaveFromBase64(raw).state)
+      const state = importSaveFromBase64(raw).state
+      setRun(state, state.deadline)
       return true
     } catch {
       return false
@@ -180,8 +217,11 @@ export const useGameStore = defineStore('game', () => {
   function act(command: Command): DispatchResult {
     const state = run.value
     if (!state) return { success: false, error: 'No reign in progress.' }
+    const before = TOLD_COMMANDS.has(command.type) ? structuredClone(state) : null
     const result = dispatch(state, command, config)
     refresh()
+    if (before) chronicle.noteCommand(command, result, before, state)
+    chronicle.observe(state, dread.value.band)
     settleIfOver()
     return result
   }
@@ -191,9 +231,13 @@ export const useGameStore = defineStore('game', () => {
     const state = run.value
     if (!state) return
     const factor = settings.doubleSpeed && isFastForwardUnlocked(state, config) ? 2 : 1
+    const phaseBefore = state.phase
     const result = tick(state, dt * factor, config)
     if (result.dt > 0) lastNetApPerSecond.value = result.netApPerSecond
-    refresh()
+    if (result.dt > 0 || state.phase !== phaseBefore) {
+      refresh()
+      chronicle.observe(state, dread.value.band)
+    }
     if (result.deadlineCompleted) save()
     settleIfOver()
   }
@@ -203,7 +247,9 @@ export const useGameStore = defineStore('game', () => {
     const state = run.value
     if (!state || state.archiveConcluded || isConcludedPhase(state.phase)) return
     writeKey(SAVE_KEY, exportSaveToBase64(state, archives.archive))
-    hasSave.value = true
+    savedDeadline.value = state.deadline
+    lastSavedDeadline.value = state.deadline
+    chronicle.persist(state.runId)
   }
 
   /** Lays down the crown: banks the reign as a death would, then shows the end screen. */
@@ -224,12 +270,15 @@ export const useGameStore = defineStore('game', () => {
     run,
     revision,
     phase,
+    isOver,
     coffer,
     netApPerSecond,
     secondsLeft,
     quotas,
     dread,
     hasSave,
+    savedDeadline,
+    lastSavedDeadline,
     lastConclusion,
     begin,
     resume,

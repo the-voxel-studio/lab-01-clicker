@@ -64,6 +64,12 @@ describe('Task 3: run records', () => {
     expect(parseHistory('{"version":1,"records":{}}')).toEqual([])
   })
 
+  it('drops a record whose feats name an inherited property', () => {
+    const valid = createRunRecord(defeatedState(), CONCLUSION, ENDED_AT)
+    const raw = JSON.stringify({ version: 1, records: [{ ...valid, newFeats: ['constructor'] }] })
+    expect(parseHistory(raw)).toEqual([])
+  })
+
   it('drops a malformed record and keeps the valid one beside it', () => {
     const valid = createRunRecord(defeatedState(), CONCLUSION, ENDED_AT)
     const raw = JSON.stringify({ version: 1, records: [{ ...valid, seed: 'x' }, valid] })

@@ -19,7 +19,8 @@ export function useGameLoop(): void {
   const loop = createGameLoop((dt) => game.advance(dt))
 
   const sync = (): void => {
-    const shouldRun = game.run !== null && !SCREENS_WITHOUT_CLOCK.includes(nav.screen)
+    const shouldRun =
+      game.run !== null && !game.isOver && !SCREENS_WITHOUT_CLOCK.includes(nav.screen)
     if (shouldRun && !loop.running()) loop.start()
     else if (!shouldRun && loop.running()) loop.stop()
   }
@@ -30,7 +31,7 @@ export function useGameLoop(): void {
     if (document.hidden) game.save()
   }
 
-  watch(() => [nav.screen, game.run], sync)
+  watch(() => [nav.screen, game.run, game.isOver], sync)
 
   onMounted(() => {
     sync()

@@ -1,0 +1,142 @@
+/**
+ * Counsel line of the run screen: one counsellor names the quota furthest behind and offers a
+ * purchase the engine accepts now (design 4.2, fourth pass). The offer is checked by dispatching
+ * it on a copy of the run, so it never shows a button the engine would refuse.
+ *
+ * @module ui/counsel
+ */
+
+import { dispatch } from '@/core/commands'
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { calculateMaxAffordableUnits, getMaxBulkSize } from '@/core/formulas'
+import type { Command, GameState, UnitId } from '@/core/types'
+import { UNITS_DATA } from '@/data/balance'
+import type { QuotaView } from '@/stores/game'
+import type { DreadBand } from '@/ui/dread'
+
+/** What the counsel line shows: who speaks, what they say, and the purchase they offer. */
+export interface Counsel {
+  title: string
+  text: string
+  action: { label: string; command: Command } | null
+}
+
+const WARNING_SECONDS = 30
+const ROUND_PURCHASE = 10
+
+/** Who speaks for each quota, the unit they offer, and how they phrase it. */
+const ADVISERS: Record<
+  QuotaView['axis'],
+  { name: string; unit: UnitId; label: (count: number, cost: string) => string }
+> = {
+  military: {
+    name: 'The Marshal',
+    unit: 'soldier',
+    label: (count, cost) => `Recruit ${count}, ${cost} AP`,
+  },
+  pop: {
+    name: 'The Steward',
+    unit: 'peasant',
+    label: (count, cost) => `Buy ${count} ${count === 1 ? 'peasant' : 'peasants'}, ${cost} AP`,
+  },
+  ap: {
+    name: 'The Chancellor',
+    unit: 'scribe',
+    label: (count, cost) => `Hire ${count} ${count === 1 ? 'scribe' : 'scribes'}, ${cost} AP`,
+  },
+}
+
+const amount = (value: number): string =>
+  (Math.round(value * 10) / 10).toLocaleString('en', { maximumFractionDigits: 1 })
+
+function shortfallText(quota: QuotaView, men: number, warn: boolean): string {
+  const missing = quota.required - quota.current
+  switch (quota.axis) {
+    case 'military':
+      return warn
+        ? `The army is ${men} men short, and the audit is close.`
+        : `The army is ${men} men short of the Crown's demand.`
+    case 'pop':
+      return `The People are ${Math.ceil(missing).toLocaleString('en')} souls short of the Crown's demand.`
+    case 'ap':
+      return `The Chancery is ${amount(missing)} AP each second short of the Crown's demand.`
+  }
+}
+
+/** Largest count up to `wanted` the engine accepts now, with its cost; null when none. */
+function acceptedPurchase(
+  state: GameState,
+  unit: UnitId,
+  wanted: number,
+): { count: number; cost: number } | null {
+  const owned = state.units[unit] ?? 0
+  const bulk = getMaxBulkSize(state.deadline, state.totalPopulation, UNITS_DATA[unit])
+  const affordable = calculateMaxAffordableUnits(
+    unit,
+    owned,
+    state.ap,
+    state.freeSerfs,
+    Infinity,
+    bulk,
+    DEFAULT_ENGINE_CONFIG,
+    state.activeModifiers,
+  )
+  const candidates = [...new Set([Math.min(wanted, affordable), 1])].filter((count) => count >= 1)
+  for (const count of candidates) {
+    const trial = structuredClone(state)
+    if (dispatch(trial, { type: 'BUY_UNIT', unitId: unit, count }).success) {
+      return { count, cost: state.ap - trial.ap }
+    }
+  }
+  return null
+}
+
+/**
+ * Chooses the counsel for the run: nobody at death throes, praise when every quota is met, else
+ * the counsellor of the quota with the largest shortfall ratio, warning when the band is rotting
+ * or less than 30 s are left.
+ *
+ * @param quotas - The three quota views of the game store.
+ * @param secondsLeft - Seconds left in the deadline.
+ */
+export function adviseCounsel(
+  state: GameState,
+  quotas: QuotaView[],
+  band: DreadBand,
+  secondsLeft: number,
+): Counsel {
+  if (band === 'death_throes') {
+    return {
+      title: 'No one advises you',
+      text: 'Your counsellors have fled the castle.',
+      action: null,
+    }
+  }
+  const unmet = quotas
+    .filter((quota) => !quota.met && quota.required > 0)
+    .sort((a, b) => b.required / Math.max(b.current, 1e-9) - a.required / Math.max(a.current, 1e-9))
+  const worst = unmet[0]
+  if (!worst) {
+    return {
+      title: 'The Steward advises',
+      text: 'Every quota is met. Keep the realm quiet.',
+      action: null,
+    }
+  }
+  const adviser = ADVISERS[worst.axis]
+  const warn = band === 'rotting' || secondsLeft < WARNING_SECONDS
+  const men = Math.ceil((worst.required - worst.current) / UNITS_DATA.soldier.baseValue)
+  const wanted = worst.axis === 'military' ? men : ROUND_PURCHASE
+  const purchase = acceptedPurchase(state, adviser.unit, wanted)
+  return {
+    title: `${adviser.name} ${warn ? 'warns' : 'advises'}`,
+    text: shortfallText(worst, men, warn),
+    action: purchase
+      ? {
+          // Whole AP, rounded up: the player never holds less than the price shown.
+          label: adviser.label(purchase.count, Math.ceil(purchase.cost).toLocaleString('en')),
+          command: { type: 'BUY_UNIT', unitId: adviser.unit, count: purchase.count },
+        }
+      : null,
+  }
+}

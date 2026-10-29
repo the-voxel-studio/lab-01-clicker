@@ -141,6 +141,6 @@ function isRunRecord(value: unknown): value is RunRecord {
     NUMBER_FIELDS.every((field) => typeof value[field] === 'number') &&
     typeof value.lombardBailoutAccepted === 'boolean' &&
     Array.isArray(value.newFeats) &&
-    value.newFeats.every((id) => typeof id === 'string' && id in FEATS_DATA)
+    value.newFeats.every((id) => typeof id === 'string' && Object.hasOwn(FEATS_DATA, id))
   )
 }

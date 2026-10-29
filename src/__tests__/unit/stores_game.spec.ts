@@ -152,16 +152,16 @@ describe('Task 6: game store', () => {
 
   it('ignores double speed before fast forward unlocks', () => {
     const { game, settings } = freshStores()
-    settings.doubleSpeed = true
     game.begin(42)
+    settings.doubleSpeed = true
     game.advance(1)
     expect(game.secondsLeft).toBe(99)
   })
 
   it('doubles the step once fast forward is unlocked', () => {
     const { game, settings } = freshStores()
-    settings.doubleSpeed = true
     game.begin(42)
+    settings.doubleSpeed = true
     const run = game.run
     if (!run) throw new Error('run expected')
     run.deadline = 5
@@ -190,6 +190,55 @@ describe('Task 6: game store', () => {
     expect(game.run?.deadline).toBe(1)
     expect(game.secondsLeft).toBe(100)
     expect(nav.screen).toBe('run')
+  })
+
+  it('reads a corrupt save as no save and removes it', () => {
+    writeKey(SAVE_KEY, 'not a save')
+    const { game } = freshStores()
+    expect(game.savedDeadline).toBeNull()
+    expect(game.hasSave).toBe(false)
+    expect(readKey(SAVE_KEY)).toBeNull()
+  })
+
+  it('knows the deadline of the save and of the last save of the reign', () => {
+    const { game } = freshStores()
+    game.begin(42)
+    expect(game.lastSavedDeadline).toBeNull()
+    game.save()
+    expect(game.savedDeadline).toBe(1)
+    expect(game.lastSavedDeadline).toBe(1)
+  })
+
+  it('does not refresh the getters when a frame runs nothing', () => {
+    const { game } = freshStores()
+    game.begin(42)
+    game.act({ type: 'SET_PAUSED', paused: true })
+    const before = game.revision
+    game.advance(0.01)
+    expect(game.revision).toBe(before)
+  })
+
+  it('marks an abandoned reign as over', () => {
+    const { game } = freshStores()
+    game.begin(42)
+    expect(game.isOver).toBe(false)
+    game.abandon()
+    expect(game.isOver).toBe(true)
+  })
+
+  it('turns double speed off for every new, resumed or restarted reign', () => {
+    const { game, settings } = freshStores()
+    settings.doubleSpeed = true
+    game.begin(42)
+    expect(settings.doubleSpeed).toBe(false)
+    game.save()
+    settings.doubleSpeed = true
+    game.restart()
+    expect(settings.doubleSpeed).toBe(false)
+    game.save()
+    settings.doubleSpeed = true
+    expect(game.resume()).toBe(true)
+    expect(settings.doubleSpeed).toBe(false)
   })
 
   it('exposes the three quotas against their targets', () => {

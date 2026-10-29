@@ -11,6 +11,8 @@ export const SAVE_KEY = 'grand_audit_save'
 export const ARCHIVE_KEY = 'grand_audit_archive'
 /** History of concluded reigns (`RunRecord` document). */
 export const HISTORY_KEY = 'grand_audit_history'
+/** Chronicle of the saved reign, written with the save. */
+export const CHRONICLE_KEY = 'grand_audit_chronicle'
 /** Player settings. */
 export const SETTINGS_KEY = 'grand_audit_settings'
 
