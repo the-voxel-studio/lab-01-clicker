@@ -19,11 +19,12 @@ The full Game-Icons.net SVG library is stored in `assets/icons/`.
 
 ## 2. Typography & Fonts
 
-Located in `assets/fonts/`:
-- **`assets/fonts/medieval-sharp/MedievalSharp-Regular.woff`**: Used for headers, deadline banners, and primary CTA buttons.
-- **`assets/fonts/im-fell-english/IMFellEnglish-Regular.woff` & `IMFellEnglish-Italic.woff`**: Used for ledger tables, steward narrative logs, card descriptions, and numeric readouts.
+Located in `assets/fonts/`, the IM Fell family only:
+- **`im-fell-english/`** (WOFF, regular and italic): body text, notes, figures in sentences (`--font-body`).
+- **`im-fell-great-primer/`** (WOFF2, Latin subset, regular and italic): titles and figures (`--font-display`).
+- **`im-fell-english-sc/`** (WOFF2, Latin subset): small caps labels (`--font-caps`).
 
-Fonts are compressed in WOFF format (43% lighter than raw TTF), declared via `@font-face` rules in `src/assets/main.css`, and inlined into the single HTML distribution.
+Fonts are compressed (WOFF, or WOFF2 subsets for the newer faces), declared via `@font-face` rules in `src/assets/main.css`, and inlined into the single HTML distribution.
 
 ---
 

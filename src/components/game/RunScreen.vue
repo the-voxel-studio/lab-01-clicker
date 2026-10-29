@@ -1,30 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
-import { isFastForwardUnlocked } from '@/core/engine'
 import { useGameStore } from '@/stores/game'
-import { useSettingsStore } from '@/stores/settings'
+import { useNavStore } from '@/stores/nav'
+import ActionBar from './run/ActionBar.vue'
+import ChroniclePanel from './run/ChroniclePanel.vue'
+import CounselLine from './run/CounselLine.vue'
+import GameMenu from './run/GameMenu.vue'
+import KingdomView from './run/KingdomView.vue'
+import RunHud from './run/RunHud.vue'
+import SealButton from './run/SealButton.vue'
 import PhaseStub from './PhaseStub.vue'
 
+/** The run screen of Figma `Screens v7`, rotting with the dread band (design 3.2). */
 const game = useGameStore()
-const settings = useSettingsStore()
+const nav = useNavStore()
 
-/** Run fields the engine mutates in place, read after the last engine call. */
-const run = computed(() => {
+const paused = computed(() => {
   void game.revision
-  const state = game.run
-  return {
-    deadline: state?.deadline ?? 1,
-    paused: state?.isPaused ?? false,
-    fastForward: state ? isFastForwardUnlocked(state, DEFAULT_ENGINE_CONFIG) : false,
-  }
+  return game.run?.isPaused ?? false
 })
-
-const clock = computed(() => {
-  const total = Math.max(0, Math.ceil(game.secondsLeft))
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
-})
-
 const showStub = computed(
   () =>
     game.phase !== null &&
@@ -32,57 +26,48 @@ const showStub = computed(
     game.phase !== 'RUN_DEFEAT' &&
     game.phase !== 'RUN_VICTORY',
 )
-
-function togglePause(): void {
-  game.act({ type: 'SET_PAUSED', paused: !run.value.paused })
-}
 </script>
 
 <template>
-  <section :data-dread="game.dread.band" class="relative flex flex-1 flex-col gap-6 px-5 py-6">
-    <header class="flex items-start justify-between gap-4">
-      <div>
-        <p class="font-caps text-rubric">In the coffer</p>
-        <p data-coffer class="font-display text-4xl text-ink">
-          {{ Math.floor(game.coffer).toLocaleString('en') }} AP
-        </p>
+  <section :data-dread="game.dread.band" class="run relative flex min-h-screen flex-1 flex-col">
+    <div :inert="nav.menuOpen" class="flex flex-1 flex-col">
+      <RunHud />
+      <div class="relative mt-1">
+        <KingdomView :band="game.dread.band" :paused="paused" />
       </div>
-      <div class="text-right">
-        <p class="font-display text-3xl text-ink">{{ clock }}</p>
-        <p class="font-body italic text-ink-faded">Audit {{ run.deadline }} of 10</p>
+      <div class="relative z-10 -mt-[76px]">
+        <SealButton />
       </div>
-    </header>
-
-    <div class="flex gap-3">
-      <button
-        type="button"
-        class="rounded border border-ink-faded bg-vellum-shade px-4 py-2 font-body text-ink"
-        @click="togglePause"
-      >
-        {{ run.paused ? 'Resume' : 'Pause' }}
-      </button>
-      <button
-        type="button"
-        class="rounded border border-ink-faded px-4 py-2 font-body disabled:opacity-50"
-        :class="
-          settings.doubleSpeed && run.fastForward ? 'bg-wax text-cream' : 'bg-vellum-shade text-ink'
-        "
-        :disabled="!run.fastForward"
-        :title="run.fastForward ? 'Double speed' : 'Unlocked at the fifth audit'"
-        @click="settings.doubleSpeed = !settings.doubleSpeed"
-      >
-        ×2
-      </button>
+      <div class="mt-1 flex flex-col gap-2">
+        <CounselLine />
+        <ChroniclePanel />
+      </div>
+      <div class="flex-1" />
+      <div class="sticky bottom-0 z-20">
+        <ActionBar />
+      </div>
     </div>
-
-    <button
-      type="button"
-      class="mx-auto size-40 rounded-full bg-wax font-display text-xl text-cream"
-      @click="game.act({ type: 'STAMP_DOCUMENT' })"
-    >
-      Seal a decree
-    </button>
-
     <PhaseStub v-if="showStub" />
+    <GameMenu />
   </section>
 </template>
+
+<style scoped>
+/* The vellum fouls at the edges as the realm rots; the text keeps its contrast in every band. */
+.run::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: box-shadow 1.2s ease;
+}
+.run[data-dread='uneasy']::after {
+  box-shadow: inset 0 0 40px rgb(122 82 40 / 0.18);
+}
+.run[data-dread='rotting']::after {
+  box-shadow: inset 0 0 70px rgb(74 50 32 / 0.32);
+}
+.run[data-dread='death_throes']::after {
+  box-shadow: inset 0 0 90px rgb(122 8 8 / 0.4);
+}
+</style>
