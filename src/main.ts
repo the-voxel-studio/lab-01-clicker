@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
+import { useArchivesStore } from './stores/archives'
+import { useSettingsStore } from './stores/settings'
 import './assets/main.css'
 
 const app = createApp(App)
@@ -11,4 +13,6 @@ app.config.errorHandler = (err, instance, info) => {
 }
 
 app.use(createPinia())
+useArchivesStore().load()
+useSettingsStore().load()
 app.mount('#app')
