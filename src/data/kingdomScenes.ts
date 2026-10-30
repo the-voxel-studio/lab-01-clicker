@@ -20,3 +20,14 @@ export const KINGDOM_SCENES: Record<DreadBand, string> = {
   rotting: rottingSvg,
   death_throes: deathThroesSvg,
 }
+
+/**
+ * The scene of a band with every id and reference prefixed by the band, so two scenes can be
+ * shown together during a crossfade without their clip paths and gradients colliding.
+ */
+export function scopedScene(band: DreadBand): string {
+  return KINGDOM_SCENES[band]
+    .replace(/id="([^"]+)"/g, `id="${band}-$1"`)
+    .replace(/url\(#([^)]+)\)/g, `url(#${band}-$1)`)
+    .replace(/href="#([^"]+)"/g, `href="#${band}-$1"`)
+}

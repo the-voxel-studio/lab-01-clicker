@@ -13,6 +13,9 @@ const counsel = computed(() => {
   return run ? adviseCounsel(run, game.quotas, game.dread.band, game.secondsLeft) : null
 })
 
+/** The advice without its figures: a shortfall counting down must not fade on every change. */
+const adviceKey = computed(() => counsel.value?.text.replace(/\d[\d,.]*/g, ''))
+
 watch(
   () => counsel.value?.action?.label,
   () => (error.value = null),
@@ -30,7 +33,11 @@ function follow(): void {
   <section v-if="counsel" class="flex items-start gap-3 px-4">
     <div class="min-w-0 flex-1">
       <p class="font-caps text-sm text-rubric">{{ counsel.title }}</p>
-      <p class="font-body text-[17px] leading-6 text-ink">{{ counsel.text }}</p>
+      <Transition name="fade" mode="out-in">
+        <p :key="adviceKey" data-counsel-text class="font-body text-[17px] leading-6 text-ink">
+          {{ counsel.text }}
+        </p>
+      </Transition>
       <p v-if="error" class="font-body text-sm italic text-rubric">{{ error }}</p>
     </div>
     <button

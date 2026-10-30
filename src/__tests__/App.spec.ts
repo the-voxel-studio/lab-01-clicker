@@ -64,6 +64,8 @@ describe('Task 7: bare playable shell', () => {
 
   it('raises the displayed coffer when a decree is sealed', async () => {
     const { wrapper } = mountApp()
+    // The coffer rolls under normal motion; reduced motion shows each value at once.
+    useSettingsStore().reducedMotion = true
     await beginReign(wrapper)
     const coffer = () => Number(wrapper.find('[data-coffer]').text().replace(/\D/g, ''))
     const before = coffer()

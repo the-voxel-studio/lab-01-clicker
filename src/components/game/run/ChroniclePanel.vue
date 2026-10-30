@@ -43,7 +43,7 @@ const firstSentence = (text: string): string =>
           <span class="w-9 shrink-0 font-body text-sm text-rubric">{{
             formatReignClock(entry.reignSeconds)
           }}</span>
-          <span>{{ firstSentence(entry.text) }}</span>
+          <span class="motion-ink">{{ firstSentence(entry.text) }}</span>
         </p>
       </template>
     </div>

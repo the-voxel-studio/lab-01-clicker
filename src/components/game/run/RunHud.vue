@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
-import { formatFigure, formatRate, unrestLine } from '@/ui/realmText'
+import { formatCoffer, formatRate, unrestLine } from '@/ui/realmText'
+import { useMotionAllowed, useRolledNumber } from './useAmbientMotion'
 import CandleClock from './CandleClock.vue'
 import TallyStick from './TallyStick.vue'
 import TimeControls from './TimeControls.vue'
@@ -11,6 +12,16 @@ import TimeControls from './TimeControls.vue'
 /** Top of the run screen (Figma `39:902`): Menu, coffer, rate, candle clock, quotas, unrest. */
 const game = useGameStore()
 const nav = useNavStore()
+const motionOn = useMotionAllowed()
+const coffer = useRolledNumber(
+  () => game.coffer,
+  () => motionOn.value,
+)
+
+const rate = useRolledNumber(
+  () => game.netApPerSecond,
+  () => motionOn.value,
+)
 
 const unrest = computed(() => {
   void game.revision
@@ -33,14 +44,15 @@ const unrest = computed(() => {
     <div class="text-center">
       <p class="font-caps text-sm text-rubric">In the coffer</p>
       <p data-coffer class="font-display text-5xl leading-[44px] text-ink">
-        {{ formatFigure(Math.floor(game.coffer)) }}
+        {{ formatCoffer(Math.floor(coffer)) }}
         <span class="font-display text-[28px] italic text-ink-faded">AP</span>
       </p>
       <p
+        data-rate
         class="font-body text-sm italic"
         :class="game.netApPerSecond < 0 ? 'text-rubric' : 'text-verdigris'"
       >
-        {{ formatRate(game.netApPerSecond) }}
+        {{ formatRate(rate) }}
       </p>
     </div>
 

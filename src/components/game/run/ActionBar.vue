@@ -46,8 +46,9 @@ const badges = computed<Partial<Record<Screen, string>>>(() => {
       <span class="font-caps text-sm text-cream">{{ order.label }}</span>
       <span
         v-if="badges[order.screen]"
+        :key="badges[order.screen]"
         data-badge
-        class="absolute right-2 top-1 min-w-5 rounded-full border border-cream bg-wax px-1 text-center font-body text-xs text-cream"
+        class="motion-pop absolute right-2 top-1 min-w-5 rounded-full border border-cream bg-wax px-1 text-center font-body text-xs text-cream"
       >
         {{ badges[order.screen] }}
       </span>

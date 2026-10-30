@@ -65,3 +65,15 @@ export function formatFigure(value: number, decimals = 0): string {
   })
   return text.replace('-', '−')
 }
+
+/**
+ * The coffer: whole AP under 1,000, then thousands as `k` with one decimal, none from 1,000k on.
+ * Truncated, never rounded up, so the player never reads more than the coffer holds.
+ */
+export function formatCoffer(value: number): string {
+  const magnitude = Math.abs(value)
+  if (magnitude < 1000) return formatFigure(Math.trunc(value))
+  const thousands = magnitude / 1000
+  const shown = thousands < 1000 ? Math.floor(thousands * 10) / 10 : Math.floor(thousands)
+  return `${value < 0 ? '−' : ''}${shown.toLocaleString('en')}k`
+}

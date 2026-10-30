@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { QuotaView } from '@/stores/game'
+import { useMotionAllowed, useRolledNumber } from './useAmbientMotion'
 
 /** One Crown quota drawn as a notched tally stick with the target as a vermilion thread. */
 const props = defineProps<{ quota: QuotaView }>()
@@ -15,9 +16,14 @@ const amount = (value: number): string =>
   props.quota.axis === 'pop'
     ? Math.floor(value).toLocaleString('en')
     : (Math.round(value * 10) / 10).toLocaleString('en', { maximumFractionDigits: 1 })
+const motionOn = useMotionAllowed()
+const current = useRolledNumber(
+  () => props.quota.current,
+  () => motionOn.value,
+)
 const figures = computed(
   () =>
-    `${amount(props.quota.current)} / ${amount(props.quota.required)}` +
+    `${amount(current.value)} / ${amount(props.quota.required)}` +
     (props.quota.axis === 'ap' ? ' AP/s' : ''),
 )
 const ariaLabel = computed(
@@ -45,12 +51,12 @@ const threadAt = `${(100 / SCALE).toFixed(1)}%`
       <span
         v-for="n in notches"
         :key="n"
-        class="absolute top-px h-[7px] w-[2px] bg-wood-dark"
+        class="motion-pop absolute top-px h-[7px] w-[2px] bg-wood-dark"
         :style="{ left: `${(n / (NOTCHES + 1)) * 100}%` }"
       />
       <span
-        class="absolute -top-[3px] h-[15px] w-[3px]"
-        :class="quota.met ? 'bg-verdigris' : 'bg-vermilion'"
+        class="absolute -top-[3px] h-[15px] w-[3px] transition-colors duration-300"
+        :class="quota.met ? 'motion-flourish bg-verdigris' : 'bg-vermilion'"
         :style="{ left: threadAt }"
       />
     </div>

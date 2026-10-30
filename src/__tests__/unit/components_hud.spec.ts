@@ -77,6 +77,8 @@ describe('Task 5: HUD', () => {
 
   it('writes a negative coffer with a true minus sign', async () => {
     const { wrapper, game } = mountHud()
+    // The figure rolls under normal motion; reduced motion shows it at once.
+    useSettingsStore().reducedMotion = true
     game.run!.ap = -12
     game.act({ type: 'SET_PAUSED', paused: true })
     await flushPromises()

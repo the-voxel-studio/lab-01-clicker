@@ -109,56 +109,58 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="nav.menuOpen" class="absolute inset-0 z-40 flex bg-ink/40">
-    <section
-      role="dialog"
-      aria-modal="true"
-      aria-label="Game menu"
-      class="flex w-[300px] flex-col gap-2 overflow-y-auto bg-vellum px-4 py-5 shadow-xl"
-    >
-      <h2 class="font-display text-[26px] text-ink">Reign {{ archives.history.length + 1 }}</h2>
-      <p class="font-body italic text-ink-faded">
-        {{ capitalized(ordinal) }} audit, {{ timeLeft }}
-      </p>
-      <p class="font-body text-sm italic text-rubric">Game paused while this menu is open.</p>
+  <Transition name="slide">
+    <div v-if="nav.menuOpen" class="absolute inset-0 z-40 flex bg-ink/40">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label="Game menu"
+        class="flex w-[300px] flex-col gap-2 overflow-y-auto bg-vellum px-4 py-5 shadow-xl"
+      >
+        <h2 class="font-display text-[26px] text-ink">Reign {{ archives.history.length + 1 }}</h2>
+        <p class="font-body italic text-ink-faded">
+          {{ capitalized(ordinal) }} audit, {{ timeLeft }}
+        </p>
+        <p class="font-body text-sm italic text-rubric">Game paused while this menu is open.</p>
 
-      <button ref="firstItem" type="button" class="menu-item" @click="close">
-        Resume<small>Back to the {{ ordinal }} audit</small>
-      </button>
-      <button type="button" class="menu-item" @click="game.save()">
-        Save the reign<small>{{ savedLine }}</small>
-      </button>
-      <button type="button" class="menu-item" @click="restart">
-        Restart the reign<small>Same seed, from the coronation</small>
-      </button>
-      <button type="button" class="menu-item" @click="readChronicle">
-        Read the chronicle<small>Every audit since the coronation</small>
-      </button>
-      <button type="button" class="menu-item" @click="returnToHall">
-        Return to the hall<small>The reign is saved and waits for you</small>
-      </button>
+        <button ref="firstItem" type="button" class="menu-item" @click="close">
+          Resume<small>Back to the {{ ordinal }} audit</small>
+        </button>
+        <button type="button" class="menu-item" @click="game.save()">
+          Save the reign<small>{{ savedLine }}</small>
+        </button>
+        <button type="button" class="menu-item" @click="restart">
+          Restart the reign<small>Same seed, from the coronation</small>
+        </button>
+        <button type="button" class="menu-item" @click="readChronicle">
+          Read the chronicle<small>Every audit since the coronation</small>
+        </button>
+        <button type="button" class="menu-item" @click="returnToHall">
+          Return to the hall<small>The reign is saved and waits for you</small>
+        </button>
 
-      <p class="mt-2 font-caps text-sm text-rubric">Settings</p>
-      <label class="setting"><input v-model="settings.music" type="checkbox" />Music</label>
-      <label class="setting"><input v-model="settings.sfx" type="checkbox" />Sound effects</label>
-      <label class="setting">
-        <input v-model="settings.reducedMotion" type="checkbox" />Reduced motion
-      </label>
-      <label v-if="isDev" class="setting">
-        Dread band (dev)
-        <select v-model="settings.dreadOverride" class="ml-auto bg-vellum-shade">
-          <option :value="null">from the reign</option>
-          <option v-for="band in BANDS" :key="band" :value="band">{{ band }}</option>
-        </select>
-      </label>
+        <p class="mt-2 font-caps text-sm text-rubric">Settings</p>
+        <label class="setting"><input v-model="settings.music" type="checkbox" />Music</label>
+        <label class="setting"><input v-model="settings.sfx" type="checkbox" />Sound effects</label>
+        <label class="setting">
+          <input v-model="settings.reducedMotion" type="checkbox" />Reduced motion
+        </label>
+        <label v-if="isDev" class="setting">
+          Dread band (dev)
+          <select v-model="settings.dreadOverride" class="ml-auto bg-vellum-shade">
+            <option :value="null">from the reign</option>
+            <option v-for="band in BANDS" :key="band" :value="band">{{ band }}</option>
+          </select>
+        </label>
 
-      <button type="button" class="menu-item danger mt-3" @click="abandon">
-        {{ confirmAbandon ? 'Tap again to abandon' : 'Abandon the reign'
-        }}<small>Counts as a death.</small>
-      </button>
-    </section>
-    <button type="button" class="flex-1" aria-label="Close the menu" @click="close" />
-  </div>
+        <button type="button" class="menu-item danger mt-3" @click="abandon">
+          {{ confirmAbandon ? 'Tap again to abandon' : 'Abandon the reign'
+          }}<small>Counts as a death.</small>
+        </button>
+      </section>
+      <button type="button" class="flex-1" aria-label="Close the menu" @click="close" />
+    </div>
+  </Transition>
 </template>
 
 <style scoped>

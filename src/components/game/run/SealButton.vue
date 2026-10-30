@@ -2,13 +2,13 @@
 import { computed, onUnmounted, ref } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { useGameStore } from '@/stores/game'
-import { useSettingsStore } from '@/stores/settings'
 import type { DreadBand } from '@/ui/dread'
 import { burstMissives, missiveIcons, MISSIVE_MS, type Missive } from '@/ui/sealBurst'
+import { useMotionAllowed } from './useAmbientMotion'
 
 /** The wax seal: each press issues a decree (design 5, ported from the prototype). */
 const game = useGameStore()
-const settings = useSettingsStore()
+const motionOn = useMotionAllowed()
 
 /** Colour of the decree gains: the rose of grace fading with the band, blood at the end. */
 const GAIN_COLOURS: Record<DreadBand, string> = {
@@ -45,7 +45,7 @@ function seal(): void {
   if (!game.act({ type: 'STAMP_DOCUMENT' }).success) return
   pressed.value = true
   later(() => (pressed.value = false), PRESS_MS)
-  if (settings.reducedMotion || !game.run) return
+  if (!motionOn.value || !game.run) return
   const burst = burstMissives(Math.random, missiveIcons(game.run), nextId)
   nextId += burst.length + 1
   missives.value = missives.value.concat(burst)
@@ -67,7 +67,7 @@ onUnmounted(() => timers.forEach((timer) => clearTimeout(timer)))
 
 <template>
   <div class="relative mx-auto flex size-[160px] items-center justify-center">
-    <template v-if="!settings.reducedMotion">
+    <template v-if="motionOn">
       <div
         class="spin-slow pointer-events-none absolute size-[176px] rounded-full border border-dashed border-gold/30"
       />
@@ -83,7 +83,7 @@ onUnmounted(() => timers.forEach((timer) => clearTimeout(timer)))
       class="absolute flex size-7 items-center justify-center rounded border border-gold/50 bg-vellum-shade"
       :class="[
         ['-left-1 top-2', '-right-1 top-2', '-left-1 bottom-2', '-right-1 bottom-2'][index],
-        pressed && !settings.reducedMotion ? 'admin-stamp' : '',
+        pressed && motionOn ? 'admin-stamp' : '',
       ]"
     >
       <GameIcon :name="icon" class="size-4 text-ink" />
@@ -116,7 +116,7 @@ onUnmounted(() => timers.forEach((timer) => clearTimeout(timer)))
     <button
       type="button"
       class="relative z-10 flex size-[120px] items-center justify-center rounded-[46%_54%_50%_50%/52%_48%_55%_45%] bg-wax shadow-lg transition-transform duration-150 active:scale-95"
-      :class="pressed ? 'scale-90' : ''"
+      :class="pressed ? 'scale-90' : 'motion-breathe'"
       @click="seal"
     >
       <GameIcon name="crown" class="size-[42px] text-blood/80" label="Royal seal" />

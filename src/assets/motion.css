@@ -1,0 +1,306 @@
+/*
+ * Motion of the interface (design 4.2.1). Ambient loops read their tempo from variables set per
+ * dread band; everything stops while the reign is paused and disappears under reduced motion.
+ * Transform and opacity only, with two exceptions: the chronicle ink reveals with a clip path and
+ * the vellum fouls with a box shadow, both short and neither touching layout.
+ */
+
+/* Loops only: one-shot feedback paused here would stay stuck on its invisible first frame. */
+[data-paused='true'] .kingdom-scene *,
+[data-paused='true'] .petal,
+[data-paused='true'] .spin-slow,
+[data-paused='true'] .motion-candle,
+[data-paused='true'] .motion-gutter,
+[data-paused='true'] .motion-beat,
+[data-paused='true'] .motion-breathe {
+  animation-play-state: paused !important;
+}
+
+[data-motion='off'] *,
+[data-motion='off'] *::before,
+[data-motion='off'] *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}
+[data-motion='off'] .petal {
+  display: none;
+}
+
+/* Kingdom layers, by the names given in Figma (ids are prefixed with the band). */
+.kingdom-scene [id*='-Smoke'],
+.kingdom-scene [id*='-Tree'],
+.kingdom-scene [id*='-Pennant'],
+.kingdom-scene [id*='-Flame'],
+.kingdom-scene [id*='-Death'] {
+  /* Never on every shape: the furrows carry exported rotations around scene coordinates. */
+  transform-box: fill-box;
+}
+.kingdom-scene [id*='-Smoke'] {
+  transform-origin: 50% 100%;
+  animation: rise calc(var(--tempo-sway) * 0.7s) ease-in-out infinite;
+}
+.kingdom-scene [id*='-Cloud'] {
+  animation: drift calc(var(--tempo-sway) * 4s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Tree'] {
+  transform-origin: 50% 100%;
+  animation: sway calc(var(--tempo-sway) * 1s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Pennant'] {
+  transform-origin: 0% 50%;
+  animation: flutter calc(var(--tempo-flicker) * 1s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Peasant'] {
+  animation: walk calc(var(--tempo-sway) * 2s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Raven'] {
+  animation: hop calc(var(--tempo-sway) * 0.5s) steps(2, end) infinite;
+}
+.kingdom-scene [id*='-Flame'] {
+  transform-origin: 50% 100%;
+  animation: flicker calc(var(--tempo-flicker) * 1s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Mob'] {
+  animation: jitter 0.4s steps(2, end) infinite;
+}
+.kingdom-scene [id*='-Death'] {
+  transform-origin: 50% 100%;
+  animation: breathe calc(var(--tempo-sway) * 1s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Sun'] {
+  animation: glow calc(var(--tempo-sway) * 1.5s) ease-in-out infinite alternate;
+}
+
+@keyframes rise {
+  0% {
+    transform: translate(0, 0) scaleY(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(2px, -3px) scaleY(1.06);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-1px, -5px) scaleY(1.1);
+    opacity: 0.9;
+  }
+}
+@keyframes drift {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(12px);
+  }
+}
+@keyframes sway {
+  from {
+    transform: rotate(-1.6deg);
+  }
+  to {
+    transform: rotate(1.6deg);
+  }
+}
+@keyframes flutter {
+  from {
+    transform: scaleX(1) skewY(0deg);
+  }
+  to {
+    transform: scaleX(0.82) skewY(6deg);
+  }
+}
+@keyframes walk {
+  from {
+    transform: translateX(-4px);
+  }
+  to {
+    transform: translateX(5px);
+  }
+}
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes flicker {
+  from {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.85, 1.15);
+    opacity: 0.75;
+  }
+}
+@keyframes jitter {
+  from {
+    transform: translate(calc(var(--tempo-jitter) * -1px), 0);
+  }
+  to {
+    transform: translate(calc(var(--tempo-jitter) * 1px), 1px);
+  }
+}
+@keyframes breathe {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.025);
+  }
+}
+@keyframes glow {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+
+/* Feedback shared by the components. */
+@keyframes pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes ink-write {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes fall {
+  from {
+    transform: translate(0, -10px) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-30px, 150px) rotate(240deg);
+    opacity: 0;
+  }
+}
+@keyframes candle-flicker {
+  0%,
+  100% {
+    transform: scale(1, 1) rotate(0deg);
+  }
+  30% {
+    transform: scale(0.92, 1.08) rotate(-3deg);
+  }
+  60% {
+    transform: scale(1.05, 0.95) rotate(2deg);
+  }
+}
+@keyframes candle-gutter {
+  0%,
+  100% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(0.7, 0.8) rotate(-6deg);
+    opacity: 0.55;
+  }
+  60% {
+    transform: scale(1.1, 1.15) rotate(5deg);
+    opacity: 0.9;
+  }
+}
+@keyframes flourish {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.6, 1.4);
+  }
+}
+@keyframes clock-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes seal-breathe {
+  0%,
+  80%,
+  100% {
+    transform: scale(1);
+  }
+  90% {
+    transform: scale(1.04);
+  }
+}
+
+.motion-pop {
+  animation: pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.motion-ink {
+  animation: ink-write 900ms ease-out;
+}
+.motion-candle {
+  transform-origin: 50% 100%;
+  animation: candle-flicker calc(var(--tempo-flicker, 1.6) * 1s) ease-in-out infinite;
+}
+.motion-gutter {
+  transform-origin: 50% 100%;
+  animation: candle-gutter 0.45s ease-in-out infinite;
+}
+.motion-flourish {
+  animation: flourish 300ms ease-out;
+}
+.motion-beat {
+  animation: clock-beat 1s ease-in-out infinite;
+}
+.motion-breathe {
+  animation: seal-breathe 4s ease-in-out infinite;
+}
+
+/* Vue transitions. */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 300ms ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.crossfade-enter-active,
+.crossfade-leave-active {
+  transition: opacity 1200ms ease;
+}
+.crossfade-enter-from,
+.crossfade-leave-to {
+  opacity: 0;
+}
+.slide-enter-active,
+.slide-leave-active {
+  transition:
+    transform 300ms ease,
+    opacity 300ms ease;
+}
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-24px);
+  opacity: 0;
+}

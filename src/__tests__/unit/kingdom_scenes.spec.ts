@@ -43,6 +43,26 @@ describe('Task 6: kingdom view', () => {
     expect(counts[3]).toBe(0)
   })
 
+  it('names the layers the motion targets, where each band draws them', () => {
+    const has = (band: DreadBand, layer: string) =>
+      new RegExp(`id="${layer}(_\\d+)?"`).test(KINGDOM_SCENES[band])
+    for (const band of BANDS) {
+      for (const layer of ['Death', 'Tree', 'Pennant', 'Sun']) {
+        expect(has(band, layer)).toBe(true)
+      }
+    }
+    for (const band of ['enchanted', 'death_throes'] as const) {
+      expect(has(band, 'Smoke')).toBe(true)
+    }
+    for (const band of ['uneasy', 'rotting'] as const) expect(has(band, 'Cloud')).toBe(true)
+    for (const band of ['rotting', 'death_throes'] as const) {
+      expect(has(band, 'Raven')).toBe(true)
+      expect(has(band, 'Flame')).toBe(true)
+    }
+    expect(has('enchanted', 'Peasant')).toBe(true)
+    expect(has('death_throes', 'Mob')).toBe(true)
+  })
+
   it('shows the scene of its band and veils it while paused', async () => {
     const wrapper = mount(KingdomView, { props: { band: 'rotting', paused: false } })
     expect(wrapper.attributes('data-band')).toBe('rotting')

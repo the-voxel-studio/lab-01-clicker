@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
+import { BAND_TEMPO } from '@/ui/motion'
+import { useMotionAllowed } from './run/useAmbientMotion'
 import ActionBar from './run/ActionBar.vue'
 import ChroniclePanel from './run/ChroniclePanel.vue'
 import CounselLine from './run/CounselLine.vue'
@@ -14,11 +16,19 @@ import PhaseStub from './PhaseStub.vue'
 /** The run screen of Figma `Screens v7`, rotting with the dread band (design 3.2). */
 const game = useGameStore()
 const nav = useNavStore()
+const motionOn = useMotionAllowed()
 
 const paused = computed(() => {
   void game.revision
   return game.run?.isPaused ?? false
 })
+/** Every loop stops while the reign is paused or the menu is open. */
+const frozen = computed(() => paused.value || nav.menuOpen)
+const tempo = computed(() => {
+  const { sway, flicker, jitter } = BAND_TEMPO[game.dread.band]
+  return { '--tempo-sway': sway, '--tempo-flicker': flicker, '--tempo-jitter': jitter }
+})
+
 const showStub = computed(
   () =>
     game.phase !== null &&
@@ -29,7 +39,13 @@ const showStub = computed(
 </script>
 
 <template>
-  <section :data-dread="game.dread.band" class="run relative flex min-h-screen flex-1 flex-col">
+  <section
+    :data-dread="game.dread.band"
+    :data-paused="String(frozen)"
+    :data-motion="motionOn ? 'on' : 'off'"
+    :style="tempo"
+    class="run relative flex min-h-screen flex-1 flex-col"
+  >
     <div :inert="nav.menuOpen" class="flex flex-1 flex-col">
       <RunHud />
       <div class="relative mt-1">
