@@ -201,6 +201,13 @@ describe('Task 11: motion of the run screen', () => {
     expect(wax.attributes('style')).not.toContain('height')
   })
 
+  it('draws the candle in red wax with a vivid flame over its burnt track', () => {
+    const { wrapper } = mountRun()
+    expect(wrapper.get('[data-wax]').classes()).toContain('bg-wax')
+    expect(wrapper.get('[data-wax-track]').classes()).toContain('bg-ink/15')
+    expect(wrapper.get('[data-candle]').classes()).toContain('text-vermilion')
+  })
+
   it('flourishes the thread of a met quota', async () => {
     const { wrapper, game } = mountRun()
     expect(wrapper.find('[data-quota="pop"] .motion-flourish').exists()).toBe(false)
@@ -222,6 +229,92 @@ describe('Task 11: motion of the run screen', () => {
 
   it('hides the petals when motion is off', () => {
     expect(motionCss).toMatch(/\[data-motion='off'\] \.petal\s*{\s*display: none/)
+  })
+
+  it('walks the villagers and keeps the crowd where it stands', () => {
+    expect(motionCss).toMatch(/\.villager-commuter {[^}]*animation:[^;]*commute[^;]*skip/)
+    expect(motionCss).toMatch(/\.villager-worker {[^}]*animation:[^;]*stroll[^;]*skip/)
+    expect(motionCss).toMatch(/\.villager-rioter {[^}]*animation:[^;]*riot/)
+    expect(motionCss).not.toMatch(/\.villager-rioter {[^}]*stroll/)
+  })
+
+  it('keeps the officials on the vellum, beside the lower half of the seal', async () => {
+    const { game } = mountRun()
+    game.run!.units.scribe = 1
+    game.act({ type: 'SET_PAUSED', paused: false })
+    const wrapper = mount(SealButton)
+    await flushPromises()
+    const official = wrapper.get('[data-official]')
+    expect(official.classes()).toContain('top-[92px]')
+  })
+
+  it('draws the rings around the seal strongly enough for the pale vellum', () => {
+    mountRun()
+    const wrapper = mount(SealButton)
+    expect(wrapper.get('.spin-slow').classes()).toContain('border-wax/70')
+    expect(wrapper.get('.spin-slow').classes().join(' ')).not.toContain('gold/30')
+  })
+
+  it('holds the inner ring against the outer one while the clicks follow each other', async () => {
+    mountRun()
+    vi.useFakeTimers()
+    const wrapper = mount(SealButton)
+    const ring = () => wrapper.get('[data-seal-ring]').classes()
+    for (let click = 0; click < 6; click++) {
+      await wrapper.get('button').trigger('click')
+      expect(ring()).toContain('scale-[1.16]')
+      vi.advanceTimersByTime(200)
+      await wrapper.vm.$nextTick()
+      expect(ring()).toContain('scale-[1.16]')
+    }
+    vi.advanceTimersByTime(500)
+    await wrapper.vm.$nextTick()
+    expect(ring()).not.toContain('scale-[1.16]')
+    vi.useRealTimers()
+  })
+
+  it('writes the decree gains in ink, readable on any band', async () => {
+    mountRun()
+    const wrapper = mount(SealButton)
+    await wrapper.get('button').trigger('click')
+    expect(wrapper.get('.gain').classes().join(' ')).not.toMatch(/rose|#/)
+    expect(wrapper.get('.gain').classes()).toContain('text-ink')
+  })
+
+  it('fits the run screen to its frame: the chronicle is cut short, never scrolled', () => {
+    const { wrapper } = mountRun()
+    expect(wrapper.classes()).toContain('h-full')
+    expect(wrapper.classes()).toContain('overflow-hidden')
+    expect(wrapper.classes().join(' ')).not.toMatch(/min-h-\[|min-h-screen/)
+    const panel = wrapper.get('.chronicle-excerpt').classes()
+    expect(panel).toContain('flex-1')
+    expect(panel).toContain('overflow-hidden')
+    expect(panel).not.toContain('overflow-y-auto')
+  })
+
+  it('lets the kingdom give up its sky on short screens, down to its fields', () => {
+    const wrapper = mount(KingdomView, { props: { band: 'enchanted', paused: false } })
+    expect(wrapper.html()).toContain('preserveAspectRatio="xMidYMax slice"')
+    expect(wrapper.classes()).toContain('h-full')
+  })
+
+  it('fades the seal while paused, so it never stands in front of the veil', async () => {
+    const { wrapper, game } = mountRun()
+    expect(wrapper.get('.seal-slot').classes()).not.toContain('opacity-50')
+    game.act({ type: 'SET_PAUSED', paused: true })
+    await flushPromises()
+    expect(wrapper.get('.seal-slot').classes()).toContain('opacity-50')
+  })
+
+  it('hides the run behind an event: opaque, and out of reach', async () => {
+    const { wrapper, game } = mountRun()
+    game.run!.phase = 'AUDIT_ASSESSMENT'
+    game.act({ type: 'SET_PAUSED', paused: false })
+    await flushPromises()
+    const stub = wrapper.get('[data-phase-stub]')
+    expect(stub.classes()).toContain('bg-vellum')
+    expect(stub.classes().join(' ')).not.toContain('bg-vellum/')
+    expect(wrapper.find('[inert]').exists()).toBe(true)
   })
 
   it('lets petals fall in the enchanted band only', () => {

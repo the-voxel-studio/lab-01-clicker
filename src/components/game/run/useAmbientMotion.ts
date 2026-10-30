@@ -61,7 +61,7 @@ export function useRolledNumber(source: () => number, enabled: () => boolean): R
 }
 
 const ANIMATED_LAYERS =
-  '[id*="-Smoke"], [id*="-Cloud"], [id*="-Tree"], [id*="-Pennant"], [id*="-Peasant"], [id*="-Raven"], [id*="-Flame"], [id*="-Mob"]'
+  '[id*="-Smoke"], [id*="-Cloud"], [id*="-Tree"], [id*="-Pennant"], [id*="-Raven"], [id*="-Flame"]'
 
 /** Gives each animated layer of `root` its own phase, so no two loops beat together. */
 export function spreadPhases(root: Element, seed: number): void {

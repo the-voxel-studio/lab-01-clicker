@@ -42,16 +42,18 @@ const guttering = computed(() => game.secondsLeft <= LAST_SECONDS)
         <GameIcon
           name="candleFlame"
           data-candle
-          class="size-[18px] text-gold"
+          class="size-[18px] text-vermilion"
           :class="guttering ? 'motion-gutter' : 'motion-candle'"
         />
       </div>
-      <div
-        data-wax
-        class="h-[37px] w-[14px] origin-bottom bg-cream transition-transform duration-1000 ease-linear"
-        :style="{ transform: `scaleY(${waxLeft / WAX_PX})` }"
-      />
-      <div class="h-[5px] w-7 bg-gold" />
+      <div data-wax-track class="relative h-[37px] w-4 rounded-t-sm bg-ink/15">
+        <div
+          data-wax
+          class="absolute inset-0 origin-bottom rounded-t-sm bg-wax transition-transform duration-1000 ease-linear"
+          :style="{ transform: `scaleY(${waxLeft / WAX_PX})` }"
+        />
+      </div>
+      <div class="h-[5px] w-7 rounded-sm bg-wood-dark" />
     </div>
   </div>
 </template>

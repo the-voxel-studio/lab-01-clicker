@@ -5,7 +5,7 @@ import { useNavStore } from '@/stores/nav'
 import { formatReignClock } from '@/ui/chronicle'
 import ChronicleMark from './ChronicleMark.vue'
 
-/** The chronicle under the counsel: the current audit and the one before, scrollable (`39:902`). */
+/** The latest of the chronicle under the counsel, cut short: the full page holds the rest. */
 const chronicle = useChronicleStore()
 const nav = useNavStore()
 
@@ -16,7 +16,7 @@ const firstSentence = (text: string): string =>
 </script>
 
 <template>
-  <section class="px-4">
+  <section class="flex min-h-0 flex-1 flex-col px-4">
     <div class="flex items-baseline justify-between border-t border-ink-faded pt-2">
       <h2 class="font-display text-[22px] text-ink">Chronicle of the realm</h2>
       <button
@@ -28,7 +28,7 @@ const firstSentence = (text: string): string =>
         Read it all
       </button>
     </div>
-    <div class="chronicle-scroll relative mt-1 max-h-[150px] overflow-y-auto pr-3">
+    <div class="chronicle-excerpt relative mt-1 min-h-0 flex-1 overflow-hidden">
       <template v-for="group in groups" :key="group.deadline">
         <p class="my-1 flex items-center gap-2 font-caps text-sm text-ink-faded">
           <span class="h-px flex-1 bg-ink-faded/60" />{{ group.title
@@ -51,9 +51,7 @@ const firstSentence = (text: string): string =>
 </template>
 
 <style scoped>
-.chronicle-scroll {
+.chronicle-excerpt {
   mask-image: linear-gradient(to bottom, black 70%, transparent);
-  scrollbar-color: var(--color-rubric) transparent;
-  scrollbar-width: thin;
 }
 </style>

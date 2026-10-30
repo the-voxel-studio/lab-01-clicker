@@ -28,14 +28,6 @@ const tempo = computed(() => {
   const { sway, flicker, jitter } = BAND_TEMPO[game.dread.band]
   return { '--tempo-sway': sway, '--tempo-flicker': flicker, '--tempo-jitter': jitter }
 })
-
-const showStub = computed(
-  () =>
-    game.phase !== null &&
-    game.phase !== 'ACTIVE_CYCLE' &&
-    game.phase !== 'RUN_DEFEAT' &&
-    game.phase !== 'RUN_VICTORY',
-)
 </script>
 
 <template>
@@ -44,31 +36,61 @@ const showStub = computed(
     :data-paused="String(frozen)"
     :data-motion="motionOn ? 'on' : 'off'"
     :style="tempo"
-    class="run relative flex min-h-screen flex-1 flex-col"
+    class="run relative flex h-full min-h-0 flex-1 flex-col overflow-hidden"
   >
-    <div :inert="nav.menuOpen" class="flex flex-1 flex-col">
-      <RunHud />
-      <div class="relative mt-1">
+    <div :inert="nav.menuOpen || game.awaitingAnswer" class="flex min-h-0 flex-1 flex-col">
+      <RunHud class="shrink-0" />
+      <div class="kingdom-slot relative mt-1 min-h-11">
         <KingdomView :band="game.dread.band" :paused="paused" />
       </div>
-      <div class="relative z-10 -mt-[76px]">
+      <div
+        class="seal-slot relative z-10 -mt-[76px] shrink-0 transition-opacity duration-300"
+        :class="paused ? 'opacity-50' : ''"
+      >
         <SealButton />
       </div>
-      <div class="mt-1 flex flex-col gap-2">
-        <CounselLine />
-        <ChroniclePanel />
+      <div class="run-lower mt-1 flex flex-col gap-2">
+        <CounselLine class="run-counsel shrink-0" />
+        <ChroniclePanel class="run-chronicle" />
       </div>
-      <div class="flex-1" />
-      <div class="sticky bottom-0 z-20">
+      <div class="z-20 shrink-0">
         <ActionBar />
       </div>
     </div>
-    <PhaseStub v-if="showStub" />
+    <PhaseStub v-if="game.awaitingAnswer" />
     <GameMenu />
   </section>
 </template>
 
 <style scoped>
+/* Full size when it fits; on shorter screens the kingdom gives up its sky first. */
+.kingdom-slot {
+  flex: 0 1 calc(min(100vw, 430px) * 268 / 390);
+}
+.run-lower {
+  flex: 1 1 0;
+  min-height: 150px;
+}
+@media (max-height: 700px) {
+  .run-chronicle {
+    display: none;
+  }
+  .run-lower {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  .kingdom-slot {
+    flex-grow: 1;
+  }
+}
+@media (max-height: 520px) {
+  .run-lower {
+    display: none;
+  }
+  .kingdom-slot {
+    min-height: 0;
+  }
+}
 /* The vellum fouls at the edges as the realm rots; the text keeps its contrast in every band. */
 .run::after {
   content: '';

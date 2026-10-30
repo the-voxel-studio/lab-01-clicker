@@ -59,7 +59,7 @@ function answer(command: Command): void {
 <template>
   <div
     data-phase-stub
-    class="absolute inset-0 z-30 flex flex-col justify-center gap-4 bg-vellum/95 px-6 py-10"
+    class="absolute inset-0 z-30 flex flex-col justify-center gap-4 overflow-y-auto bg-vellum px-6 py-10"
   >
     <h2 class="font-display text-2xl text-ink">{{ game.phase }}</h2>
     <button

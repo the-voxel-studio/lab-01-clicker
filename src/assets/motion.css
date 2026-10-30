@@ -35,95 +35,240 @@
   /* Never on every shape: the furrows carry exported rotations around scene coordinates. */
   transform-box: fill-box;
 }
+.kingdom-scene {
+  --smoke-lean: 12deg;
+}
+.kingdom-scene [id^='death_throes-'] {
+  --smoke-lean: 2.5deg;
+}
 .kingdom-scene [id*='-Smoke'] {
   transform-origin: 50% 100%;
-  animation: rise calc(var(--tempo-sway) * 0.7s) ease-in-out infinite;
+  animation: rise calc(var(--tempo-sway) * 0.6s) ease-in-out infinite;
 }
 .kingdom-scene [id*='-Cloud'] {
-  animation: drift calc(var(--tempo-sway) * 4s) ease-in-out infinite alternate;
+  animation: drift calc(var(--tempo-sway) * 2.5s) ease-in-out infinite alternate;
 }
 .kingdom-scene [id*='-Tree'] {
   transform-origin: 50% 100%;
-  animation: sway calc(var(--tempo-sway) * 1s) ease-in-out infinite alternate;
+  animation: sway calc(var(--tempo-sway) * 0.6s) ease-in-out infinite alternate;
 }
 .kingdom-scene [id*='-Pennant'] {
   transform-origin: 0% 50%;
-  animation: flutter calc(var(--tempo-flicker) * 1s) ease-in-out infinite alternate;
+  animation: flutter calc(var(--tempo-flicker) * 0.5s) ease-in-out infinite alternate;
 }
-.kingdom-scene [id*='-Peasant'] {
-  animation: walk calc(var(--tempo-sway) * 2s) ease-in-out infinite alternate;
+/* The villagers rest on their `from` point, which is all that shows under reduced motion. */
+.villager {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  translate: var(--from-x) var(--from-y);
+  scale: var(--face) 1;
+}
+/* Two properties, so the walk and the skip run on their own clocks. */
+.villager-commuter {
+  animation:
+    commute var(--trip) linear infinite,
+    skip 0.42s ease-in-out infinite alternate;
+  animation-delay: var(--delay), 0s;
+}
+.villager-worker {
+  animation:
+    stroll var(--trip) linear infinite,
+    skip 0.42s ease-in-out infinite alternate;
+  animation-delay: var(--delay), 0s;
+}
+.villager-rioter {
+  animation: riot 0.38s ease-in-out infinite alternate;
+  animation-delay: var(--delay);
 }
 .kingdom-scene [id*='-Raven'] {
-  animation: hop calc(var(--tempo-sway) * 0.5s) steps(2, end) infinite;
+  animation: hop calc(var(--tempo-sway) * 0.5s) ease-in-out infinite;
 }
 .kingdom-scene [id*='-Flame'] {
   transform-origin: 50% 100%;
-  animation: flicker calc(var(--tempo-flicker) * 1s) ease-in-out infinite alternate;
+  animation: flicker calc(var(--tempo-flicker) * 0.5s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Death'] {
+  /* Never on every shape: the furrows carry exported rotations around scene coordinates. */
+  transform-box: fill-box;
+}
+.kingdom-scene {
+  --smoke-lean: 12deg;
+}
+.kingdom-scene [id^='death_throes-'] {
+  --smoke-lean: 2.5deg;
+}
+.kingdom-scene [id*='-Smoke'] {
+  transform-origin: 50% 100%;
+  animation: rise calc(var(--tempo-sway) * 0.6s) ease-in-out infinite;
+}
+.kingdom-scene [id*='-Cloud'] {
+  animation: drift calc(var(--tempo-sway) * 2.5s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Tree'] {
+  transform-origin: 50% 100%;
+  animation: sway calc(var(--tempo-sway) * 0.6s) ease-in-out infinite alternate;
+}
+.kingdom-scene [id*='-Pennant'] {
+  transform-origin: 0% 50%;
+  animation: flutter calc(var(--tempo-flicker) * 0.5s) ease-in-out infinite alternate;
+}
+/* The villagers rest on their `from` point, which is all that shows under reduced motion. */
+.villager {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  translate: var(--from-x) var(--from-y);
+  scale: var(--face) 1;
+}
+/* Two properties, so the walk and the skip run on their own clocks. */
+.villager-commuter {
+  animation:
+    commute var(--trip) linear infinite,
+    skip 0.42s ease-in-out infinite alternate;
+  animation-delay: var(--delay), 0s;
+}
+.villager-worker {
+  animation:
+    stroll var(--trip) linear infinite,
+    skip 0.42s ease-in-out infinite alternate;
+  animation-delay: var(--delay), 0s;
+}
+.villager-rioter {
+  animation: riot 0.38s ease-in-out infinite alternate;
+  animation-delay: var(--delay);
+}
+.kingdom-scene [id*='-Raven'] {
+  animation: hop calc(var(--tempo-sway) * 0.5s) ease-in-out infinite;
+}
+.kingdom-scene [id*='-Flame'] {
+  transform-origin: 50% 100%;
+  animation: flicker calc(var(--tempo-flicker) * 0.5s) ease-in-out infinite alternate;
 }
 .kingdom-scene [id*='-Mob'] {
-  animation: jitter 0.4s steps(2, end) infinite;
+  transform-origin: 50% 100%;
+  animation:
+    stroll calc(var(--tempo-sway) * 1s) linear infinite,
+    jitter 0.3s ease-in-out infinite alternate;
 }
 .kingdom-scene [id*='-Death'] {
   transform-origin: 50% 100%;
-  animation: breathe calc(var(--tempo-sway) * 1s) ease-in-out infinite alternate;
+  animation: breathe calc(var(--tempo-sway) * 0.5s) ease-in-out infinite alternate;
 }
 .kingdom-scene [id*='-Sun'] {
   animation: glow calc(var(--tempo-sway) * 1.5s) ease-in-out infinite alternate;
 }
 
 @keyframes rise {
-  0% {
-    transform: translate(0, 0) scaleY(1);
-    opacity: 0.9;
+  0%,
+  100% {
+    transform: skewX(calc(var(--smoke-lean) * -1)) scaleY(1);
+    opacity: 0.95;
   }
   50% {
-    transform: translate(2px, -3px) scaleY(1.06);
-    opacity: 0.6;
-  }
-  100% {
-    transform: translate(-1px, -5px) scaleY(1.1);
-    opacity: 0.9;
+    transform: skewX(var(--smoke-lean)) scaleY(1.14);
+    opacity: 0.55;
   }
 }
 @keyframes drift {
   from {
-    transform: translateX(-10px);
+    transform: translateX(-18px);
   }
   to {
-    transform: translateX(12px);
+    transform: translateX(18px);
   }
 }
 @keyframes sway {
   from {
-    transform: rotate(-1.6deg);
+    transform: rotate(-3deg);
   }
   to {
-    transform: rotate(1.6deg);
+    transform: rotate(3deg);
   }
 }
 @keyframes flutter {
   from {
-    transform: scaleX(1) skewY(0deg);
+    transform: scaleX(1) skewY(-4deg);
   }
   to {
-    transform: scaleX(0.82) skewY(6deg);
+    transform: scaleX(0.75) skewY(9deg);
   }
 }
-@keyframes walk {
+@keyframes stroll {
+  0% {
+    translate: var(--from-x) var(--from-y);
+    scale: var(--face) 1;
+  }
+  49.9% {
+    translate: var(--to-x) var(--to-y);
+    scale: var(--face) 1;
+  }
+  50% {
+    translate: var(--to-x) var(--to-y);
+    scale: calc(var(--face) * -1) 1;
+  }
+  99.9% {
+    translate: var(--from-x) var(--from-y);
+    scale: calc(var(--face) * -1) 1;
+  }
+  100% {
+    translate: var(--from-x) var(--from-y);
+    scale: var(--face) 1;
+  }
+}
+/* Out of the door, to the fields and back in; the villager stays inside for a while. */
+@keyframes commute {
+  0%,
+  12% {
+    translate: var(--from-x) var(--from-y);
+    scale: var(--face) 1;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  52% {
+    translate: var(--to-x) var(--to-y);
+    scale: var(--face) 1;
+  }
+  52.1% {
+    translate: var(--to-x) var(--to-y);
+    scale: calc(var(--face) * -1) 1;
+  }
+  90% {
+    translate: var(--from-x) var(--from-y);
+    scale: calc(var(--face) * -1) 1;
+    opacity: 1;
+  }
+  93%,
+  100% {
+    translate: var(--from-x) var(--from-y);
+    scale: var(--face) 1;
+    opacity: 0;
+  }
+}
+@keyframes riot {
   from {
-    transform: translateX(-4px);
+    transform: translateY(0) rotate(-4deg);
   }
   to {
-    transform: translateX(5px);
+    transform: translateY(-3px) rotate(4deg);
+  }
+}
+@keyframes skip {
+  from {
+    transform: translateY(0) rotate(-3deg);
+  }
+  to {
+    transform: translateY(-4px) rotate(3deg);
   }
 }
 @keyframes hop {
   0%,
+  70%,
   100% {
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-2px);
+  85% {
+    transform: translateY(-4px);
   }
 }
 @keyframes flicker {
@@ -141,7 +286,7 @@
     transform: translate(calc(var(--tempo-jitter) * -1px), 0);
   }
   to {
-    transform: translate(calc(var(--tempo-jitter) * 1px), 1px);
+    transform: translate(calc(var(--tempo-jitter) * 1px), -2px);
   }
 }
 @keyframes breathe {
@@ -149,7 +294,7 @@
     transform: scale(1);
   }
   to {
-    transform: scale(1.025);
+    transform: scale(1.05);
   }
 }
 @keyframes glow {

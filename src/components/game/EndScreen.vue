@@ -41,7 +41,7 @@ function beginNewReign(): void {
 </script>
 
 <template>
-  <section class="flex flex-1 flex-col gap-5 px-5 py-10">
+  <section class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-10">
     <h2 class="font-display text-3xl text-ink">
       Reign {{ ending.reign }} is {{ ending.won ? 'won' : 'over' }}
     </h2>

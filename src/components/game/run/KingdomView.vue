@@ -14,7 +14,10 @@ const root = ref<HTMLElement | null>(null)
 
 // The scenes are the project's own Figma exports, never user input.
 const scene = computed(() =>
-  scopedScene(props.band).replace(/width="390" height="268"/, 'width="100%" height="100%"'),
+  scopedScene(props.band).replace(
+    /width="390" height="268"/,
+    'width="100%" height="100%" preserveAspectRatio="xMidYMax slice"',
+  ),
 )
 const petals = computed(() =>
   props.band === 'enchanted'
@@ -35,7 +38,7 @@ watch(() => props.band, phase)
 </script>
 
 <template>
-  <div ref="root" :data-band="band" class="relative aspect-[390/268] w-full overflow-hidden">
+  <div ref="root" :data-band="band" class="relative h-full w-full overflow-hidden">
     <Transition name="crossfade">
       <div :key="band" class="kingdom-scene absolute inset-0" aria-hidden="true" v-html="scene" />
     </Transition>
@@ -49,7 +52,7 @@ watch(() => props.band, phase)
     <Transition name="fade">
       <div
         v-if="paused"
-        class="absolute inset-0 flex items-center justify-center bg-vellum/45 backdrop-blur-[1px]"
+        class="pointer-events-none absolute inset-0 flex items-center justify-center bg-vellum/45 backdrop-blur-[1px]"
       >
         <div class="rounded border border-gold bg-vellum px-5 py-2 text-center shadow">
           <p class="font-display text-xl text-ink">Time stands still</p>

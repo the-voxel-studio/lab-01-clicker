@@ -11,14 +11,20 @@ import deathThroesSvg from './kingdom/death_throes.svg?raw'
 import enchantedSvg from './kingdom/enchanted.svg?raw'
 import rottingSvg from './kingdom/rotting.svg?raw'
 import uneasySvg from './kingdom/uneasy.svg?raw'
+import { villagerLayer } from './kingdomVillagers'
 import type { DreadBand } from '@/ui/dread'
+
+/** Adds the villagers at the end of the `Kingdom` group, above the scene and clipped with it. */
+function peopled(svg: string, band: DreadBand): string {
+  return svg.replace('</g>\n<defs>', `${villagerLayer(band)}</g>\n<defs>`)
+}
 
 /** SVG markup of the kingdom in each dread band. */
 export const KINGDOM_SCENES: Record<DreadBand, string> = {
-  enchanted: enchantedSvg,
-  uneasy: uneasySvg,
-  rotting: rottingSvg,
-  death_throes: deathThroesSvg,
+  enchanted: peopled(enchantedSvg, 'enchanted'),
+  uneasy: peopled(uneasySvg, 'uneasy'),
+  rotting: peopled(rottingSvg, 'rotting'),
+  death_throes: peopled(deathThroesSvg, 'death_throes'),
 }
 
 /**

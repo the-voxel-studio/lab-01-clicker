@@ -101,6 +101,18 @@ export const useGameStore = defineStore('game', () => {
     void revision.value
     return lastNetApPerSecond.value
   })
+  /** True while the reign waits for the player's answer to an event. */
+  const awaitingAnswer = computed(() => {
+    void revision.value
+    const current = run.value?.phase ?? null
+    return (
+      current !== null &&
+      current !== 'ACTIVE_CYCLE' &&
+      current !== 'RUN_DEFEAT' &&
+      current !== 'RUN_VICTORY'
+    )
+  })
+
   const secondsLeft = computed(() => {
     const state = current()
     return state ? config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds : 0
@@ -274,6 +286,7 @@ export const useGameStore = defineStore('game', () => {
     coffer,
     netApPerSecond,
     secondsLeft,
+    awaitingAnswer,
     quotas,
     dread,
     hasSave,

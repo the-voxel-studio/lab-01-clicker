@@ -4,12 +4,14 @@
  * @module __tests__/App.spec
  */
 
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import App from '../App.vue'
 import { useArchivesStore } from '@/stores/archives'
 import { useGameStore } from '@/stores/game'
+import { useNavStore } from '@/stores/nav'
 import { useSettingsStore } from '@/stores/settings'
 
 /** Mounts the app on a fresh pinia with storage loaded; the frame loop is held still. */
@@ -160,5 +162,73 @@ describe('Task 7: bare playable shell', () => {
       await flushPromises()
     }
     expect(wrapper.text()).toContain('second audit')
+  })
+
+  it('keeps the order bar on the order pages and the chronicle', async () => {
+    const { wrapper } = mountApp()
+    await beginReign(wrapper)
+    await flushPromises()
+    await wrapper.get('[data-order="crown"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('The Crown')
+    await wrapper.get('[data-order="fortune"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Fortune')
+    useNavStore().go('chronicle')
+    await flushPromises()
+    expect(wrapper.find('[data-order="crown"]').exists()).toBe(true)
+  })
+
+  it('locks the frame of the game to the viewport, so no screen can ever scroll', () => {
+    const { wrapper } = mountApp()
+    expect(wrapper.get('[data-frame]').classes()).toEqual(
+      expect.arrayContaining(['h-dvh', 'overflow-hidden']),
+    )
+    expect(readFileSync('src/assets/main.css', 'utf8')).toMatch(
+      /html,\s*body\s*{[^}]*overflow: hidden;[^}]*overscroll-behavior: none;/,
+    )
+  })
+
+  it('scrolls the full chronicle inside its list, under a fixed bar', async () => {
+    const { wrapper } = mountApp()
+    await beginReign(wrapper)
+    await flushPromises()
+    useNavStore().go('chronicle')
+    await flushPromises()
+    expect(wrapper.get('[data-chronicle-list]').classes()).toContain('overflow-y-auto')
+  })
+
+  it('goes back to the main screen from the Reign button of the bar', async () => {
+    const { wrapper } = mountApp()
+    await beginReign(wrapper)
+    await flushPromises()
+    expect(wrapper.get('[data-order="run"]').classes()).toContain('bg-wax')
+    await wrapper.get('[data-order="crown"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-order="crown"]').trigger('click')
+    await flushPromises()
+    expect(useNavStore().screen).toBe('crown')
+    await wrapper.get('[data-order="run"]').trigger('click')
+    await flushPromises()
+    expect(useNavStore().screen).toBe('run')
+    useNavStore().go('chronicle')
+    await flushPromises()
+    await wrapper.get('[data-order="run"]').trigger('click')
+    await flushPromises()
+    expect(useNavStore().screen).toBe('run')
+  })
+
+  it('brings the player back to the reign when an event needs an answer', async () => {
+    const { wrapper } = mountApp()
+    await beginReign(wrapper)
+    await flushPromises()
+    await wrapper.get('[data-order="crown"]').trigger('click')
+    await flushPromises()
+    const game = useGameStore()
+    game.run!.phase = 'AUDIT_ASSESSMENT'
+    game.act({ type: 'SET_PAUSED', paused: false })
+    await flushPromises()
+    expect(useNavStore().screen).toBe('run')
+    expect(wrapper.find('[data-phase-stub]').exists()).toBe(true)
   })
 })

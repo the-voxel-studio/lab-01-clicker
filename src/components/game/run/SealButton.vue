@@ -2,7 +2,6 @@
 import { computed, onUnmounted, ref } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { useGameStore } from '@/stores/game'
-import type { DreadBand } from '@/ui/dread'
 import { burstMissives, missiveIcons, MISSIVE_MS, type Missive } from '@/ui/sealBurst'
 import { useMotionAllowed } from './useAmbientMotion'
 
@@ -10,16 +9,15 @@ import { useMotionAllowed } from './useAmbientMotion'
 const game = useGameStore()
 const motionOn = useMotionAllowed()
 
-/** Colour of the decree gains: the rose of grace fading with the band, blood at the end. */
-const GAIN_COLOURS: Record<DreadBand, string> = {
-  enchanted: 'text-rose',
-  uneasy: 'text-[#c94f86]',
-  rotting: 'text-[#7e3d5e]',
-  death_throes: 'text-blood',
-}
 const PRESS_MS = 160
+/** The inner ring stays out this long after the last click, so a quick run keeps it there. */
+const RING_HOLD_MS = 400
+/** On the vellum, either side of the lower half of the seal, so the kingdom stays clear. */
+const OFFICIAL_PLACES = ['-left-[40px]', '-right-[40px]', '-left-[78px]', '-right-[78px]']
 
 const pressed = ref(false)
+const ringOut = ref(false)
+let ringTimer: ReturnType<typeof setTimeout> | null = null
 const missives = ref<Missive[]>([])
 const gains = ref<{ id: number; text: string; dx: number }[]>([])
 const timers = new Set<ReturnType<typeof setTimeout>>()
@@ -30,7 +28,6 @@ const officials = computed(() => {
   const icons = game.run ? missiveIcons(game.run) : []
   return icons[0] === 'scroll' ? [] : icons.slice(0, 4)
 })
-const gainColour = computed(() => GAIN_COLOURS[game.dread.band])
 
 function later(action: () => void, ms: number): void {
   const timer = setTimeout(() => {
@@ -40,12 +37,19 @@ function later(action: () => void, ms: number): void {
   timers.add(timer)
 }
 
+function holdRing(): void {
+  ringOut.value = true
+  if (ringTimer !== null) clearTimeout(ringTimer)
+  ringTimer = setTimeout(() => (ringOut.value = false), RING_HOLD_MS)
+}
+
 function seal(): void {
   const before = game.coffer
   if (!game.act({ type: 'STAMP_DOCUMENT' }).success) return
   pressed.value = true
   later(() => (pressed.value = false), PRESS_MS)
   if (!motionOn.value || !game.run) return
+  holdRing()
   const burst = burstMissives(Math.random, missiveIcons(game.run), nextId)
   nextId += burst.length + 1
   missives.value = missives.value.concat(burst)
@@ -62,29 +66,35 @@ function seal(): void {
   }, MISSIVE_MS)
 }
 
-onUnmounted(() => timers.forEach((timer) => clearTimeout(timer)))
+onUnmounted(() => {
+  timers.forEach((timer) => clearTimeout(timer))
+  if (ringTimer !== null) clearTimeout(ringTimer)
+})
 </script>
 
 <template>
   <div class="relative mx-auto flex size-[160px] items-center justify-center">
     <template v-if="motionOn">
       <div
-        class="spin-slow pointer-events-none absolute size-[176px] rounded-full border border-dashed border-gold/30"
+        class="spin-slow pointer-events-none absolute size-[176px] rounded-full border-2 border-dashed border-wax/70"
       />
       <div
-        class="pointer-events-none absolute size-[150px] rounded-full border transition-all duration-200"
-        :class="pressed ? 'scale-115 border-gold opacity-80' : 'border-wax/30 opacity-20'"
+        data-seal-ring
+        class="pointer-events-none absolute size-[150px] rounded-full border-2 transition-all"
+        :class="
+          ringOut
+            ? 'scale-[1.16] border-wax opacity-100 duration-100'
+            : 'border-rubric/60 opacity-70 duration-500'
+        "
       />
     </template>
 
     <span
       v-for="(icon, index) in officials"
       :key="icon"
-      class="absolute flex size-7 items-center justify-center rounded border border-gold/50 bg-vellum-shade"
-      :class="[
-        ['-left-1 top-2', '-right-1 top-2', '-left-1 bottom-2', '-right-1 bottom-2'][index],
-        pressed && motionOn ? 'admin-stamp' : '',
-      ]"
+      data-official
+      class="absolute top-[92px] flex size-7 items-center justify-center rounded border border-wax/70 bg-vellum shadow"
+      :class="[OFFICIAL_PLACES[index], pressed && motionOn ? 'admin-stamp' : '']"
     >
       <GameIcon :name="icon" class="size-4 text-ink" />
     </span>
@@ -106,8 +116,7 @@ onUnmounted(() => timers.forEach((timer) => clearTimeout(timer)))
     <span
       v-for="g in gains"
       :key="g.id"
-      class="gain pointer-events-none absolute z-20 font-display text-2xl"
-      :class="gainColour"
+      class="gain pointer-events-none absolute z-20 font-display text-2xl text-ink"
       :style="{ '--dx': `${g.dx}px` }"
     >
       {{ g.text }}
@@ -153,6 +162,11 @@ onUnmounted(() => timers.forEach((timer) => clearTimeout(timer)))
 }
 .gain {
   animation: gain-rise 0.75s ease-out forwards;
+  /* Ink with a pale halo stays readable on the fields, the vellum and the blood sky alike. */
+  text-shadow:
+    0 0 3px var(--color-cream),
+    0 0 3px var(--color-cream),
+    0 0 6px var(--color-cream);
 }
 @keyframes gain-rise {
   from {
