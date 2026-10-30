@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ChroniclePage from '@/components/game/ChroniclePage.vue'
-import OrderPlaceholder from '@/components/game/OrderPlaceholder.vue'
+import CrownPage from '@/components/game/orders/CrownPage.vue'
 import ActionBar from '@/components/game/run/ActionBar.vue'
 import ChroniclePanel from '@/components/game/run/ChroniclePanel.vue'
 import CounselLine from '@/components/game/run/CounselLine.vue'
@@ -80,9 +80,9 @@ describe('Task 8: counsel line, chronicle, action bar', () => {
       expect(nav.screen).toBe(screen)
       expect(bar.get(`[data-order="${screen}"]`).text()).toContain(label)
     }
-    const placeholder = mount(OrderPlaceholder, { global: { plugins: [pinia] } })
-    expect(placeholder.text()).toContain('The Crown')
-    await placeholder.get('[data-back]').trigger('click')
+    const page = mount(CrownPage, { global: { plugins: [pinia] } })
+    expect(page.text()).toContain('The Crown')
+    await page.get('[data-order="run"]').trigger('click')
     expect(nav.screen).toBe('run')
   })
 

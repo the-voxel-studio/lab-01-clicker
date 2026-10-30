@@ -13,6 +13,7 @@ import { calculateMaxAffordableUnits, getMaxBulkSize } from '@/core/formulas'
 import type { Command, GameState, UnitId } from '@/core/types'
 import { UNITS_DATA } from '@/data/balance'
 import type { QuotaView } from '@/stores/game'
+import type { Screen } from '@/stores/nav'
 import type { DreadBand } from '@/ui/dread'
 import { formatCompact } from '@/ui/realmText'
 
@@ -21,6 +22,8 @@ export interface Counsel {
   title: string
   text: string
   action: { label: string; command: Command } | null
+  /** The page that answers this counsel when no single command does. */
+  go?: Screen
 }
 
 const WARNING_SECONDS = 30
@@ -98,7 +101,10 @@ function acceptedPurchase(
  * What holds the births back before peasants can help (`docs/GAME_RULES.md` 6.2): a tax above 25%
  * slows the logistic growth, and a realm near its housing cap barely grows at all.
  */
-function birthBrake(state: GameState, shortfall: string): Pick<Counsel, 'text' | 'action'> | null {
+function birthBrake(
+  state: GameState,
+  shortfall: string,
+): Pick<Counsel, 'text' | 'action' | 'go'> | null {
   const opening = shortfall.replace(/\.$/, '')
   if (state.taxRate > FAIR_TAX) {
     const command: Command = { type: 'SET_TAX_RATE', rate: FAIR_TAX }
@@ -113,6 +119,7 @@ function birthBrake(state: GameState, shortfall: string): Pick<Counsel, 'text' |
     return {
       text: `${opening}, and the villages are full. Colonise a province to house more souls.`,
       action: null,
+      go: 'crown',
     }
   }
   return null

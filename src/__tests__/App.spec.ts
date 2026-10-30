@@ -154,6 +154,8 @@ describe('Task 7: bare playable shell', () => {
     const inActiveCycle = () => game.phase === 'ACTIVE_CYCLE'
     for (let guard = 0; guard < 20 && !inActiveCycle(); guard++) {
       const before = game.revision
+      const leave = wrapper.find('[data-leave]')
+      if (leave.exists()) await leave.trigger('click')
       for (const answer of wrapper.findAll('[data-phase-stub] button')) {
         await answer.trigger('click')
         if (!wrapper.find('[data-stub-error]').exists()) break

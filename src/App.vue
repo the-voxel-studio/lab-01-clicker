@@ -3,32 +3,24 @@ import { watch } from 'vue'
 import ChroniclePage from '@/components/game/ChroniclePage.vue'
 import EndScreen from '@/components/game/EndScreen.vue'
 import HallScreen from '@/components/game/HallScreen.vue'
-import OrderPlaceholder from '@/components/game/OrderPlaceholder.vue'
+import CrownPage from '@/components/game/orders/CrownPage.vue'
+import FortunePage from '@/components/game/orders/FortunePage.vue'
+import OrderPage from '@/components/game/orders/OrderPage.vue'
 import RunScreen from '@/components/game/RunScreen.vue'
 import { useGameLoop } from '@/components/game/useGameLoop'
 import { useGameStore } from '@/stores/game'
-import { useNavStore, type Screen } from '@/stores/nav'
+import { useNavStore } from '@/stores/nav'
+import { routeForPhase } from '@/ui/fortune'
 
 const nav = useNavStore()
 const game = useGameStore()
 useGameLoop()
 
-// Events are answered on the run screen: without this the reign would wait behind an order page.
-watch(
-  () => game.awaitingAnswer,
-  (awaiting) => {
-    if (awaiting) nav.go('run')
-  },
-)
-
-/** Order pages drawn by plan 03; a placeholder until then. */
-const ORDER_SCREENS: readonly Screen[] = [
-  'order_people',
-  'order_admin',
-  'order_military',
-  'fortune',
-  'crown',
-]
+// Events are answered on their own screen: without this the reign would wait behind an order page.
+watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
+  const next = routeForPhase(phase, game.awaitingAnswer, screen)
+  if (next) nav.go(next)
+})
 </script>
 
 <template>
@@ -39,7 +31,11 @@ const ORDER_SCREENS: readonly Screen[] = [
       <HallScreen v-if="nav.screen === 'hall'" />
       <EndScreen v-else-if="nav.screen === 'end'" />
       <ChroniclePage v-else-if="nav.screen === 'chronicle'" />
-      <OrderPlaceholder v-else-if="ORDER_SCREENS.includes(nav.screen)" />
+      <OrderPage v-else-if="nav.screen === 'order_people'" order="people" />
+      <OrderPage v-else-if="nav.screen === 'order_admin'" order="admin" />
+      <OrderPage v-else-if="nav.screen === 'order_military'" order="military" />
+      <FortunePage v-else-if="nav.screen === 'fortune'" />
+      <CrownPage v-else-if="nav.screen === 'crown'" />
       <RunScreen v-else />
     </main>
   </div>

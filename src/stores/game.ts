@@ -62,6 +62,11 @@ function readSavedDeadline(): number | null {
 /** Commands the chronicle tells; the others are not worth copying the run before dispatch. */
 const TOLD_COMMANDS: ReadonlySet<Command['type']> = new Set([
   'BUY_UNIT',
+  'DISBAND_UNIT',
+  'UNLOCK_PATENT',
+  'ENACT_EDICT',
+  'COLONISE_PROVINCE',
+  'LAUNCH_ATTACK',
   'SET_TAX_RATE',
   'ENACT_LAW',
   'RESOLVE_DILEMMA',

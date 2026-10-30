@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
+import { useNavStore } from '@/stores/nav'
 import { adviseCounsel } from '@/ui/counsel'
 
 /** One counsellor and one direct action, under the kingdom (design 4.2, fourth pass). */
 const game = useGameStore()
+const nav = useNavStore()
 const error = ref<string | null>(null)
 
 const counsel = computed(() => {
@@ -48,6 +50,15 @@ function follow(): void {
       @click="follow"
     >
       {{ counsel.action.label }}
+    </button>
+    <button
+      v-else-if="counsel.go"
+      type="button"
+      data-counsel-go
+      class="w-[132px] shrink-0 rounded border border-gold bg-wax px-2 py-1.5 font-body italic leading-tight text-cream"
+      @click="nav.go(counsel!.go!)"
+    >
+      Open the Crown
     </button>
   </section>
 </template>

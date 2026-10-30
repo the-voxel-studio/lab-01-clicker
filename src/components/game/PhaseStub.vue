@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { Command, RunPhase } from '@/core/types'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
+import { useChronicleStore } from '@/stores/chronicle'
 import { useGameStore } from '@/stores/game'
 
 /** One answer of a stub: its label and the command it dispatches. */
@@ -11,6 +12,11 @@ interface StubAnswer {
 }
 
 const game = useGameStore()
+const chronicle = useChronicleStore()
+/** The last deed before the resume: a final campaign leaves no page to tell its outcome. */
+const lastDeed = computed(() =>
+  game.phase === 'AWAIT_RESUME' ? (chronicle.entries[0]?.text ?? null) : null,
+)
 const error = ref<string | null>(null)
 
 /** Fixed answers per phase; the dilemma answers come from the current dilemma. */
@@ -22,7 +28,6 @@ const FIXED_ANSWERS: Partial<Record<RunPhase, StubAnswer[]>> = {
     { label: 'Pay the tribute', command: { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' } },
     { label: 'Raise a levy', command: { type: 'SELECT_THREAT_RESPONSE', response: 'levy' } },
   ],
-  EXPEDITION: [{ label: 'Stay home', command: { type: 'SKIP_EXPEDITION' } }],
   AWAIT_RESUME: [{ label: 'Resume governance', command: { type: 'RESUME_GOVERNANCE' } }],
   SURPRISE_RAID: [{ label: 'Hold the border', command: { type: 'RESOLVE_RAID_DEFENSE' } }],
   LOMBARD_OFFER: [
@@ -62,6 +67,7 @@ function answer(command: Command): void {
     class="absolute inset-0 z-30 flex flex-col justify-center gap-4 overflow-y-auto bg-vellum px-6 py-10"
   >
     <h2 class="font-display text-2xl text-ink">{{ game.phase }}</h2>
+    <p v-if="lastDeed" class="font-body italic text-ink-faded">{{ lastDeed }}</p>
     <button
       v-for="item in answers"
       :key="item.label"

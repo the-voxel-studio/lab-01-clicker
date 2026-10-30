@@ -10,6 +10,8 @@ import TallyStick from './TallyStick.vue'
 import TimeControls from './TimeControls.vue'
 
 /** Top of the run screen (Figma `39:902`): Menu, coffer, rate, candle clock, quotas, unrest. */
+defineProps<{ compact?: boolean }>()
+
 const game = useGameStore()
 const nav = useNavStore()
 const motionOn = useMotionAllowed()
@@ -30,7 +32,7 @@ const unrest = computed(() => {
 </script>
 
 <template>
-  <header class="relative px-4 pt-3">
+  <header class="relative px-4 pt-3" :class="compact ? 'hud-compact' : ''">
     <button
       type="button"
       aria-label="Menu"
@@ -61,13 +63,22 @@ const unrest = computed(() => {
       <TimeControls />
     </div>
 
-    <div class="mt-1.5 flex gap-2.5">
+    <div class="hud-quotas mt-1.5 flex gap-2.5">
       <TallyStick v-for="quota in game.quotas" :key="quota.axis" :quota="quota" />
     </div>
 
-    <p class="mt-1.5 flex items-center gap-1.5 font-body text-sm italic text-ink">
+    <p data-unrest class="mt-1.5 flex items-center gap-1.5 font-body text-sm italic text-ink">
       <GameIcon name="discontent" class="size-3.5 text-rubric" label="Unrest" />
       {{ unrest }}
     </p>
   </header>
 </template>
+
+<style scoped>
+/* Order pages give their lists the height of the tally sticks on short screens. */
+@media (max-height: 560px) {
+  .hud-compact .hud-quotas {
+    display: none;
+  }
+}
+</style>

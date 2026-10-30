@@ -250,3 +250,54 @@ describe('Task 2 review fixes: chronicle model', () => {
     expect(formatFigure(2.55, 1)).toBe('2.6')
   })
 })
+
+describe('Plan 03 Task 7: the orders in the chronicle', () => {
+  it('tells a soldier sent home', () => {
+    const state = createInitialGameState({ seed: 7 })
+    state.units.soldier = 3
+    state.totalPopulation += 3
+    const entry = buy(state, { type: 'DISBAND_UNIT', unitId: 'soldier', count: 1 })
+    expect(entry?.text).toBe('You sent 1 soldier home.')
+  })
+
+  it('tells a sealed patent', () => {
+    const state = createInitialGameState({ seed: 7 })
+    state.deadline = 4
+    state.ap = 1000
+    state.units.peasant = 12
+    state.totalPopulation += 12
+    const entry = buy(state, { type: 'UNLOCK_PATENT', order: 'people' })
+    expect(entry?.text).toBe('You sealed the patent of the Commons.')
+  })
+
+  it('tells an edict', () => {
+    const state = createInitialGameState({ seed: 7 })
+    state.ap = 1000
+    const entry = buy(state, { type: 'ENACT_EDICT', edictId: 'grand_festival' })
+    expect(entry?.text).toBe('You proclaimed the grand festival.')
+  })
+
+  it('tells a new province', () => {
+    const state = createInitialGameState({ seed: 7 })
+    state.ap = 2000
+    expect(buy(state, { type: 'COLONISE_PROVINCE' })?.text).toBe(
+      'You colonised a province for 1.5k AP.',
+    )
+  })
+
+  it('tells a campaign, won or lost, from the provinces held', () => {
+    const state = createInitialGameState({ seed: 7 })
+    const after = structuredClone(state)
+    after.provinces = state.provinces + 1
+    const result = { success: true }
+    const won = entryFromCommand({ type: 'LAUNCH_ATTACK' }, result, state, after, 1)
+    expect(won?.text).toBe('Your host took a province.')
+    const lost = entryFromCommand({ type: 'LAUNCH_ATTACK' }, result, state, state, 1)
+    expect(lost?.text).toBe('Your host came back without a province.')
+  })
+
+  it('tells nothing of a refused order', () => {
+    const state = createInitialGameState({ seed: 7 })
+    expect(buy(state, { type: 'COLONISE_PROVINCE' })).toBeNull()
+  })
+})

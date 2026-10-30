@@ -8,9 +8,17 @@
 
 import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
 import { calculateMilitaryPower, calculateNetApRate, effectiveQuota } from '@/core/engine'
-import type { AuditOutcome, Command, DispatchResult, GameState, UnitId } from '@/core/types'
+import type {
+  AuditOutcome,
+  Command,
+  DispatchResult,
+  GameState,
+  UnitId,
+  UnitOrder,
+} from '@/core/types'
 import { FOLKLORE, UNIT_NAMES } from '@/data/chronicleCopy'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
+import type { EdictId } from '@/data/edicts'
 import { LAWS_DATA } from '@/data/laws'
 import type { DreadBand } from '@/ui/dread'
 import { formatCompact } from '@/ui/realmText'
@@ -72,6 +80,17 @@ const RECOVERY_SECONDS = 5
 /** Starvation is told by the soul count, and at most this often. */
 const DEATH_THRESHOLD = 2
 const DEATH_INTERVAL_SECONDS = 10
+const ORDER_NAMES: Record<UnitOrder, string> = {
+  people: 'Commons',
+  admin: 'Chancery',
+  military: 'Host',
+}
+const EDICT_NAMES: Record<EdictId, string> = {
+  forced_tithe: 'the forced tithe',
+  church_seizure: 'the church seizure',
+  grand_festival: 'the grand festival',
+}
+
 /** Repeated purchases or tax moves this close together share one line. */
 const MERGE_WINDOW_SECONDS = 10
 
@@ -295,6 +314,20 @@ function commandText(command: Command, before: GameState, after: GameState): str
         return `You hired your first ${UNIT_NAMES[command.unitId].one}.`
       }
       return purchaseText(command.unitId, command.count, before.ap - after.ap)
+    case 'DISBAND_UNIT': {
+      const name = UNIT_NAMES[command.unitId]
+      return `You sent ${command.count} ${command.count === 1 ? name.one : name.many} home.`
+    }
+    case 'UNLOCK_PATENT':
+      return `You sealed the patent of the ${ORDER_NAMES[command.order]}.`
+    case 'ENACT_EDICT':
+      return `You proclaimed ${EDICT_NAMES[command.edictId]}.`
+    case 'COLONISE_PROVINCE':
+      return `You colonised a province for ${formatCompact(before.ap - after.ap)} AP.`
+    case 'LAUNCH_ATTACK':
+      return after.provinces > before.provinces
+        ? 'Your host took a province.'
+        : 'Your host came back without a province.'
     case 'SET_TAX_RATE':
       return taxText(before.taxRate, command.rate)
     case 'ENACT_LAW': {
