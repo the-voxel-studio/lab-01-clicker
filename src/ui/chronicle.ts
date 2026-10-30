@@ -13,7 +13,7 @@ import { FOLKLORE, UNIT_NAMES } from '@/data/chronicleCopy'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import { LAWS_DATA } from '@/data/laws'
 import type { DreadBand } from '@/ui/dread'
-import { formatFigure } from '@/ui/realmText'
+import { formatCompact } from '@/ui/realmText'
 
 /** What an entry tells: the player's decisions, audits, folklore, deaths or money. */
 export type ChronicleKind = 'decision' | 'audit' | 'folklore' | 'death' | 'money'
@@ -75,8 +75,8 @@ const DEATH_INTERVAL_SECONDS = 10
 /** Repeated purchases or tax moves this close together share one line. */
 const MERGE_WINDOW_SECONDS = 10
 
-const figure = (value: number): string => formatFigure(value)
-const decimal = (value: number): string => formatFigure(value, 1)
+const figure = (value: number): string => formatCompact(value)
+const decimal = (value: number): string => formatCompact(value, 1)
 
 /** Formats seconds of reign as `m:ss`. */
 export function formatReignClock(seconds: number): string {

@@ -41,7 +41,7 @@ export function formatClock(seconds: number): string {
 export function formatRate(perSecond: number): string {
   const rounded = Math.round(perSecond)
   const sign = rounded < 0 ? '−' : '+'
-  return `${sign}${Math.abs(rounded).toLocaleString('en')} AP each second`
+  return `${sign}${formatCompact(Math.abs(rounded))} AP each second`
 }
 
 const UNREST_PHRASES: Record<UnrestCrisisStage, string> = {
@@ -67,13 +67,19 @@ export function formatFigure(value: number, decimals = 0): string {
 }
 
 /**
- * The coffer: whole AP under 1,000, then thousands as `k` with one decimal, none from 1,000k on.
- * Truncated, never rounded up, so the player never reads more than the coffer holds.
+ * A figure for the interface, in thousands from 1,000: `1.5k`, with one decimal up to `999.9k` and
+ * none beyond. Thousands are never rounded to nearest: `down` suits what the player holds, `up` what
+ * is owed or demanded, so the screen never promises more than the engine grants.
+ *
+ * @param decimals - Decimals of figures under 1,000.
+ * @param round - Direction of the thousands, on the signed value.
  */
-export function formatCoffer(value: number): string {
+export function formatCompact(value: number, decimals = 0, round: 'down' | 'up' = 'down'): string {
   const magnitude = Math.abs(value)
-  if (magnitude < 1000) return formatFigure(Math.trunc(value))
+  if (magnitude < 1000) return formatFigure(value, decimals)
+  const towardsZero = (round === 'down') === value > 0
+  const step = towardsZero ? Math.floor : Math.ceil
   const thousands = magnitude / 1000
-  const shown = thousands < 1000 ? Math.floor(thousands * 10) / 10 : Math.floor(thousands)
+  const shown = thousands < 1000 ? step(thousands * 10) / 10 : step(thousands)
   return `${value < 0 ? '−' : ''}${shown.toLocaleString('en')}k`
 }

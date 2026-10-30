@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
-import { formatCoffer, formatRate, unrestLine } from '@/ui/realmText'
+import { formatCompact, formatRate, unrestLine } from '@/ui/realmText'
 import { useMotionAllowed, useRolledNumber } from './useAmbientMotion'
 import CandleClock from './CandleClock.vue'
 import TallyStick from './TallyStick.vue'
@@ -44,7 +44,7 @@ const unrest = computed(() => {
     <div class="text-center">
       <p class="font-caps text-sm text-rubric">In the coffer</p>
       <p data-coffer class="font-display text-5xl leading-[44px] text-ink">
-        {{ formatCoffer(Math.floor(coffer)) }}
+        {{ formatCompact(Math.floor(coffer)) }}
         <span class="font-display text-[28px] italic text-ink-faded">AP</span>
       </p>
       <p

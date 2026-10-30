@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { QuotaView } from '@/stores/game'
+import { formatCompact } from '@/ui/realmText'
 import { useMotionAllowed, useRolledNumber } from './useAmbientMotion'
 
 /** One Crown quota drawn as a notched tally stick with the target as a vermilion thread. */
@@ -12,10 +13,11 @@ const NOTCHES = 12
 const SCALE = 1.25
 
 const label = computed(() => LABELS[props.quota.axis])
-const amount = (value: number): string =>
+/** Whole souls, tenths of AP or men; what is held rounds down, what is demanded rounds up. */
+const amount = (value: number, round: 'down' | 'up' = 'down'): string =>
   props.quota.axis === 'pop'
-    ? Math.floor(value).toLocaleString('en')
-    : (Math.round(value * 10) / 10).toLocaleString('en', { maximumFractionDigits: 1 })
+    ? formatCompact(Math.floor(value), 0, round)
+    : formatCompact(value, 1, round)
 const motionOn = useMotionAllowed()
 const current = useRolledNumber(
   () => props.quota.current,
@@ -23,13 +25,13 @@ const current = useRolledNumber(
 )
 const figures = computed(
   () =>
-    `${amount(current.value)} / ${amount(props.quota.required)}` +
+    `${amount(current.value)} / ${amount(props.quota.required, 'up')}` +
     (props.quota.axis === 'ap' ? ' AP/s' : ''),
 )
 const ariaLabel = computed(
   () =>
     `${label.value} quota ${props.quota.met ? 'met' : 'short'}, ` +
-    `${amount(props.quota.current)} of ${amount(props.quota.required)}`,
+    `${amount(props.quota.current)} of ${amount(props.quota.required, 'up')}`,
 )
 const filled = computed(() => {
   const top = props.quota.required * SCALE

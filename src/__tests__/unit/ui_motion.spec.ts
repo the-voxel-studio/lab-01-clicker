@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import { scopedScene } from '@/data/kingdomScenes'
 import { BAND_TEMPO, MOTION, motionAllowed, phaseOffset, rollTowards } from '@/ui/motion'
-import { formatCoffer } from '@/ui/realmText'
+import { formatCompact, formatRate } from '@/ui/realmText'
 
 describe('Task 11: motion foundation', () => {
   it('rolls a figure towards its target and lands on it exactly', () => {
@@ -28,13 +28,24 @@ describe('Task 11: motion foundation', () => {
     expect(shown).toBeLessThan(300)
   })
 
-  it('shows the coffer in thousands from 1,000 AP, never rounded up', () => {
-    expect(formatCoffer(999)).toBe('999')
-    expect(formatCoffer(1000)).toBe('1k')
-    expect(formatCoffer(1999)).toBe('1.9k')
-    expect(formatCoffer(12340)).toBe('12.3k')
-    expect(formatCoffer(1234567)).toBe('1,234k')
-    expect(formatCoffer(-1500)).toBe('−1.5k')
+  it('shows every large figure in thousands, rounded the way the player is safe', () => {
+    expect(formatCompact(999)).toBe('999')
+    expect(formatCompact(2.46, 1)).toBe('2.5')
+    expect(formatCompact(1000)).toBe('1k')
+    expect(formatCompact(1999)).toBe('1.9k')
+    expect(formatCompact(12340)).toBe('12.3k')
+    expect(formatCompact(1234567)).toBe('1,234k')
+    expect(formatCompact(-1500)).toBe('−1.5k')
+    expect(formatCompact(1910, 0, 'up')).toBe('2k')
+    expect(formatCompact(1901, 0, 'up')).toBe('2k')
+    expect(formatCompact(1234567, 0, 'up')).toBe('1,235k')
+    expect(formatCompact(-1510, 0, 'up')).toBe('−1.5k')
+    expect(formatCompact(-1510)).toBe('−1.6k')
+  })
+
+  it('writes the rate with the same thousands', () => {
+    expect(formatRate(1500)).toBe('+1.5k AP each second')
+    expect(formatRate(-2000)).toBe('−2k AP each second')
   })
 
   it('gives loops their own phase, stable for a seed', () => {

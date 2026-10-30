@@ -2,6 +2,7 @@
 import { computed, onUnmounted, ref } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { useGameStore } from '@/stores/game'
+import { formatCompact } from '@/ui/realmText'
 import { burstMissives, missiveIcons, MISSIVE_MS, type Missive } from '@/ui/sealBurst'
 import { useMotionAllowed } from './useAmbientMotion'
 
@@ -55,7 +56,7 @@ function seal(): void {
   missives.value = missives.value.concat(burst)
   const gain = {
     id: nextId,
-    text: `+${(Math.round((game.coffer - before) * 10) / 10).toLocaleString('en')}`,
+    text: `+${formatCompact(game.coffer - before, 1)}`,
     dx: Math.round((Math.random() - 0.5) * 120),
   }
   gains.value = gains.value.concat(gain)

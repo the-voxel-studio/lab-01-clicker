@@ -14,6 +14,7 @@ import type { Command, GameState, UnitId } from '@/core/types'
 import { UNITS_DATA } from '@/data/balance'
 import type { QuotaView } from '@/stores/game'
 import type { DreadBand } from '@/ui/dread'
+import { formatCompact } from '@/ui/realmText'
 
 /** What the counsel line shows: who speaks, what they say, and the purchase they offer. */
 export interface Counsel {
@@ -51,9 +52,6 @@ const ADVISERS: Record<
   },
 }
 
-const amount = (value: number): string =>
-  (Math.round(value * 10) / 10).toLocaleString('en', { maximumFractionDigits: 1 })
-
 function shortfallText(quota: QuotaView, men: number, warn: boolean): string {
   const missing = quota.required - quota.current
   switch (quota.axis) {
@@ -62,9 +60,9 @@ function shortfallText(quota: QuotaView, men: number, warn: boolean): string {
         ? `The army is ${men} men short, and the audit is close.`
         : `The army is ${men} men short of the Crown's demand.`
     case 'pop':
-      return `The People are ${Math.ceil(missing).toLocaleString('en')} souls short of the Crown's demand.`
+      return `The People are ${formatCompact(Math.ceil(missing), 0, 'up')} souls short of the Crown's demand.`
     case 'ap':
-      return `The Chancery is ${amount(missing)} AP each second short of the Crown's demand.`
+      return `The Chancery is ${formatCompact(missing, 1, 'up')} AP each second short of the Crown's demand.`
   }
 }
 
@@ -168,7 +166,7 @@ export function adviseCounsel(
     action: purchase
       ? {
           // Whole AP, rounded up: the player never holds less than the price shown.
-          label: adviser.label(purchase.count, Math.ceil(purchase.cost).toLocaleString('en')),
+          label: adviser.label(purchase.count, formatCompact(Math.ceil(purchase.cost), 0, 'up')),
           command: { type: 'BUY_UNIT', unitId: adviser.unit, count: purchase.count },
         }
       : null,
