@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { dispatch } from '@/core/commands'
+import { calculateMaxPopulation } from '@/core/engine'
 import { createInitialGameState } from '@/core/state'
 import type { GameState } from '@/core/types'
 import type { QuotaView } from '@/stores/game'
@@ -110,5 +111,27 @@ describe('Task 4: counsel and realm phrases', () => {
     expect(unrestLine(81)).toBe('Unrest 81%, strife and desertion')
     expect(unrestLine(94)).toBe('Unrest 94%, the towns rise against you')
     expect(auditOrdinal(3)).toBe('third')
+  })
+
+  it('has the Steward lower a tax above 25% before anything else', () => {
+    const state = createInitialGameState({ ap: 100000, taxRate: 40 })
+    const advice = adviseCounsel(state, quotas([9, 5], [500, 550], [70, 70]), 'enchanted', 60)
+    expect(advice.title).toBe('The Steward advises')
+    expect(advice.text).toBe(
+      "The People are 50 souls short of the Crown's demand, and a tax above 25% slows the births.",
+    )
+    expect(advice.action?.label).toBe('Lower the tax to 25%')
+    expect(advice.action?.command).toEqual({ type: 'SET_TAX_RATE', rate: 25 })
+    expect(accepted(state, advice)).toBe(true)
+  })
+
+  it('has the Steward point to the Crown when the villages are full', () => {
+    const state = createInitialGameState({ ap: 100000 })
+    state.totalPopulation = Math.floor(calculateMaxPopulation(state) * 0.95)
+    const advice = adviseCounsel(state, quotas([9, 5], [500, 550], [70, 70]), 'enchanted', 60)
+    expect(advice.text).toBe(
+      "The People are 50 souls short of the Crown's demand, and the villages are full. Colonise a province to house more souls.",
+    )
+    expect(advice.action).toBeNull()
   })
 })

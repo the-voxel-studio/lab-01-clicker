@@ -8,6 +8,7 @@
 
 import { dispatch } from '@/core/commands'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { calculateMaxPopulation } from '@/core/engine'
 import { calculateMaxAffordableUnits, getMaxBulkSize } from '@/core/formulas'
 import type { Command, GameState, UnitId } from '@/core/types'
 import { UNITS_DATA } from '@/data/balance'
@@ -23,6 +24,10 @@ export interface Counsel {
 
 const WARNING_SECONDS = 30
 const ROUND_PURCHASE = 10
+/** Highest tax that does not slow the births. */
+const FAIR_TAX = 25
+/** Share of the housing cap from which the villages count as full. */
+const FULL_VILLAGES = 0.9
 
 /** Who speaks for each quota, the unit they offer, and how they phrase it. */
 const ADVISERS: Record<
@@ -92,6 +97,30 @@ function acceptedPurchase(
 }
 
 /**
+ * What holds the births back before peasants can help (`docs/GAME_RULES.md` 6.2): a tax above 25%
+ * slows the logistic growth, and a realm near its housing cap barely grows at all.
+ */
+function birthBrake(state: GameState, shortfall: string): Pick<Counsel, 'text' | 'action'> | null {
+  const opening = shortfall.replace(/\.$/, '')
+  if (state.taxRate > FAIR_TAX) {
+    const command: Command = { type: 'SET_TAX_RATE', rate: FAIR_TAX }
+    if (dispatch(structuredClone(state), command).success) {
+      return {
+        text: `${opening}, and a tax above ${FAIR_TAX}% slows the births.`,
+        action: { label: `Lower the tax to ${FAIR_TAX}%`, command },
+      }
+    }
+  }
+  if (state.totalPopulation >= FULL_VILLAGES * calculateMaxPopulation(state)) {
+    return {
+      text: `${opening}, and the villages are full. Colonise a province to house more souls.`,
+      action: null,
+    }
+  }
+  return null
+}
+
+/**
  * Chooses the counsel for the run: nobody at death throes, praise when every quota is met, else
  * the counsellor of the quota with the largest shortfall ratio, warning when the band is rotting
  * or less than 30 s are left.
@@ -125,11 +154,16 @@ export function adviseCounsel(
   }
   const adviser = ADVISERS[worst.axis]
   const warn = band === 'rotting' || secondsLeft < WARNING_SECONDS
+  const title = `${adviser.name} ${warn ? 'warns' : 'advises'}`
   const men = Math.ceil((worst.required - worst.current) / UNITS_DATA.soldier.baseValue)
+  if (worst.axis === 'pop') {
+    const brake = birthBrake(state, shortfallText(worst, men, warn))
+    if (brake) return { title, ...brake }
+  }
   const wanted = worst.axis === 'military' ? men : ROUND_PURCHASE
   const purchase = acceptedPurchase(state, adviser.unit, wanted)
   return {
-    title: `${adviser.name} ${warn ? 'warns' : 'advises'}`,
+    title,
     text: shortfallText(worst, men, warn),
     action: purchase
       ? {
