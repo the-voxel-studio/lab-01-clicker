@@ -147,7 +147,18 @@ describe('Task 5: the fate of a reign', () => {
     expect(app.text()).toContain("Ten audits passed. The Crown's auditor lays down his pen.")
   })
 
-  it('names the first unmet quota, without a target the audit may not have used', () => {
+  it('names the first unmet quota with the shortfall the audit counted', () => {
+    const { state } = begin()
+    failed(state)
+    state.lastAuditOutcome = {
+      ...state.lastAuditOutcome!,
+      required: { apRate: 413, pop: 1, military: 1 },
+    }
+    triggerDefeat(state, 'quota_failure')
+    expect(fateView(state).line).toMatch(/^The Crown counted 412 AP\/s short at the third audit/)
+  })
+
+  it('names the first unmet quota alone for an audit saved without its target', () => {
     const { state } = begin()
     failed(state)
     triggerDefeat(state, 'quota_failure')

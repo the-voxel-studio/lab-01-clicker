@@ -38,7 +38,7 @@ const ledger = computed(() => {
       <p class="ledger-more font-display text-[22px] italic leading-7 text-[#1e120a]">
         {{ ledger.coffer }}
       </p>
-      <p class="mt-2 font-caps text-base leading-5 text-[#96180e]">What the Crown counted</p>
+      <p class="mt-2 font-caps text-base leading-5 text-[#96180e]">What the Crown demands</p>
       <p
         v-for="line in ledger.lines"
         :key="line"

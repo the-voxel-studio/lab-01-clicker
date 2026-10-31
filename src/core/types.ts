@@ -510,4 +510,6 @@ export interface AuditOutcome {
   isGameOver: boolean
   victory: boolean
   grossApRate: number
+  /** Quotas this audit used, scoped modifiers and surcharge counted; absent on older saves. */
+  required?: { apRate: number; pop: number; military: number }
 }

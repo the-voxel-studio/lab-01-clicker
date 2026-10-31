@@ -114,20 +114,25 @@ function auditTitle(outcome: AuditOutcome): string {
 }
 
 /**
- * What an audit counted. The target stays out: its scoped modifiers are gone from the state, so the
- * quotas read now may not be the ones the audit used.
+ * What an audit counted against what it asked. The targets come from the outcome: its scoped
+ * modifiers are gone from the state, and a save from before the field shows the held figure alone.
  */
 export function quotaLines(state: GameState, outcome: AuditOutcome): QuotaLine[] {
+  const figure = (held: number, target: number | undefined): string =>
+    target === undefined
+      ? formatCompact(held)
+      : `${formatCompact(held)} of ${formatCompact(target, 0, 'up')}`
+  const { required } = outcome
   return [
     {
       label: 'AP',
-      figure: `${formatCompact(outcome.grossApRate)} AP/s`,
+      figure: `${figure(outcome.grossApRate, required?.apRate)} AP/s`,
       met: outcome.apMet,
     },
-    { label: 'People', figure: formatCompact(state.totalPopulation), met: outcome.popMet },
+    { label: 'People', figure: figure(state.totalPopulation, required?.pop), met: outcome.popMet },
     {
       label: 'Army',
-      figure: formatCompact(calculateMilitaryPower(state, config)),
+      figure: figure(calculateMilitaryPower(state, config), required?.military),
       met: outcome.militaryMet,
     },
   ]

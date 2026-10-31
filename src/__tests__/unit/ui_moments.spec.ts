@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { dispatch } from '@/core/commands'
 import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
-import { calculateNetApRate } from '@/core/engine'
+import { calculateNetApRate, evaluateDeadlineAudit } from '@/core/engine'
 import { canAffordEffects } from '@/core/modifiers'
 import { createInitialGameState } from '@/core/state'
 import type { GameState, RunPhase } from '@/core/types'
@@ -297,7 +297,25 @@ describe('Task 8: final review of the letters', () => {
     return state
   }
 
-  it('prints what was counted, never a target the audit may not have used', () => {
+  it('prints the target the audit used, after its scoped modifiers are gone', () => {
+    const state = stateIn('ACTIVE_CYCLE')
+    state.deadline = 3
+    state.activeModifiers = [
+      { source: 'test', stat: 'quota_requirement', op: 'mul', value: 0.5, untilNextAudit: true },
+    ]
+    const quota = quotaForDeadline(config, 3)
+    const outcome = evaluateDeadlineAudit(state, config)
+    state.activeModifiers = []
+    expect(outcome.required).toEqual({
+      apRate: quota.apRate / 2,
+      pop: quota.pop / 2,
+      military: quota.military / 2,
+    })
+    state.phase = 'AUDIT_ASSESSMENT'
+    expect(view(state).quotas[1]?.figure).toContain(`of ${Math.ceil(quota.pop / 2)}`)
+  })
+
+  it('prints no target for an audit saved before the engine kept it', () => {
     for (const line of view(audited({})).quotas) expect(line.figure).not.toContain(' of ')
   })
 

@@ -1,15 +1,16 @@
 /**
  * The fate of a reign: what the last screen before the register says, from the state alone. Whether
- * a quota was missed comes from the audit outcome. No amount is named: the audit strips its scoped
- * modifiers before this screen, so the target it used is gone from the state.
+ * a quota was missed and by how much come from the audit outcome: the audit strips its scoped
+ * modifiers before this screen.
  *
  * @module ui/fate
  */
 
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import { calculateMilitaryPower } from '@/core/engine'
 import type { GameState } from '@/core/types'
 import { COUNT_WORDS, FATE } from '@/data/fateCopy'
-import { auditOrdinal, formatFigure } from '@/ui/realmText'
+import { auditOrdinal, formatCompact, formatFigure } from '@/ui/realmText'
 import type { RunOutcome } from '@/ui/runRecord'
 
 const config = DEFAULT_ENGINE_CONFIG
@@ -33,13 +34,22 @@ function reignLength(state: GameState): string {
   return `${Math.floor(seconds / 60)} min ${seconds % 60} s`
 }
 
-/** The first unmet quota, AP then people then army; null without an audit. */
+/** The first unmet quota, AP then people then army, with its amount when the audit kept it. */
 function firstShortfall(state: GameState): string | null {
   const outcome = state.lastAuditOutcome
   if (!outcome) return null
-  if (!outcome.apMet) return 'your AP'
-  if (!outcome.popMet) return 'your people'
-  return outcome.militaryMet ? null : 'your army'
+  const short = (target: number, held: number): string =>
+    formatCompact(Math.max(1, Math.ceil(target - held)), 0, 'up')
+  const { required } = outcome
+  if (!outcome.apMet) {
+    return required ? `${short(required.apRate, outcome.grossApRate)} AP/s` : 'your AP'
+  }
+  if (!outcome.popMet) {
+    return required ? `${short(required.pop, state.totalPopulation)} people` : 'your people'
+  }
+  if (outcome.militaryMet) return null
+  const army = calculateMilitaryPower(state, config)
+  return required ? `${short(required.military, army)} army strength` : 'your army'
 }
 
 function fateLine(state: GameState, outcome: FateView['outcome']): string {
@@ -48,7 +58,7 @@ function fateLine(state: GameState, outcome: FateView['outcome']): string {
     case 'quota_failure': {
       const shortfall = firstShortfall(state)
       const counted = shortfall
-        ? `The Crown found ${shortfall} short at ${audit}.`
+        ? `${shortfall.startsWith('your') ? 'The Crown found' : 'The Crown counted'} ${shortfall} short at ${audit}.`
         : `The Crown found you wanting at ${audit}.`
       return `${counted} Your name is crossed out of every register in the realm.`
     }

@@ -535,6 +535,7 @@ export function evaluateDeadlineAudit(
     isGameOver: isGameOver || state.isGameOver,
     victory,
     grossApRate,
+    required,
   }
   state.lastAuditOutcome = outcome
   state.conquestsThisAudit = 0
