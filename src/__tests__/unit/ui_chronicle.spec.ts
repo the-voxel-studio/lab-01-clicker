@@ -301,3 +301,65 @@ describe('Plan 03 Task 7: the orders in the chronicle', () => {
     expect(buy(state, { type: 'COLONISE_PROVINCE' })).toBeNull()
   })
 })
+
+describe('Plan 04 Task 4: what became of a fight', () => {
+  const quiet = (state: GameState) => {
+    state.units.soldier = 2000
+    state.totalPopulation += 2000
+    state.provinces = 3
+    state.provinceBiomes = ['heartland', 'farmlands', 'heartland']
+    state.ap = 5000
+    return state
+  }
+
+  function herald(power: number) {
+    const state = quiet(createInitialGameState({ seed: 7 }))
+    state.phase = 'THREAT_HERALD'
+    state.deadline = 3
+    state.currentThreatId = 4
+    state.currentThreatPower = power
+    state.currentThreatTributeAp = 1900
+    return state
+  }
+
+  it('tells a tribute with what it cost', () => {
+    const entry = buy(herald(70), {
+      type: 'SELECT_THREAT_RESPONSE',
+      response: 'tribute',
+    })
+    expect(entry?.text).toBe('You paid 1.9k AP and they turned back.')
+  })
+
+  it('tells nothing of a tribute the coffer refused', () => {
+    const state = herald(70)
+    state.ap = 0
+    const entry = buy(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
+    expect(entry).toBeNull()
+  })
+
+  it('tells a levy with its dead', () => {
+    const state = herald(70)
+    const before = state.totalPopulation
+    const entry = buy(state, { type: 'SELECT_THREAT_RESPONSE', response: 'levy' })
+    expect(entry?.text).toBe(
+      `The levy drove them off. ${before - state.totalPopulation} of your people died.`,
+    )
+  })
+
+  it('tells a defense that held', () => {
+    const entry = buy(herald(1), { type: 'SELECT_THREAT_RESPONSE', response: 'defense' })
+    expect(entry?.text).toBe('Your host held the border.')
+  })
+
+  it('tells a collapse with the provinces lost', () => {
+    const entry = buy(herald(10000000), { type: 'SELECT_THREAT_RESPONSE', response: 'defense' })
+    expect(entry?.text).toBe('The line broke. You lost 1 province.')
+  })
+
+  it('tells a raid as a fight', () => {
+    const state = quiet(createInitialGameState({ seed: 7 }))
+    state.phase = 'SURPRISE_RAID'
+    const entry = buy(state, { type: 'RESOLVE_RAID_DEFENSE' })
+    expect(entry?.text).toBe('Your host held the border.')
+  })
+})

@@ -2,6 +2,8 @@
 import { watch } from 'vue'
 import ChroniclePage from '@/components/game/ChroniclePage.vue'
 import EndScreen from '@/components/game/EndScreen.vue'
+import MomentHost from '@/components/game/moments/MomentHost.vue'
+import FateScreen from '@/components/game/fate/FateScreen.vue'
 import HallScreen from '@/components/game/HallScreen.vue'
 import CrownPage from '@/components/game/orders/CrownPage.vue'
 import FortunePage from '@/components/game/orders/FortunePage.vue'
@@ -17,8 +19,8 @@ const game = useGameStore()
 useGameLoop()
 
 // Events are answered on their own screen: without this the reign would wait behind an order page.
-watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
-  const next = routeForPhase(phase, game.awaitingAnswer, screen)
+watch([() => game.phase, () => nav.screen], ([phase, screen], [previous]) => {
+  const next = routeForPhase(phase, previous, screen)
   if (next) nav.go(next)
 })
 </script>
@@ -29,6 +31,7 @@ watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
       class="relative flex h-full w-full max-w-[430px] flex-col overflow-hidden bg-vellum font-body text-ink"
     >
       <HallScreen v-if="nav.screen === 'hall'" />
+      <FateScreen v-else-if="nav.screen === 'fate'" />
       <EndScreen v-else-if="nav.screen === 'end'" />
       <ChroniclePage v-else-if="nav.screen === 'chronicle'" />
       <OrderPage v-else-if="nav.screen === 'order_people'" order="people" />
@@ -37,6 +40,7 @@ watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
       <FortunePage v-else-if="nav.screen === 'fortune'" />
       <CrownPage v-else-if="nav.screen === 'crown'" />
       <RunScreen v-else />
+      <MomentHost />
     </main>
   </div>
 </template>

@@ -4,14 +4,15 @@ import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
 import { BAND_TEMPO } from '@/ui/motion'
 import { useMotionAllowed } from './run/useAmbientMotion'
+import TidingsBand from './run/TidingsBand.vue'
 import ActionBar from './run/ActionBar.vue'
 import ChroniclePanel from './run/ChroniclePanel.vue'
 import CounselLine from './run/CounselLine.vue'
 import GameMenu from './run/GameMenu.vue'
 import KingdomView from './run/KingdomView.vue'
+import ResumeBand from './run/ResumeBand.vue'
 import RunHud from './run/RunHud.vue'
 import SealButton from './run/SealButton.vue'
-import PhaseStub from './PhaseStub.vue'
 
 /** The run screen of Figma `Screens v7`, rotting with the dread band (design 3.2). */
 const game = useGameStore()
@@ -38,14 +39,15 @@ const tempo = computed(() => {
     :style="tempo"
     class="run relative flex h-full min-h-0 flex-1 flex-col overflow-hidden"
   >
-    <div :inert="nav.menuOpen || game.awaitingAnswer" class="flex min-h-0 flex-1 flex-col">
+    <div :inert="nav.menuOpen || game.inMoment" class="flex min-h-0 flex-1 flex-col">
       <RunHud class="shrink-0" />
       <div class="kingdom-slot relative mt-1 min-h-11">
         <KingdomView :band="game.dread.band" :paused="paused" />
+        <TidingsBand class="absolute inset-x-3 top-1 z-10" />
       </div>
       <div
         class="seal-slot relative z-10 -mt-[76px] shrink-0 transition-opacity duration-300"
-        :class="paused ? 'opacity-50' : ''"
+        :class="paused || game.preparing ? 'opacity-50' : ''"
       >
         <SealButton />
       </div>
@@ -53,11 +55,11 @@ const tempo = computed(() => {
         <CounselLine class="run-counsel shrink-0" />
         <ChroniclePanel class="run-chronicle" />
       </div>
+      <ResumeBand v-if="game.preparing" />
       <div class="z-20 shrink-0">
         <ActionBar />
       </div>
     </div>
-    <PhaseStub v-if="game.awaitingAnswer" />
     <GameMenu />
   </section>
 </template>

@@ -73,7 +73,11 @@ export function computeDread(
     shortfall(state.totalPopulation, required.pop),
     shortfall(calculateMilitaryPower(state, config), required.military),
   )
-  const elapsed = clamp01(state.deadlineTimeSeconds / config.balance.DEADLINE_DURATION_SECONDS)
+  // The open resume stands on a full candle, but the audit it reads is over.
+  const elapsed =
+    state.phase === 'AWAIT_RESUME'
+      ? 0
+      : clamp01(state.deadlineTimeSeconds / config.balance.DEADLINE_DURATION_SECONDS)
   const quotaTerm = deficit * elapsed
 
   // Same condition as the engine's bankruptcy countdown in the fixed step.

@@ -26,6 +26,11 @@ export function auditOrdinal(deadline: number): string {
   return ORDINALS[deadline - 1] ?? `${deadline}th`
 }
 
+/** Writes a signed figure with a plus or a true minus sign (U+2212). */
+export function signedPoints(value: number): string {
+  return value < 0 ? `\u2212${Math.abs(value)}` : `+${value}`
+}
+
 /** The same ordinal with a capital, to open a title. */
 export function capitalized(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)

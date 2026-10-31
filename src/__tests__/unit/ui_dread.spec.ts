@@ -69,4 +69,10 @@ describe('Task 2: dread level', () => {
     expect(computeDread(createInitialGameState({ phase: 'RUN_DEFEAT' })).band).toBe('death_throes')
     expect(computeDread(emptyRealm({ phase: 'RUN_VICTORY', unrest: 100 })).band).toBe('enchanted')
   })
+
+  it('leaves the finished audit out of the open resume', () => {
+    const state = emptyRealm({ phase: 'AWAIT_RESUME', unrest: 0 })
+    state.deadlineTimeSeconds = 100
+    expect(computeDread(state).band).toBe('enchanted')
+  })
 })

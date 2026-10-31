@@ -1,8 +1,8 @@
 /*
  * Motion of the interface (design 4.2.1). Ambient loops read their tempo from variables set per
  * dread band; everything stops while the reign is paused and disappears under reduced motion.
- * Transform and opacity only, with two exceptions: the chronicle ink reveals with a clip path and
- * the vellum fouls with a box shadow, both short and neither touching layout.
+ * Transform and opacity only, with two exceptions: ink reveals with a clip path and the vellum fouls
+ * with a box shadow, both short and neither touching layout.
  */
 
 /* Loops only: one-shot feedback paused here would stay stuck on its invisible first frame. */
@@ -488,6 +488,160 @@
 }
 .motion-breathe {
   animation: seal-breathe 4s ease-in-out infinite;
+}
+
+/* The moment letter: unfolds from its top edge, and on an answer its seal breaks in two. */
+:root {
+  --seal-break: 420ms;
+}
+.letter-enter-active {
+  transform-origin: 50% 0;
+  animation: letter-unfold 420ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.letter-enter-active .letter-seal {
+  animation: pop 300ms 240ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.letter-leave-active {
+  pointer-events: none;
+  transition: opacity var(--seal-break) ease-in;
+}
+.letter-leave-to {
+  opacity: 0;
+}
+.letter-leave-active .letter-seal-whole {
+  visibility: hidden;
+}
+.letter-leave-active .letter-seal-half {
+  visibility: visible;
+  animation: seal-fall-left var(--seal-break) ease-in forwards;
+}
+.letter-leave-active .letter-seal-half + .letter-seal-half {
+  animation-name: seal-fall-right;
+}
+[data-motion='off'] .letter-enter-active,
+[data-motion='off'] .letter-leave-active {
+  transition: opacity 150ms ease !important;
+}
+[data-motion='off'] .letter-enter-from {
+  opacity: 0;
+}
+@keyframes letter-unfold {
+  from {
+    transform: scaleY(0.06);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+@keyframes seal-fall-left {
+  to {
+    transform: translate(-16px, 90px) rotate(-38deg);
+    opacity: 0;
+  }
+}
+@keyframes seal-fall-right {
+  to {
+    transform: translate(16px, 90px) rotate(38deg);
+    opacity: 0;
+  }
+}
+
+/*
+ * The fates of a reign (design 3.3): 600 ms of stillness, one beat, then the words. `backwards`
+ * holds each mark on its first frame through the stillness. Without motion all of it is at rest.
+ */
+.fate-stroke {
+  stroke: currentColor;
+  stroke-width: 6px;
+  vector-effect: non-scaling-stroke;
+  animation: ink-write 260ms 600ms ease-in backwards;
+}
+.fate-stroke-late {
+  animation-delay: 860ms;
+}
+.fate-vacat {
+  animation: ink-write 500ms 1200ms ease-out backwards;
+}
+.fate-burn {
+  animation: burn-climb 1100ms 600ms cubic-bezier(0.3, 0, 0.3, 1) backwards;
+}
+.fate-ember {
+  opacity: 0;
+  animation: ember-rise 1400ms ease-out backwards;
+}
+.fate-tear {
+  animation: page-fall 700ms 600ms ease-in forwards;
+}
+.fate-ball {
+  animation: pop 300ms 1100ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.fate-wheel {
+  animation: fate-wheel-stop 1300ms 600ms cubic-bezier(0.15, 0.7, 0.2, 1) backwards;
+}
+.fate-text {
+  animation: fate-words 900ms 1500ms ease-out backwards;
+}
+.fate-blossom {
+  animation: blossom-fall 7s linear infinite backwards;
+}
+[data-motion='off'] .fate-ember,
+[data-motion='off'] .fate-tear,
+[data-motion='off'] .fate-blossom {
+  display: none;
+}
+@keyframes burn-climb {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes ember-rise {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-200px) translateX(12px);
+    opacity: 0;
+  }
+}
+@keyframes page-fall {
+  to {
+    transform: translateY(120%) rotate(4deg);
+    opacity: 0;
+  }
+}
+@keyframes fate-wheel-stop {
+  from {
+    transform: rotate(-900deg);
+  }
+}
+@keyframes fate-words {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes blossom-fall {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(100vh) translateX(-40px) rotate(300deg);
+  }
+}
+
+/* The register: a new feat unseals after the figures, the progress bar fills once. */
+.register-unseal {
+  animation: pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.register-fill {
+  animation: register-fill 900ms 400ms ease-out backwards;
+}
+@keyframes register-fill {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 /* Vue transitions. */

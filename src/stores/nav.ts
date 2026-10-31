@@ -19,6 +19,7 @@ export type Screen =
   | 'crown'
   | 'chronicle'
   | 'hall_of_feats'
+  | 'fate'
   | 'end'
 
 /** The current screen and the game menu toggle. */

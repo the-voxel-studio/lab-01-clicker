@@ -22,10 +22,7 @@ let confirmTimer: ReturnType<typeof setTimeout> | null = null
 let pausedBefore = false
 const firstItem = ref<HTMLButtonElement | null>(null)
 
-const ordinal = computed(() => {
-  void game.revision
-  return auditOrdinal(game.run?.deadline ?? 1)
-})
+const ordinal = computed(() => auditOrdinal(game.auditAhead))
 const timeLeft = computed(() => {
   const total = Math.max(0, Math.ceil(game.secondsLeft))
   return `${Math.floor(total / 60)} min ${total % 60} s left`

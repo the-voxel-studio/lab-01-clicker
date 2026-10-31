@@ -126,11 +126,18 @@ onUnmounted(() => {
     <button
       type="button"
       class="relative z-10 flex size-[120px] items-center justify-center rounded-[46%_54%_50%_50%/52%_48%_55%_45%] bg-wax shadow-lg transition-transform duration-150 active:scale-95"
-      :class="pressed ? 'scale-90' : 'motion-breathe'"
+      :class="pressed || game.preparing ? 'scale-90' : 'motion-breathe'"
+      :disabled="game.preparing"
       @click="seal"
     >
       <GameIcon name="crown" class="size-[42px] text-blood/80" label="Royal seal" />
-      <span class="sr-only">Seal a decree</span>
+      <span
+        v-if="game.preparing"
+        class="absolute inset-x-3 bottom-4 text-center font-caps text-[11px] leading-3 text-cream"
+      >
+        Time stands still
+      </span>
+      <span v-else class="sr-only">Seal a decree</span>
     </button>
   </div>
 </template>

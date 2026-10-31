@@ -12,10 +12,6 @@ const WAX_PX = 37
 const WAX_MIN_PX = 4
 const LAST_SECONDS = 10
 
-const deadline = computed(() => {
-  void game.revision
-  return game.run?.deadline ?? 1
-})
 const burnt = computed(
   () => 1 - game.secondsLeft / DEFAULT_ENGINE_CONFIG.balance.DEADLINE_DURATION_SECONDS,
 )
@@ -32,7 +28,9 @@ const guttering = computed(() => game.secondsLeft <= LAST_SECONDS)
       >
         {{ formatClock(game.secondsLeft) }}
       </p>
-      <p class="font-body text-sm italic text-ink-faded">{{ auditOrdinal(deadline) }} audit</p>
+      <p class="font-body text-sm italic text-ink-faded">
+        {{ auditOrdinal(game.auditAhead) }} audit
+      </p>
     </div>
     <div class="flex w-7 flex-col items-center" aria-hidden="true">
       <div

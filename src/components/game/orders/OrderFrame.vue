@@ -2,7 +2,9 @@
 import { computed } from 'vue'
 import ActionBar from '@/components/game/run/ActionBar.vue'
 import GameMenu from '@/components/game/run/GameMenu.vue'
+import ResumeBand from '@/components/game/run/ResumeBand.vue'
 import RunHud from '@/components/game/run/RunHud.vue'
+import TidingsBand from '@/components/game/run/TidingsBand.vue'
 import { useMotionAllowed } from '@/components/game/run/useAmbientMotion'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
@@ -38,6 +40,7 @@ const tempo = computed(() => {
   >
     <div :inert="nav.menuOpen" class="flex min-h-0 flex-1 flex-col">
       <RunHud compact class="shrink-0" />
+      <TidingsBand class="mx-3 mt-1 shrink-0" />
       <div class="shrink-0 px-4 pt-2">
         <slot name="aside" />
         <h1 class="font-display text-[26px] leading-[30px] text-ink">{{ title }}</h1>
@@ -49,6 +52,7 @@ const tempo = computed(() => {
       <div data-order-body class="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-2">
         <slot />
       </div>
+      <ResumeBand v-if="game.preparing" />
       <div data-order-bar :inert="closed" class="z-20 shrink-0" :class="closed ? 'opacity-60' : ''">
         <ActionBar />
       </div>

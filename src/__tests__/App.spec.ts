@@ -1,5 +1,5 @@
 /**
- * Bare playable shell: hall, run, phase stubs, end of reign.
+ * Bare playable shell: hall, run, moment letters, end of reign.
  *
  * @module __tests__/App.spec
  */
@@ -118,7 +118,7 @@ describe('Task 7: bare playable shell', () => {
     if (!last) throw new Error('conclusion expected')
     game.lastConclusion = { ...last, conclusion: { ...last.conclusion, pointsEarned: -2 } }
     await flushPromises()
-    expect(wrapper.text()).toContain('−2 archive points')
+    expect(wrapper.text()).toContain('−2archive points')
     expect(wrapper.text()).not.toContain('+-')
   })
 
@@ -143,12 +143,12 @@ describe('Task 7: bare playable shell', () => {
     expect(wrapper.text()).not.toContain('Continue')
   })
 
-  it('answers the first audit through the stubs and reaches the second', async () => {
+  it('answers the first audit through its letters and reaches the second', async () => {
     const { wrapper, game } = mountApp()
     await beginReign(wrapper)
     for (let t = 0; t < 100; t += 0.25) game.advance(0.25)
     await flushPromises()
-    expect(wrapper.text()).toContain('Accept the verdict')
+    expect(wrapper.text()).toContain('Seal the verdict')
 
     // Read through a function: the phase changes behind the store between clicks.
     const inActiveCycle = () => game.phase === 'ACTIVE_CYCLE'
@@ -156,10 +156,8 @@ describe('Task 7: bare playable shell', () => {
       const before = game.revision
       const leave = wrapper.find('[data-leave]')
       if (leave.exists()) await leave.trigger('click')
-      for (const answer of wrapper.findAll('[data-phase-stub] button')) {
-        await answer.trigger('click')
-        if (!wrapper.find('[data-stub-error]').exists()) break
-      }
+      const open = wrapper.findAll('[data-moment-answer]:not([disabled])')
+      await (open[open.length - 1] ?? button(wrapper, 'Resume governance')).trigger('click')
       expect(game.revision).toBeGreaterThan(before)
       await flushPromises()
     }
@@ -227,10 +225,10 @@ describe('Task 7: bare playable shell', () => {
     await wrapper.get('[data-order="crown"]').trigger('click')
     await flushPromises()
     const game = useGameStore()
-    game.run!.phase = 'AUDIT_ASSESSMENT'
+    game.run!.phase = 'COUNCIL_LAWS'
     game.act({ type: 'SET_PAUSED', paused: false })
     await flushPromises()
     expect(useNavStore().screen).toBe('run')
-    expect(wrapper.find('[data-phase-stub]').exists()).toBe(true)
+    expect(wrapper.find('[data-moment-letter]').exists()).toBe(true)
   })
 })

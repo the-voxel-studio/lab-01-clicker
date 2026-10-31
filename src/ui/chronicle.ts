@@ -306,6 +306,12 @@ export function mergeEntries(
   return { ...previous, reignSeconds: next.reignSeconds, text, merge }
 }
 
+function clashText(before: GameState, after: GameState): string {
+  const lost = before.provinces - after.provinces
+  if (lost <= 0) return 'Your host held the border.'
+  return `The line broke. You lost ${lost} ${lost === 1 ? 'province' : 'provinces'}.`
+}
+
 /** The chronicle line of a command, or null when it is not worth a line. */
 function commandText(command: Command, before: GameState, after: GameState): string | null {
   switch (command.type) {
@@ -342,6 +348,17 @@ function commandText(command: Command, before: GameState, after: GameState): str
       return 'You refused the Lombard. He smiled.'
     case 'ACCEPT_LOMBARD_LOAN':
       return "You took the Lombard's gold."
+    case 'SELECT_THREAT_RESPONSE':
+      if (command.response === 'tribute') {
+        return `You paid ${formatCompact(before.ap - after.ap)} AP and they turned back.`
+      }
+      if (command.response === 'levy') {
+        const dead = formatCompact(before.totalPopulation - after.totalPopulation)
+        return `The levy drove them off. ${dead} of your people died.`
+      }
+      return clashText(before, after)
+    case 'RESOLVE_RAID_DEFENSE':
+      return clashText(before, after)
     default:
       return null
   }

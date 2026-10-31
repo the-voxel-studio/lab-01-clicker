@@ -9,7 +9,6 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import App from '@/App.vue'
 import FortunePage from '@/components/game/orders/FortunePage.vue'
-import PhaseStub from '@/components/game/PhaseStub.vue'
 import type { CampaignTarget } from '@/core/types'
 import { evaluateFeats } from '@/data/feats'
 import { useArchivesStore } from '@/stores/archives'
@@ -172,13 +171,13 @@ describe('Task 6: expedition moment', () => {
   })
 
   it('routes each phase, and leaves the screens outside the reign alone', () => {
-    expect(routeForPhase('EXPEDITION', true, 'run')).toBe('fortune')
-    expect(routeForPhase('EXPEDITION', true, 'fortune')).toBeNull()
-    expect(routeForPhase('EXPEDITION', true, 'chronicle')).toBeNull()
-    expect(routeForPhase('EXPEDITION', true, 'hall')).toBeNull()
-    expect(routeForPhase('AWAIT_RESUME', true, 'fortune')).toBe('run')
-    expect(routeForPhase('ACTIVE_CYCLE', false, 'crown')).toBeNull()
-    expect(routeForPhase('RUN_DEFEAT', false, 'end')).toBeNull()
+    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'run')).toBe('fortune')
+    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'fortune')).toBeNull()
+    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'chronicle')).toBeNull()
+    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'hall')).toBeNull()
+    expect(routeForPhase('AWAIT_RESUME', 'EXPEDITION', 'fortune')).toBe('run')
+    expect(routeForPhase('ACTIVE_CYCLE', 'AWAIT_RESUME', 'crown')).toBeNull()
+    expect(routeForPhase('RUN_DEFEAT', 'ACTIVE_CYCLE', 'end')).toBeNull()
   })
 
   it('moves from the herald to Fortune and on to the resume', async () => {
@@ -229,7 +228,7 @@ describe('Task 6: expedition moment', () => {
     await flushPromises()
     game.advance(0.05)
     await flushPromises()
-    expect(nav.screen).toBe('end')
+    expect(nav.screen).toBe('fate')
   })
 
   it('closes the order bar during the expedition, but not the menu', async () => {
@@ -252,15 +251,8 @@ describe('Task 6: expedition moment', () => {
     await app.get('[data-attack]').trigger('click')
     await flushPromises()
     expect(game.phase).toBe('AWAIT_RESUME')
-    expect(app.get('[data-phase-stub]').text()).toMatch(
+    expect(app.get('[data-resume-band]').text()).toMatch(
       /Your host (took a province|came back without a province)\./,
     )
-  })
-
-  it('no longer offers to stay home from the stub', () => {
-    const { pinia, state } = begin()
-    expedition(state)
-    const stub = mount(PhaseStub, { global: { plugins: [pinia] } })
-    expect(stub.text()).not.toContain('Stay home')
   })
 })

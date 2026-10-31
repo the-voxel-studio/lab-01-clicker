@@ -147,7 +147,7 @@ describe('Task 6: game store', () => {
     expect(game.lastConclusion?.record.outcome).toBe('revolution')
     expect(readKey(SAVE_KEY)).toBeNull()
     expect(game.hasSave).toBe(false)
-    expect(nav.screen).toBe('end')
+    expect(nav.screen).toBe('fate')
   })
 
   it('ignores double speed before fast forward unlocks', () => {

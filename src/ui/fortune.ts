@@ -12,6 +12,7 @@ import type { Command, GameState, RunPhase } from '@/core/types'
 import { BIOMES_DATA } from '@/data/biomes'
 import { FACTIONS_DATA } from '@/data/threats'
 import type { Screen } from '@/stores/nav'
+import { isMomentPhase } from '@/ui/moments'
 
 const config = DEFAULT_ENGINE_CONFIG
 
@@ -98,19 +99,21 @@ export function fortuneView(state: GameState): FortuneView {
   }
 }
 
-const OUTSIDE_THE_REIGN: readonly Screen[] = ['hall', 'end', 'chronicle', 'hall_of_feats']
+const OUTSIDE_THE_REIGN: readonly Screen[] = ['hall', 'fate', 'end', 'chronicle', 'hall_of_feats']
 
 /**
  * The screen a phase requires, or null when the current one is right. It takes the screen as well
- * as the phase: `awaitingAnswer` stays true from one moment to the next, and a resumed reign keeps
- * its phase, so neither change alone tells when to move.
+ * as the phase, because a resumed reign keeps its phase, and the previous phase, because leaving the
+ * expedition moves the player once while a later visit to an order page must stand.
  */
 export function routeForPhase(
   phase: RunPhase | null,
-  awaiting: boolean,
+  previous: RunPhase | null,
   screen: Screen,
 ): Screen | null {
   if (OUTSIDE_THE_REIGN.includes(screen)) return null
   if (phase === 'EXPEDITION') return screen === 'fortune' ? null : 'fortune'
-  return awaiting && screen !== 'run' ? 'run' : null
+  if (phase === 'AWAIT_RESUME')
+    return previous === 'EXPEDITION' && screen === 'fortune' ? 'run' : null
+  return isMomentPhase(phase) && screen !== 'run' ? 'run' : null
 }

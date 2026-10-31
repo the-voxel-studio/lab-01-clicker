@@ -7,13 +7,15 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
+import MomentHost from '@/components/game/moments/MomentHost.vue'
 import RunScreen from '@/components/game/RunScreen.vue'
 import CounselLine from '@/components/game/run/CounselLine.vue'
 import KingdomView from '@/components/game/run/KingdomView.vue'
 import SealButton from '@/components/game/run/SealButton.vue'
 import { useArchivesStore } from '@/stores/archives'
 import { useGameStore } from '@/stores/game'
+import { useNavStore } from '@/stores/nav'
 import { useSettingsStore } from '@/stores/settings'
 
 const motionCss = readFileSync('src/assets/motion.css', 'utf8')
@@ -306,14 +308,17 @@ describe('Task 11: motion of the run screen', () => {
     expect(wrapper.get('.seal-slot').classes()).toContain('opacity-50')
   })
 
-  it('hides the run behind an event: opaque, and out of reach', async () => {
+  it('sets the run behind a letter: dimmed, opaque paper, and out of reach', async () => {
     const { wrapper, game } = mountRun()
-    game.run!.phase = 'AUDIT_ASSESSMENT'
+    game.run!.phase = 'COUNCIL_LAWS'
     game.act({ type: 'SET_PAUSED', paused: false })
     await flushPromises()
-    const stub = wrapper.get('[data-phase-stub]')
-    expect(stub.classes()).toContain('bg-vellum')
-    expect(stub.classes().join(' ')).not.toContain('bg-vellum/')
+    const host = mount(MomentHost, { global: { plugins: [getActivePinia()!] } })
+    useNavStore().go('run')
+    await flushPromises()
+    const letter = host.get('[data-moment-letter]')
+    expect(letter.classes()).toContain('bg-vellum')
+    expect(letter.classes().join(' ')).not.toContain('bg-vellum/')
     expect(wrapper.find('[inert]').exists()).toBe(true)
   })
 

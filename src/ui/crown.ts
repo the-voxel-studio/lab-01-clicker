@@ -104,6 +104,7 @@ const EDICT_NAMES: Record<EdictId, string> = {
 }
 
 function edictBlock(state: GameState, id: EdictId, cost: number): string | null {
+  if (state.phase === 'AWAIT_RESUME') return 'Edicts wait for the new audit'
   if (state.lastEdictDeadline === state.deadline) return 'One edict each audit'
   const uses = state.edictUsageCounts[id] ?? 0
   if (id === 'church_seizure' && uses >= EDICTS_DATA.church_seizure.values.maxUsesPerRun) {

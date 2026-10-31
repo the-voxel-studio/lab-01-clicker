@@ -24,9 +24,19 @@ import { useArchivesStore } from '@/stores/archives'
 import { useChronicleStore } from '@/stores/chronicle'
 import { useNavStore } from '@/stores/nav'
 import { useSettingsStore } from '@/stores/settings'
+import type { ChronicleEntry } from '@/ui/chronicle'
 import { bandForScore, computeDread, type DreadBand, type DreadReading } from '@/ui/dread'
+import { isMomentPhase } from '@/ui/moments'
 import type { RunRecord } from '@/ui/runRecord'
 import { readKey, SAVE_KEY, writeKey } from '@/ui/storage'
+
+/** What the register keeps of a concluded reign, once the chronicle is cleared. */
+export interface ConcludedReign {
+  conclusion: RunConclusion
+  record: RunRecord
+  /** The last lines of the chronicle, oldest first. */
+  finalEntries: ChronicleEntry[]
+}
 
 /** One Crown quota against its target; the AP quota is a rate (gross AP per second). */
 export interface QuotaView {
@@ -72,7 +82,17 @@ const TOLD_COMMANDS: ReadonlySet<Command['type']> = new Set([
   'RESOLVE_DILEMMA',
   'REFUSE_LOMBARD_LOAN',
   'ACCEPT_LOMBARD_LOAN',
+  'SELECT_THREAT_RESPONSE',
+  'RESOLVE_RAID_DEFENSE',
 ])
+
+/** Fights leave their letter at once, so the next screen carries how they went. */
+const FIGHT_COMMANDS: ReadonlySet<Command['type']> = new Set([
+  'SELECT_THREAT_RESPONSE',
+  'RESOLVE_RAID_DEFENSE',
+])
+const TIDINGS_MS = 6000
+const FINAL_ENTRIES = 3
 
 function isConcludedPhase(phase: RunPhase): boolean {
   return phase === 'RUN_DEFEAT' || phase === 'RUN_VICTORY'
@@ -91,7 +111,10 @@ export const useGameStore = defineStore('game', () => {
   const savedDeadline = ref<number | null>(readSavedDeadline())
   const hasSave = computed(() => savedDeadline.value !== null)
   const lastSavedDeadline = ref<number | null>(null)
-  const lastConclusion = ref<{ conclusion: RunConclusion; record: RunRecord } | null>(null)
+  const lastConclusion = ref<ConcludedReign | null>(null)
+
+  const tidings = ref<string | null>(null)
+  let tidingsTimer: ReturnType<typeof setTimeout> | null = null
 
   /** Reads the run after the last engine call, so computed getters track `revision`. */
   function current(): GameState | null {
@@ -106,26 +129,28 @@ export const useGameStore = defineStore('game', () => {
     void revision.value
     return lastNetApPerSecond.value
   })
-  /** True while the reign waits for the player's answer to an event. */
-  const awaitingAnswer = computed(() => {
-    void revision.value
-    const current = run.value?.phase ?? null
-    return (
-      current !== null &&
-      current !== 'ACTIVE_CYCLE' &&
-      current !== 'RUN_DEFEAT' &&
-      current !== 'RUN_VICTORY'
-    )
-  })
+  /** True while the reign stands on a letter that must be answered. */
+  const inMoment = computed(() => isMomentPhase(phase.value))
+  /** True between two audits: time stands still, the realm can still be governed. */
+  const preparing = computed(() => phase.value === 'AWAIT_RESUME')
 
+  /** The audit being worked towards: the next one once this one is over. */
+  const auditAhead = computed(() => {
+    const deadline = current()?.deadline ?? 1
+    return preparing.value ? deadline + 1 : deadline
+  })
   const secondsLeft = computed(() => {
     const state = current()
-    return state ? config.balance.DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds : 0
+    if (!state) return 0
+    const { DEADLINE_DURATION_SECONDS } = config.balance
+    return preparing.value
+      ? DEADLINE_DURATION_SECONDS
+      : DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds
   })
   const quotas = computed<QuotaView[]>(() => {
     const state = current()
     if (!state) return []
-    const required = effectiveQuota(state, quotaForDeadline(config, state.deadline))
+    const required = effectiveQuota(state, quotaForDeadline(config, auditAhead.value))
     const view = (axis: QuotaView['axis'], value: number, target: number): QuotaView => ({
       axis,
       current: value,
@@ -151,6 +176,19 @@ export const useGameStore = defineStore('game', () => {
     revision.value++
   }
 
+  function dismissTidings(): void {
+    tidings.value = null
+    if (tidingsTimer !== null) clearTimeout(tidingsTimer)
+    tidingsTimer = null
+  }
+
+  function tell(text: string | undefined): void {
+    dismissTidings()
+    if (text === undefined) return
+    tidings.value = text
+    tidingsTimer = setTimeout(dismissTidings, TIDINGS_MS)
+  }
+
   function clearSave(): void {
     writeKey(SAVE_KEY, null)
     savedDeadline.value = null
@@ -167,6 +205,7 @@ export const useGameStore = defineStore('game', () => {
     lastConclusion.value = null
     lastSavedDeadline.value = savedAt
     settings.doubleSpeed = false
+    dismissTidings()
     refresh()
     const resumed = savedAt !== null && chronicle.load(state.runId)
     if (!resumed) chronicle.start(state, dread.value.band)
@@ -175,16 +214,17 @@ export const useGameStore = defineStore('game', () => {
   /** Banks the run into the archive once; returns false when it was already concluded. */
   function concludeOnce(state: GameState, abandoned: boolean): boolean {
     if (state.archiveConcluded) return false
-    lastConclusion.value = archives.conclude(state, abandoned)
+    const finalEntries = chronicle.entries.slice(0, FINAL_ENTRIES).reverse()
+    lastConclusion.value = { ...archives.conclude(state, abandoned), finalEntries }
     clearSave()
     refresh()
     return true
   }
 
-  /** Concludes a run that just reached defeat or victory, then shows the end screen. */
+  /** Concludes a run that just reached defeat or victory, then shows how it ended. */
   function settleIfOver(): void {
     const state = run.value
-    if (state && isConcludedPhase(state.phase) && concludeOnce(state, false)) nav.go('end')
+    if (state && isConcludedPhase(state.phase) && concludeOnce(state, false)) nav.go('fate')
   }
 
   /**
@@ -238,6 +278,9 @@ export const useGameStore = defineStore('game', () => {
     const result = dispatch(state, command, config)
     refresh()
     if (before) chronicle.noteCommand(command, result, before, state)
+    if (result.success && FIGHT_COMMANDS.has(command.type) && !isConcludedPhase(state.phase)) {
+      tell(chronicle.entries[0]?.text)
+    }
     chronicle.observe(state, dread.value.band)
     settleIfOver()
     return result
@@ -291,13 +334,17 @@ export const useGameStore = defineStore('game', () => {
     coffer,
     netApPerSecond,
     secondsLeft,
-    awaitingAnswer,
+    inMoment,
+    preparing,
+    auditAhead,
     quotas,
     dread,
     hasSave,
     savedDeadline,
     lastSavedDeadline,
     lastConclusion,
+    tidings,
+    dismissTidings,
     begin,
     resume,
     act,
