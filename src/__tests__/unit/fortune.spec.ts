@@ -104,8 +104,8 @@ describe('Task 5: Fortune', () => {
     state.currentTarget!.isFalseLedger = true
     state.units.spymaster = 1
     expect(fortuneView(state).forecast!.warnings).toEqual([
-      'Your spies smell an ambush.',
-      'Your spies doubt the loot.',
+      'An ambush waits.',
+      'The loot is a lie.',
     ])
   })
 
@@ -123,7 +123,7 @@ describe('Task 5: Fortune', () => {
     expedition(state)
     state.units.scout = 2
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
-    expect(page.get('[data-scout]').text()).toContain('1 scout dies')
+    expect(page.get('[data-scout]').text()).toContain('1 dies')
     expect(page.get('[data-scout]').text()).toContain('new target')
   })
 

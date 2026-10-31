@@ -4,6 +4,7 @@ import { useChronicleStore } from '@/stores/chronicle'
 import { useGameStore } from '@/stores/game'
 
 /** The open resume: time stands still above the order bar until the player takes it up again. */
+defineProps<{ tight?: boolean }>()
 const game = useGameStore()
 const chronicle = useChronicleStore()
 const error = ref<string | null>(null)
@@ -22,15 +23,17 @@ function resume(): void {
     data-resume-band
     class="flex shrink-0 items-center gap-3 border-t border-gold/60 bg-vellum-shade px-4 py-1.5"
   >
-    <div class="min-w-0 flex-1 font-body text-base italic leading-[22px]">
-      <p v-if="lastDeed" class="resume-deed truncate text-ink">{{ lastDeed }}</p>
-      <p class="text-ink-faded">Time stands still until you resume.</p>
+    <div class="min-w-0 flex-1 font-body text-base italic leading-5">
+      <p v-if="lastDeed && !tight" class="resume-deed truncate text-ink">{{ lastDeed }}</p>
+      <p class="text-ink-faded">
+        {{ tight ? 'Time stands still.' : 'Time stands still until you resume.' }}
+      </p>
       <p v-if="error" class="text-rubric">{{ error }}</p>
     </div>
     <button
       data-resume
       type="button"
-      class="min-h-11 shrink-0 rounded bg-wax px-3 font-display text-base leading-5 text-cream shadow transition-transform duration-100 active:scale-95"
+      class="min-h-12 shrink-0 rounded-[10px] border-2 border-gold bg-wax px-3 font-display text-[18px] leading-5 text-cream shadow transition-transform duration-100 active:scale-95"
       @click="resume"
     >
       Resume governance

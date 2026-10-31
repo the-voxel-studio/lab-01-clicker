@@ -29,11 +29,11 @@ const guttering = computed(() => game.secondsLeft <= LAST_SECONDS)
       >
         <StableFigure :value="formatClock(game.secondsLeft)" />
       </p>
-      <p class="font-body text-base italic text-ink-faded">
+      <p data-clock-audit class="font-body text-base italic text-ink-faded">
         {{ auditOrdinal(game.auditAhead) }} audit
       </p>
     </div>
-    <div class="flex w-7 flex-col items-center" aria-hidden="true">
+    <div data-candle-column class="flex w-7 flex-col items-center" aria-hidden="true">
       <div
         class="transition-transform duration-1000 ease-linear"
         :style="{ transform: `translateY(${WAX_PX - waxLeft}px)` }"

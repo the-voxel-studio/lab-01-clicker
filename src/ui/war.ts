@@ -160,7 +160,7 @@ function lootText(state: GameState): string {
     case 'soldiers':
       return 'captives join your ranks'
     case 'mixed':
-      return `about ${base} AP, serfs and captives`
+      return `about ${base} AP and men`
     default:
       return `about ${base} AP`
   }
@@ -194,8 +194,8 @@ export function warForecast(state: GameState): WarForecast | null {
     power: target.perceivedMax * b.AMBUSH_POWER_FACTOR,
   })
   const warnings: string[] = []
-  if (spies && target.isAmbush) warnings.push('Your spies smell an ambush.')
-  if (spies && target.isFalseLedger) warnings.push('Your spies doubt the loot.')
+  if (spies && target.isAmbush) warnings.push('An ambush waits.')
+  if (spies && target.isFalseLedger) warnings.push('The loot is a lie.')
   const steps_ = state.crownSurchargeSteps
   const roll = b.CAMPAIGN_CASUALTY_ROLL
   return {

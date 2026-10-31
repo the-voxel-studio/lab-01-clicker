@@ -57,6 +57,7 @@ function act(command: Command): void {
       v-if="game.run"
       :run="game.run"
       :revision="game.revision"
+      :held="game.heldTax"
       @proclaim="act({ type: 'SET_TAX_RATE', rate: $event })"
       @draft="readDraft"
     />

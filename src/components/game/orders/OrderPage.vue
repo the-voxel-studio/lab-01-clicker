@@ -12,11 +12,11 @@ import {
   type BulkChoice,
 } from '@/ui/orderRows'
 import { projectAudit, verdict } from '@/ui/projection'
+import { formatCompact } from '@/ui/realmText'
 import BulkSelector from './BulkSelector.vue'
 import DisbandPanel from './DisbandPanel.vue'
 import OrderFrame from './OrderFrame.vue'
 import PatentRow from './PatentRow.vue'
-import PeopleCount from '../ledger/PeopleCount.vue'
 import UnitRow from './UnitRow.vue'
 import { useUnitEffects } from './useUnitEffects'
 
@@ -75,6 +75,12 @@ const { lines, rates, refresh } = useUnitEffects(
   (unitId) => rows.value.find((row) => row.unitId === unitId)?.count ?? 1,
 )
 
+const UNITS = { people: 'people', admin: 'AP/s', military: 'force' } as const
+function auditLabel(value: number, capped: boolean): string {
+  const held = `${formatCompact(value)} ${UNITS[props.order]} at the audit`
+  return props.order === 'people' && capped ? `${held}, the room is full` : held
+}
+
 const AXES = { people: 'pop', admin: 'ap', military: 'military' } as const
 /** The quota of this order at the audit, if nothing changes. */
 const ahead = computed(() => {
@@ -85,7 +91,7 @@ const ahead = computed(() => {
   const value = { people: projected.people, admin: projected.ap, military: projected.force }
   return {
     value: value[props.order],
-    capped: projected.capped,
+    label: auditLabel(value[props.order], projected.capped),
     demand: quota.required,
     ...verdict(value[props.order], quota.required),
   }
@@ -106,21 +112,12 @@ function act(command: Command): void {
         The Crown refuses this order.
       </p>
     </template>
-    <PeopleCount
-      v-if="order === 'people' && ahead && rates"
-      :living="game.run?.totalPopulation ?? 0"
-      :crown="ahead.demand"
-      :room="rates.room"
-      :projected="ahead.value"
-      :capped="ahead.capped"
-      class="order-gauge mb-1"
-    />
     <p
       v-if="ahead"
       data-verdict
       class="mb-1 flex items-baseline justify-between border-y border-ink-faded/40 py-1 font-body text-[18px] text-ink"
     >
-      The audit
+      {{ ahead.label }}
       <span class="font-display text-[21px]" :class="ahead.met ? 'text-verdigris' : 'text-rubric'">
         {{ ahead.text }}
       </span>
@@ -152,12 +149,3 @@ function act(command: Command): void {
     <DisbandPanel v-if="order === 'military'" @act="act" />
   </OrderFrame>
 </template>
-
-<style scoped>
-/* Short screens keep the verdict and give the height to the units. */
-@media (max-height: 700px) {
-  .order-gauge {
-    display: none;
-  }
-}
-</style>

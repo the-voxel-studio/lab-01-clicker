@@ -6,15 +6,16 @@ defineProps<{ options: BulkOption[]; modelValue: BulkChoice }>()
 defineEmits<{ 'update:modelValue': [choice: BulkChoice] }>()
 
 const label = (choice: BulkChoice): string =>
-  choice === 'max' ? 'As many as I can' : choice === 1 ? 'Buy 1' : String(choice)
+  choice === 'max' ? 'As many as I can' : String(choice)
 </script>
 
 <template>
   <div
     class="flex items-baseline gap-3.5 font-body text-base italic"
     role="group"
-    aria-label="Bulk"
+    aria-label="Quantity to buy"
   >
+    <span class="font-caps not-italic text-ink">Quantity</span>
     <button
       v-for="option in options"
       :key="option.choice"

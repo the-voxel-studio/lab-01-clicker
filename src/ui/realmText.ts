@@ -42,11 +42,11 @@ export function formatClock(seconds: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
-/** The net AP rate as the HUD writes it, with a true minus sign when negative. */
+/** The net AP rate as the HUD writes it, wages paid, unlike the gross rate the Crown audits, with a true minus sign when negative. */
 export function formatRate(perSecond: number): string {
   const rounded = Math.round(perSecond)
   const sign = rounded < 0 ? '−' : '+'
-  return `${sign}${formatCompact(Math.abs(rounded))} AP each second`
+  return `${sign}${formatCompact(Math.abs(rounded))} AP/s net`
 }
 
 const UNREST_PHRASES: Record<UnrestCrisisStage, string> = {

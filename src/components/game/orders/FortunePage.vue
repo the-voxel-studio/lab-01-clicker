@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import type { Command } from '@/core/types'
 import { useGameStore } from '@/stores/game'
-import { BIOMES_DATA } from '@/data/biomes'
 import { fortuneView } from '@/ui/fortune'
 import OrderFrame from './OrderFrame.vue'
 import WarPanel from './WarPanel.vue'
@@ -13,7 +11,6 @@ import WaxAction from '../ledger/WaxAction.vue'
 /** Fortune: the tally of provinces and war, at any time of the reign outside a letter. */
 const ATTACK_HOLD_MS = 900
 
-const { BASE_HOUSING_PER_PROVINCE } = DEFAULT_ENGINE_CONFIG.balance
 const game = useGameStore()
 const outcome = ref<string | null>(null)
 const spins = ref(0)
@@ -28,12 +25,7 @@ const view = computed(() => {
 
 const chanceLine = computed(() => {
   const forecast = view.value?.forecast
-  return forecast ? `${forecast.outOfTen} in 10 to take it` : 'Send your force'
-})
-/** What the land would house. */
-const landRoom = computed(() => {
-  const biome = game.run?.currentTarget?.biome
-  return biome ? BIOMES_DATA[biome].housingMultiplier * BASE_HOUSING_PER_PROVINCE : 0
+  return forecast ? `${forecast.outOfTen} in 10` : 'Send your force'
 })
 
 onUnmounted(() => {
@@ -58,15 +50,12 @@ function attempt(command: Command): void {
 </script>
 
 <template>
-  <OrderFrame
-    title="Fortune"
-    intro="Every conquest is a gamble. Scouts narrow the odds, and some of them do not come back."
-  >
+  <OrderFrame title="Fortune" intro="" tight>
     <template #aside>
       <GameIcon
         :key="spins"
         name="fortuneWheel"
-        class="float-right size-14 text-gold"
+        class="float-right size-8 text-gold"
         data-wheel
         :class="spinning ? 'motion-wheel-spin' : 'motion-wheel-turn'"
         @animationend="spinning = false"
@@ -74,33 +63,33 @@ function attempt(command: Command): void {
       />
     </template>
     <template v-if="view">
-      <div class="fortune-tally">
+      <div class="fortune-tally flex items-center gap-2">
         <p class="font-caps text-base text-rubric">
-          You hold {{ view.provinces }} {{ view.provinces === 1 ? 'province' : 'provinces' }}
+          {{ view.provinces }} of {{ view.goal }} provinces
         </p>
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-0.5">
           <GameIcon
             v-for="index in view.goal"
             :key="index"
             name="stoneTower"
-            class="size-[22px]"
+            class="size-4"
             :class="index <= view.provinces ? 'text-ink' : 'text-ink-faded/30'"
             :label="index <= view.provinces ? 'Province held' : 'Province to win'"
           />
         </div>
-        <p class="font-body text-base italic text-ink-faded">
-          {{ view.goal }} to win Imperial Barony
-        </p>
-        <p v-if="outcome" data-outcome class="motion-ink font-body text-[18px] italic text-rubric">
-          {{ outcome }}
-        </p>
       </div>
+      <p
+        v-if="outcome"
+        data-outcome
+        class="motion-ink font-body text-base italic leading-5 text-rubric"
+      >
+        {{ outcome }}
+      </p>
       <WarPanel
         v-if="view.live && view.forecast && game.run?.currentTarget"
         :forecast="view.forecast"
         :biome="game.run.currentTarget.biome"
-        :room="landRoom"
-        class="mt-3"
+        class="mt-1"
       />
     </template>
     <template v-if="view?.live" #foot>
@@ -109,12 +98,12 @@ function attempt(command: Command): void {
           type="button"
           data-scout
           :disabled="view.scout.command === null"
-          class="flex min-h-[62px] flex-col items-center justify-center rounded-[10px] border-2 border-ink-faded/60 bg-vellum-shade px-1 text-ink disabled:text-ink-faded"
+          class="flex min-h-[52px] flex-col items-center justify-center rounded-[10px] border-2 border-ink-faded/60 bg-vellum-shade px-1 text-ink disabled:text-ink-faded"
           @click="view?.scout.command && attempt(view.scout.command)"
         >
-          <span class="font-caps text-base leading-5">Send a scout</span>
+          <span class="font-caps text-base leading-5">Scout</span>
           <span class="font-body text-base leading-5">{{
-            view.scout.blocked ?? '1 scout dies, new target'
+            view.scout.blocked ? 'None left' : '1 dies, new target'
           }}</span>
         </button>
         <WaxAction
@@ -131,7 +120,12 @@ function attempt(command: Command): void {
 </template>
 
 <style scoped>
-/* Short screens give the tally's height to the war panel. */
+/* Short screens give the height of the wheel, then of the tally, to the war panel. */
+@media (max-height: 700px) {
+  [data-wheel] {
+    display: none;
+  }
+}
 @media (max-height: 700px) {
   .fortune-tally {
     display: none;

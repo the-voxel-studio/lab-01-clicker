@@ -96,6 +96,10 @@ const FIGHT_COMMANDS: ReadonlySet<Command['type']> = new Set([
 ])
 const FINAL_ENTRIES = 3
 
+function timeStands(state: GameState): boolean {
+  return state.isPaused || state.phase !== 'ACTIVE_CYCLE'
+}
+
 function isConcludedPhase(phase: RunPhase): boolean {
   return phase === 'RUN_DEFEAT' || phase === 'RUN_VICTORY'
 }
@@ -116,6 +120,8 @@ export const useGameStore = defineStore('game', () => {
   const lastConclusion = ref<ConcludedReign | null>(null)
 
   const report = ref<BattleReport | null>(null)
+  /** A tax chosen while time stands still: trying rates must not stir the realm between turns. */
+  const heldTax = ref<number | null>(null)
 
   /** Reads the run after the last engine call, so computed getters track `revision`. */
   function current(): GameState | null {
@@ -209,6 +215,7 @@ export const useGameStore = defineStore('game', () => {
     lastSavedDeadline.value = savedAt
     settings.doubleSpeed = false
     closeReport()
+    heldTax.value = null
     refresh()
     const resumed = savedAt !== null && chronicle.load(state.runId)
     if (!resumed) chronicle.start(state, dread.value.band)
@@ -277,6 +284,10 @@ export const useGameStore = defineStore('game', () => {
   function act(command: Command): DispatchResult {
     const state = run.value
     if (!state) return { success: false, error: 'No reign in progress.' }
+    if (command.type === 'SET_TAX_RATE' && timeStands(state)) {
+      heldTax.value = command.rate
+      return { success: true }
+    }
     const before = TOLD_COMMANDS.has(command.type) ? structuredClone(state) : null
     const result = dispatch(state, command, config)
     refresh()
@@ -295,6 +306,11 @@ export const useGameStore = defineStore('game', () => {
     const state = run.value
     if (state && !state.isGameOver) state.playedSeconds += dt
     if (!state || report.value) return
+    if (heldTax.value !== null && !timeStands(state)) {
+      const rate = heldTax.value
+      heldTax.value = null
+      act({ type: 'SET_TAX_RATE', rate })
+    }
     const factor = settings.doubleSpeed && isFastForwardUnlocked(state, config) ? 2 : 1
     const phaseBefore = state.phase
     const result = tick(state, dt * factor, config)
@@ -350,6 +366,7 @@ export const useGameStore = defineStore('game', () => {
     lastSavedDeadline,
     lastConclusion,
     report,
+    heldTax,
     openReport,
     closeReport,
     begin,

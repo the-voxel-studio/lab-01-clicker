@@ -4,14 +4,14 @@ import type { GameState } from '@/core/types'
 import { TAX_SETTLE_MS, taxEffect, taxView, taxWarning } from '@/ui/crown'
 
 /** The tax rate: moving it only previews; the settled rate is proclaimed, once. */
-const props = defineProps<{ run: GameState; revision: number }>()
+const props = defineProps<{ run: GameState; revision: number; held: number | null }>()
 const emit = defineEmits<{ proclaim: [rate: number]; draft: [rate: number] }>()
 
 const view = computed(() => {
   void props.revision
   return taxView(props.run)
 })
-const decided = computed(() => view.value.pending ?? view.value.rate)
+const decided = computed(() => props.held ?? view.value.pending ?? view.value.rate)
 const draft = ref(decided.value)
 const warning = computed(() => {
   void props.revision
@@ -61,6 +61,7 @@ onBeforeUnmount(flush)
       step="1"
       aria-label="Tax rate"
       class="tax-slider w-full"
+      :style="{ '--fill': `${(draft / view.max) * 100}%` }"
       @change="settleLater"
     />
     <div class="flex justify-between font-body text-base italic text-ink-faded">
@@ -68,20 +69,33 @@ onBeforeUnmount(flush)
     </div>
     <p data-tax-effect class="font-display text-base leading-[22px] text-ink">{{ effect }}</p>
     <p
-      v-if="view.pending !== null"
+      v-if="held !== null"
+      data-tax-held
+      class="font-body text-base italic leading-[22px] text-rubric"
+    >
+      {{ held }}% takes effect when time runs again.
+    </p>
+    <p
+      v-else-if="view.pending !== null"
       data-proclaim
       class="motion-ink font-body text-base italic leading-[22px] text-rubric"
     >
       {{ view.pending }}% proclaimed in {{ view.secondsLeft }} seconds.
     </p>
-    <div v-if="view.pending !== null" class="h-1 rounded bg-ink-faded/20">
+    <div
+      v-if="held === null && view.pending !== null"
+      class="h-3 rounded-[3px] border border-gold bg-vellum-shade p-px"
+    >
       <div
         data-proclaim-fuse
-        class="h-full origin-left rounded bg-rubric transition-transform duration-300 ease-linear"
+        class="h-full origin-left rounded-[1px] bg-wax transition-transform duration-300 ease-linear"
         :style="{ transform: `scaleX(${fuse})` }"
       />
     </div>
-    <p v-else class="font-body text-base italic leading-[22px] text-ink-faded">
+    <p
+      v-if="held === null && view.pending === null"
+      class="font-body text-base italic leading-[22px] text-ink-faded"
+    >
       A rise is proclaimed after {{ view.delay }} seconds, a cut at once.
     </p>
     <p
@@ -101,23 +115,25 @@ onBeforeUnmount(flush)
   background: transparent;
 }
 .tax-slider::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 4px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-gold);
+  border-radius: 3px;
   background: linear-gradient(
     to right,
-    var(--color-verdigris),
-    var(--color-gold),
-    var(--color-rubric)
+    var(--color-wax) var(--fill),
+    var(--color-vellum-shade) var(--fill)
   );
 }
 .tax-slider::-moz-range-track {
-  height: 8px;
-  border-radius: 4px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-gold);
+  border-radius: 3px;
   background: linear-gradient(
     to right,
-    var(--color-verdigris),
-    var(--color-gold),
-    var(--color-rubric)
+    var(--color-wax) var(--fill),
+    var(--color-vellum-shade) var(--fill)
   );
 }
 .tax-slider::-webkit-slider-thumb {

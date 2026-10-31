@@ -110,6 +110,34 @@ describe('Task 3: edicts, tax, patents and plain rules', () => {
     expect(coloniseView(realm()).gain).toMatch(/^\+\d+ room$/)
   })
 
+  it('holds a tax chosen while time stands still until it runs again', () => {
+    const { game } = begin()
+    const state = game.run!
+    const rate = state.taxRate
+    game.act({ type: 'SET_PAUSED', paused: true })
+    expect(game.act({ type: 'SET_TAX_RATE', rate: 60 }).success).toBe(true)
+    game.act({ type: 'SET_TAX_RATE', rate: 0 })
+    game.advance(0.25)
+    expect(state.taxRate).toBe(rate)
+    expect(game.heldTax).toBe(0)
+    game.act({ type: 'SET_PAUSED', paused: false })
+    game.advance(0.25)
+    expect(state.taxRate).toBe(0)
+    expect(game.heldTax).toBeNull()
+  })
+
+  it('holds a tax chosen during the open resume', () => {
+    const { game } = begin()
+    const state = game.run!
+    const rate = state.taxRate
+    state.phase = 'AWAIT_RESUME'
+    game.act({ type: 'SET_TAX_RATE', rate: 5 })
+    expect(state.taxRate).toBe(rate)
+    game.act({ type: 'RESUME_GOVERNANCE' })
+    game.advance(0.25)
+    expect(state.taxRate).toBe(5)
+  })
+
   it('holds the plain rules in the menu', async () => {
     const { pinia, nav } = begin()
     nav.go('how_to_reign')

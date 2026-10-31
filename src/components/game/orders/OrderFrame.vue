@@ -13,7 +13,7 @@ import { BAND_TEMPO } from '@/ui/motion'
  * The frame of the five order pages: fixed HUD, title and bar, with the body scrolling inside.
  * `closed` shuts the order bar while a moment must be answered here.
  */
-defineProps<{ title: string; intro: string; closed?: boolean }>()
+defineProps<{ title: string; intro: string; closed?: boolean; tight?: boolean }>()
 
 const game = useGameStore()
 const nav = useNavStore()
@@ -38,22 +38,29 @@ const tempo = computed(() => {
     class="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden"
   >
     <div :inert="nav.menuOpen" class="flex min-h-0 flex-1 flex-col">
-      <RunHud compact class="shrink-0" />
-      <div class="shrink-0 px-4 pt-2">
+      <RunHud compact :tight="tight" class="shrink-0" />
+      <div class="shrink-0 px-4" :class="tight ? 'order-tight pt-0' : 'pt-2'">
         <slot name="aside" />
         <h1 class="order-title font-display text-[26px] leading-[30px] text-ink">{{ title }}</h1>
-        <p class="order-intro font-body text-base italic leading-[22px] text-ink-faded">
+        <p
+          v-if="intro"
+          class="order-intro font-body text-base italic leading-[22px] text-ink-faded"
+        >
           {{ intro }}
         </p>
         <slot name="header" />
       </div>
-      <div data-order-body class="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-2">
+      <div
+        data-order-body
+        class="min-h-0 flex-1 px-4 pb-3 pt-2"
+        :class="tight ? 'overflow-hidden' : 'overflow-y-auto'"
+      >
         <slot />
       </div>
-      <div v-if="$slots.foot" class="shrink-0 px-4 pb-2 pt-1">
+      <div v-if="$slots.foot" class="shrink-0 px-4 pb-1.5">
         <slot name="foot" />
       </div>
-      <ResumeBand v-if="game.preparing" />
+      <ResumeBand v-if="game.preparing" :tight="tight" />
       <div data-order-bar :inert="closed" class="z-20 shrink-0" :class="closed ? 'opacity-60' : ''">
         <ActionBar />
       </div>
@@ -66,6 +73,12 @@ const tempo = computed(() => {
 /* Lists keep the room on short screens: the intro repeats what the player already knows. */
 @media (max-height: 700px) {
   .order-intro {
+    display: none;
+  }
+}
+/* A page that must fit gives up its title on short screens. */
+@media (max-height: 700px) {
+  .order-tight .order-title {
     display: none;
   }
 }

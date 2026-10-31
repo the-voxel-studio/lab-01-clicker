@@ -75,7 +75,7 @@ describe('Task 5: HUD', () => {
     expect(wrapper.find('[data-coffer]').text()).toContain(
       Math.floor(game.coffer).toLocaleString('en'),
     )
-    expect(wrapper.text()).toMatch(/[+−]\d+ AP each second/)
+    expect(wrapper.text()).toMatch(/[+−]\d+ AP\/s net/)
     expect(wrapper.text()).toContain('1:39')
     expect(wrapper.text()).toContain('first audit')
     expect(wrapper.text()).toMatch(/Unrest \d+ of 100, overthrown at 100/)

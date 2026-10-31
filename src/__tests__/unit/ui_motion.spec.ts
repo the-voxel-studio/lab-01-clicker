@@ -42,8 +42,8 @@ describe('Task 11: motion foundation', () => {
   })
 
   it('writes the rate with the same thousands', () => {
-    expect(formatRate(1500)).toBe('+1.5k AP each second')
-    expect(formatRate(-2000)).toBe('−2.0k AP each second')
+    expect(formatRate(1500)).toBe('+1.5k AP/s net')
+    expect(formatRate(-2000)).toBe('−2.0k AP/s net')
   })
 
   it('gives loops their own phase, stable for a seed', () => {

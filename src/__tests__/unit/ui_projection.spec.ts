@@ -56,7 +56,7 @@ describe('Task 2: doing this means that', () => {
     expect(verdict(687, 682)).toEqual({ met: true, text: 'met, 5 to spare' })
   })
 
-  it('opens the Commons on its gauge, and a purchase moves the verdict', async () => {
+  it('opens the Commons on its verdict, without a second gauge', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     useArchivesStore().load()
@@ -66,8 +66,9 @@ describe('Task 2: doing this means that', () => {
     game.run!.ap = 1e6
     const page = mount(OrderPage, { props: { order: 'people' }, global: { plugins: [pinia] } })
     await flushPromises()
-    expect(page.find('[data-person]').exists()).toBe(true)
+    expect(page.find('[data-person]').exists()).toBe(false)
     const before = page.get('[data-verdict]').text()
+    expect(before).toMatch(/people at the audit/)
     expect(before).toMatch(/short|met/)
     expect(page.get('[data-unit="peasant"] [data-effect]').text()).toMatch(/\d/)
     await page.get('[data-unit="artisan"] [data-buy]').trigger('click')

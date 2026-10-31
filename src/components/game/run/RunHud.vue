@@ -11,7 +11,7 @@ import TallyStick from './TallyStick.vue'
 import TimeControls from './TimeControls.vue'
 
 /** Top of the run screen (Figma `39:902`): Menu, coffer, rate, candle clock, quotas, unrest. */
-defineProps<{ compact?: boolean }>()
+defineProps<{ compact?: boolean; tight?: boolean }>()
 
 const game = useGameStore()
 const nav = useNavStore()
@@ -43,7 +43,7 @@ const unrest = computed(() => {
 </script>
 
 <template>
-  <header class="px-3 pt-2" :class="compact ? 'hud-compact' : ''">
+  <header class="px-3 pt-2" :class="[compact ? 'hud-compact' : '', tight ? 'hud-tight' : '']">
     <div class="flex items-start gap-2">
       <button
         type="button"
@@ -56,7 +56,7 @@ const unrest = computed(() => {
       </button>
 
       <div class="min-w-0 flex-1 text-center">
-        <p class="font-caps text-base leading-[20px] text-rubric">In the coffer</p>
+        <p class="hud-coffer-label font-caps text-base leading-[20px] text-rubric">In the coffer</p>
         <p
           data-coffer
           class="whitespace-nowrap font-display leading-[40px] text-ink"
@@ -74,7 +74,7 @@ const unrest = computed(() => {
         </p>
       </div>
 
-      <div class="flex shrink-0 flex-col items-end gap-1">
+      <div class="hud-controls flex shrink-0 flex-col items-end gap-1">
         <CandleClock />
         <TimeControls />
       </div>
@@ -98,6 +98,27 @@ const unrest = computed(() => {
 </template>
 
 <style scoped>
+/* A page that must fit keeps the coffer and the clock on short screens. */
+@media (max-height: 700px) {
+  .hud-tight .hud-quotas,
+  .hud-tight [data-unrest],
+  .hud-tight .hud-coffer-label,
+  .hud-tight [data-rate],
+  .hud-tight :deep([data-candle-column]),
+  .hud-tight :deep([data-clock-audit]) {
+    display: none;
+  }
+  .hud-tight .hud-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+/* Landscape holds a fight or a coffer, not both. */
+@media (max-height: 520px) {
+  .hud-tight {
+    display: none;
+  }
+}
 /* Order pages give their lists the height of the tally sticks on short screens. */
 @media (max-height: 560px) {
   .hud-compact .hud-quotas,
