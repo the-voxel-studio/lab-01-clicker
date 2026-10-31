@@ -1,20 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
-import type { Command, UnitOrder } from '@/core/types'
+import type { Command } from '@/core/types'
 import type { PatentRow } from '@/ui/orderRows'
 import { formatCompact } from '@/ui/realmText'
 
 /** The padlock row of an order until its Tier II patent is sealed. */
-const props = defineProps<{ row: PatentRow }>()
+defineProps<{ row: PatentRow }>()
 defineEmits<{ seal: [command: Command] }>()
-
-const NAMES: Record<UnitOrder, string> = {
-  people: 'Farmers, guilds and the high clergy',
-  admin: 'Clerks, stewards and the audit chamber',
-  military: 'Men-at-arms and captains',
-}
-const name = computed(() => NAMES[props.row.order])
 </script>
 
 <template>
@@ -25,9 +17,9 @@ const name = computed(() => NAMES[props.row.order])
       <GameIcon name="padlock" class="size-[22px] text-ink-faded" label="Locked" />
     </span>
     <div class="min-w-0 flex-1">
-      <p class="font-body text-[18px] leading-6 text-ink">{{ name }}</p>
+      <p class="font-body text-[18px] leading-6 text-ink">Unlocks {{ row.unlocks }}</p>
       <p class="font-body text-base italic leading-[22px] text-ink-faded">
-        {{ row.unmet.length ? row.unmet.join('. ') + '.' : 'Tier II patent' }}
+        {{ row.unmet.length ? row.unmet.join('. ') + '.' : 'Ready to seal.' }}
       </p>
     </div>
     <button

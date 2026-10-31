@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { GameState } from '@/core/types'
-import { TAX_SETTLE_MS, taxView, taxWarning } from '@/ui/crown'
+import { TAX_SETTLE_MS, taxEffect, taxView, taxWarning } from '@/ui/crown'
 
 /** The tax rate: moving it only previews; the settled rate is proclaimed, once. */
 const props = defineProps<{ run: GameState; revision: number }>()
-const emit = defineEmits<{ proclaim: [rate: number] }>()
+const emit = defineEmits<{ proclaim: [rate: number]; draft: [rate: number] }>()
 
 const view = computed(() => {
   void props.revision
@@ -16,6 +16,13 @@ const draft = ref(decided.value)
 const warning = computed(() => {
   void props.revision
   return taxWarning(props.run, draft.value)
+})
+
+/** Steps a copy of the realm, so it follows the draft and not every frame. */
+const effect = ref(taxEffect(props.run, draft.value))
+watch(draft, (rate) => {
+  effect.value = taxEffect(props.run, rate)
+  emit('draft', rate)
 })
 
 const fuse = computed(() => view.value.secondsLeft / view.value.delay)
@@ -59,6 +66,7 @@ onBeforeUnmount(flush)
     <div class="flex justify-between font-body text-base italic text-ink-faded">
       <span>0%</span><span>{{ view.max / 2 }}%</span><span>{{ view.max }}%</span>
     </div>
+    <p data-tax-effect class="font-display text-base leading-[22px] text-ink">{{ effect }}</p>
     <p
       v-if="view.pending !== null"
       data-proclaim

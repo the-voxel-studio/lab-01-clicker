@@ -6,7 +6,13 @@ import { formatCompact } from '@/ui/realmText'
 import LedgerFigure from './LedgerFigure.vue'
 
 /** Twenty peasants of the room: ink for the living, verdigris for the projection, pale for room. */
-const props = defineProps<{ living: number; crown: number; room: number; projected?: number }>()
+const props = defineProps<{
+  living: number
+  crown: number
+  room: number
+  projected?: number
+  capped?: boolean
+}>()
 
 const row = computed(() => figureRow(props.living, props.projected ?? props.living, props.room))
 const figures = computed(() => [
@@ -60,7 +66,7 @@ const overBy = computed(() => formatCompact(Math.ceil(props.living - props.room)
       <span><LedgerFigure :value="formatCompact(room)" size="lg" /><br />room</span>
     </div>
     <p v-if="projected !== undefined" data-projection class="font-body text-base text-verdigris">
-      {{ formatCompact(projected) }} at the audit
+      {{ formatCompact(projected) }} at the audit{{ capped ? ', the room is full' : '' }}
     </p>
     <p v-if="row.over" data-overcrowded class="font-body text-base text-rubric">
       {{ overBy }} over the room

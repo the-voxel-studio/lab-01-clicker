@@ -7,7 +7,7 @@ import type { UnitRow } from '@/ui/orderRows'
 import { formatCompact } from '@/ui/realmText'
 
 /** One unit: icon, name, what it does, and its wax tag buy button (Figma `53:1472`). */
-const props = defineProps<{ row: UnitRow }>()
+const props = defineProps<{ row: UnitRow; effect?: string }>()
 defineEmits<{ buy: [command: Command] }>()
 
 const icon = computed(() => UNIT_COPY[props.row.unitId].icon)
@@ -48,6 +48,9 @@ const verb = computed(() => (props.row.count > 1 ? `Buy ${props.row.count}` : 'B
         class="motion-pop font-body text-base italic leading-[22px] text-ink-faded"
       >
         {{ row.line }}
+      </p>
+      <p data-effect class="min-h-[44px] font-display text-base leading-[22px] text-ink">
+        {{ effect }}
       </p>
     </div>
     <button

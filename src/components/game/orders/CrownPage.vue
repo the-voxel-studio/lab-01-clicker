@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import type { Command, GameState } from '@/core/types'
 import type { EdictId } from '@/data/edicts'
 import { useGameStore } from '@/stores/game'
-import { coloniseView, edictRows } from '@/ui/crown'
+import { coloniseView, edictRows, type EdictRow as EdictView } from '@/ui/crown'
 import { formatCompact } from '@/ui/realmText'
 import EdictRow from './EdictRow.vue'
 import OrderFrame from './OrderFrame.vue'
 import TaxSlider from './TaxSlider.vue'
 
 /** The Crown: the tax, the emergency edicts and new land (Figma `53:1942`). */
+const REFRESH_MS = 250
 const game = useGameStore()
 const refused = ref(false)
 const stamped = ref<EdictId | null>(null)
@@ -22,20 +23,31 @@ function current(): GameState | null {
   return game.run
 }
 
-const edicts = computed(() => {
-  const run = current()
-  return run ? edictRows(run) : []
-})
+/** Each edict plays on a copy of the realm, so the rows refresh 4 times a second, not each frame. */
+const edicts = ref<EdictView[]>([])
+const draftRate = ref<number | null>(null)
+function readEdicts(): void {
+  edicts.value = game.run ? edictRows(game.run, draftRate.value) : []
+}
+readEdicts()
+const edictTimer = setInterval(readEdicts, REFRESH_MS)
+onUnmounted(() => clearInterval(edictTimer))
 const colonise = computed(() => {
   const run = current()
   return run ? coloniseView(run) : null
 })
+
+function readDraft(rate: number): void {
+  draftRate.value = rate
+  readEdicts()
+}
 
 function act(command: Command): void {
   refused.value = !game.act(command).success
   if (refused.value) return
   if (command.type === 'ENACT_EDICT') stamped.value = command.edictId
   if (command.type === 'COLONISE_PROVINCE') raised.value++
+  readEdicts()
 }
 </script>
 
@@ -46,11 +58,13 @@ function act(command: Command): void {
       :run="game.run"
       :revision="game.revision"
       @proclaim="act({ type: 'SET_TAX_RATE', rate: $event })"
+      @draft="readDraft"
     />
     <p v-if="refused" data-refusal class="font-body text-base italic text-rubric">
       The Crown refuses this order.
     </p>
     <h2 class="mt-3 font-caps text-base text-rubric">Emergency edicts</h2>
+    <p class="font-body text-base italic leading-[22px] text-ink-faded">One edict each audit.</p>
     <EdictRow
       v-for="row in edicts"
       :key="row.id"
@@ -70,7 +84,7 @@ function act(command: Command): void {
         />
         <h2 class="font-caps text-base text-rubric">New land</h2>
         <p class="font-body text-base italic leading-[22px] text-ink-faded">
-          Colonise an empty province: more room for your people.
+          Colonise an empty province: {{ colonise.gain }} for your people.
         </p>
       </div>
       <button

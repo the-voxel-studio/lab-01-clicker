@@ -74,7 +74,7 @@ describe('Task 5: Fortune', () => {
   it('opens the war during the cycle, even before a migrated save has a target', () => {
     const { pinia, state } = begin()
     state.currentTarget = null
-    expect(fortuneView(state)).toMatchObject({ live: true, target: null })
+    expect(fortuneView(state)).toMatchObject({ live: true, forecast: null })
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
     expect(page.find('[data-attack]').exists()).toBe(true)
   })
@@ -82,11 +82,8 @@ describe('Task 5: Fortune', () => {
   it('shows the guess of the scouts', () => {
     const { state } = begin()
     expedition(state)
-    expect(fortuneView(state).target).toMatchObject({
-      biome: 'Marshes & Forests',
-      guessMin: 60,
-      guessMax: 85,
-    })
+    expect(fortuneView(state).forecast).toMatchObject({ theirsMin: 60, theirsMax: 85 })
+    expect(fortuneView(state).forecast?.land).toContain('Marshes & Forests')
   })
 
   it('keeps the secrets of a target out of the page', () => {
@@ -106,21 +103,19 @@ describe('Task 5: Fortune', () => {
     state.currentTarget!.isAmbush = true
     state.currentTarget!.isFalseLedger = true
     state.units.spymaster = 1
-    expect(fortuneView(state).target!.warnings).toEqual([
+    expect(fortuneView(state).forecast!.warnings).toEqual([
       'Your spies smell an ambush.',
       'Your spies doubt the loot.',
     ])
   })
 
-  it('reads the odds after the siege, as the engine fights them', () => {
+  it('reads the odds as the engine fights them', () => {
     const { state } = begin()
     expedition(state)
-    state.units.soldier = 80
-    expect(fortuneView(state).target!.odds).toBe('odds against you')
-    state.units.soldier = 100
-    expect(fortuneView(state).target!.odds).toBe('a coin toss')
-    state.units.soldier = 130
-    expect(fortuneView(state).target!.odds).toBe('odds with you')
+    state.units.soldier = 40
+    expect(fortuneView(state).forecast!.outOfTen).toBe(0)
+    state.units.soldier = 200
+    expect(fortuneView(state).forecast!.outOfTen).toBe(10)
   })
 
   it('says the scout dies and the target changes', () => {

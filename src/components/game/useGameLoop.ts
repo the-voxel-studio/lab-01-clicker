@@ -10,7 +10,7 @@ import { useGameStore } from '@/stores/game'
 import { useNavStore, type Screen } from '@/stores/nav'
 import { createGameLoop } from '@/ui/gameLoop'
 
-const SCREENS_WITHOUT_CLOCK: readonly Screen[] = ['hall', 'hall_of_feats', 'end']
+const SCREENS_WITHOUT_CLOCK: readonly Screen[] = ['hall', 'hall_of_feats', 'how_to_reign', 'end']
 
 /** Drives `game.advance` from animation frames on run screens; call once from the app root. */
 export function useGameLoop(): void {

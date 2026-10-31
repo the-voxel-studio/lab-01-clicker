@@ -79,3 +79,16 @@ test('plays a reign through its letters, the open resume and a death', async ({ 
   await page.locator('[data-fate-continue]').click()
   await expect(page.locator('[data-register]')).toContainText('Reign 1 is over')
 })
+
+test('reads a unit effect, the rules and a war', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /begin/i }).first().click()
+  await page.locator('[data-order="order_people"]').click()
+  await expect(page.locator('[data-unit="peasant"] [data-effect]')).toContainText(/\d/)
+  await expect(page.locator('[data-verdict]')).toContainText(/short|met/)
+  await page.locator('[data-order="fortune"]').click()
+  await expect(page.locator('[data-war-panel]')).toBeVisible()
+  await page.getByRole('button', { name: 'Menu' }).click()
+  await page.getByRole('button', { name: /How to reign/ }).click()
+  await expect(page.locator('[data-how-to-reign]')).toContainText('archive points')
+})

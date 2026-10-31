@@ -2,7 +2,7 @@
 import GameIcon from '@/components/common/GameIcon.vue'
 import { formatCompact } from '@/ui/realmText'
 
-/** Your host against the force the scouts report, as two banners. */
+/** Your force against the one the scouts report, as two banners. */
 defineProps<{ yours: number; theirsMin: number; theirsMax: number }>()
 </script>
 
@@ -10,7 +10,7 @@ defineProps<{ yours: number; theirsMin: number; theirsMax: number }>()
   <div class="grid grid-cols-[1fr_44px_1fr] items-center">
     <div class="banner-yours bg-verdigris px-2 py-2 text-center text-cream">
       <p class="font-display text-[25px] leading-7">{{ formatCompact(yours) }}</p>
-      <p class="font-body text-base leading-5">your host</p>
+      <p class="font-body text-base leading-5">your force</p>
     </div>
     <span
       class="z-10 flex size-11 items-center justify-center rounded-full bg-wax text-gold-light"

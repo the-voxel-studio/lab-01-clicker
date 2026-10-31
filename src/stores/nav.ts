@@ -18,6 +18,7 @@ export type Screen =
   | 'fortune'
   | 'crown'
   | 'chronicle'
+  | 'how_to_reign'
   | 'hall_of_feats'
   | 'fate'
   | 'end'

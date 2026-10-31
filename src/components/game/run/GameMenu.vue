@@ -57,6 +57,11 @@ watch(
   { flush: 'sync' },
 )
 
+function readRules(): void {
+  close()
+  nav.go('how_to_reign')
+}
+
 function close(): void {
   nav.menuOpen = false
 }
@@ -131,6 +136,9 @@ onUnmounted(() => {
         </button>
         <button type="button" class="menu-item" @click="readChronicle">
           Read the chronicle<small>Every audit since the coronation</small>
+        </button>
+        <button type="button" class="menu-item" @click="readRules">
+          How to reign<small>The goal, the audits and the rules</small>
         </button>
         <button type="button" class="menu-item" @click="returnToHall">
           Return to the hall<small>The reign is saved and waits for you</small>

@@ -6,11 +6,13 @@
  */
 
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
-import { calculateGrossApRate } from '@/core/engine'
+import { dispatch } from '@/core/commands'
+import { calculateGrossApRate, calculateMaxPopulation } from '@/core/engine'
 import { calculateColonisationCost } from '@/core/formulas'
 import type { Command, GameState } from '@/core/types'
 import { EDICT_ESCALATION_PER_USE, EDICTS_DATA, type EdictId } from '@/data/edicts'
-import { formatCompact } from '@/ui/realmText'
+import { realmRates } from '@/ui/effects'
+import { formatCompact, formatFigure } from '@/ui/realmText'
 
 const config = DEFAULT_ENGINE_CONFIG
 
@@ -35,6 +37,10 @@ export interface EdictRow {
   name: string
   text: string
   priceLabel: string
+  /** What it brings now, from a dispatch on a copy; empty when it brings no AP. */
+  gain: string
+  unrestAfter: number
+  fatal: boolean
   command: Command | null
   blocked: string | null
 }
@@ -42,6 +48,7 @@ export interface EdictRow {
 /** The colonise action and its price. */
 export interface ColoniseView {
   cost: number
+  gain: string
   command: Command | null
   blocked: string | null
 }
@@ -113,8 +120,46 @@ function edictBlock(state: GameState, id: EdictId, cost: number): string | null 
   return state.ap < cost ? 'Not enough AP' : null
 }
 
-/** The three edicts, with their escalated effects and what blocks them. */
-export function edictRows(state: GameState): EdictRow[] {
+/** Plays an edict on a copy, whatever blocks it now, and reads what it does. */
+function edictOutcome(
+  state: GameState,
+  id: EdictId,
+  cost: number,
+  draftRate: number | null,
+): Pick<EdictRow, 'gain' | 'unrestAfter' | 'fatal'> {
+  const copy = structuredClone(state)
+  copy.phase = 'ACTIVE_CYCLE'
+  copy.lastEdictDeadline = 0
+  copy.ap = Math.max(copy.ap, cost)
+  const before = copy.ap
+  dispatch(copy, { type: 'ENACT_EDICT', edictId: id }, config)
+  const gained = Math.round(copy.ap - before)
+  // A rate still on the slider is proclaimed moments later, shock included.
+  if (draftRate !== null && !copy.isGameOver) {
+    dispatch(copy, { type: 'SET_TAX_RATE', rate: draftRate }, config)
+  }
+  return {
+    gain: gained > 0 ? `+${formatCompact(gained)} AP` : '',
+    unrestAfter: Math.round(copy.unrest),
+    fatal: copy.unrest >= 100,
+  }
+}
+
+/** What a tax rate does to the realm, from the rates of a copy. */
+export function taxEffect(state: GameState, rate: number): string {
+  const rates = realmRates({ ...state, taxRate: rate, pendingTaxRate: null })
+  const income = rates.netAp
+  const unrest = rates.unrestPerSecond
+  const sign = (value: number): string => (value >= 0 ? '+' : '')
+  return `${sign(income)}${formatFigure(income, 1)} AP/s, ${sign(unrest)}${formatFigure(unrest, 2)} unrest/s`
+}
+
+/**
+ * The three edicts, with their escalated effects and what blocks them.
+ *
+ * @param draftRate - A tax rate chosen on the slider and not yet proclaimed.
+ */
+export function edictRows(state: GameState, draftRate: number | null = null): EdictRow[] {
   const ids: EdictId[] = ['forced_tithe', 'church_seizure', 'grand_festival']
   return ids.map((id) => {
     const cost = id === 'grand_festival' ? festivalCost(state) : 0
@@ -124,6 +169,7 @@ export function edictRows(state: GameState): EdictRow[] {
       name: EDICT_NAMES[id],
       text: edictText(state, id),
       priceLabel: cost > 0 ? `Pay ${formatCompact(Math.ceil(cost))} AP` : 'Proclaim',
+      ...edictOutcome(state, id, cost, draftRate),
       command: blocked ? null : { type: 'ENACT_EDICT', edictId: id },
       blocked,
     }
@@ -134,5 +180,15 @@ export function edictRows(state: GameState): EdictRow[] {
 export function coloniseView(state: GameState): ColoniseView {
   const cost = calculateColonisationCost(state.colonisedProvincesCount, config)
   const blocked = state.ap < cost ? 'Not enough AP' : null
-  return { cost, command: blocked ? null : { type: 'COLONISE_PROVINCE' }, blocked }
+  const copy = structuredClone(state)
+  copy.ap = Math.max(copy.ap, cost)
+  copy.phase = 'ACTIVE_CYCLE'
+  dispatch(copy, { type: 'COLONISE_PROVINCE' }, config)
+  const room = calculateMaxPopulation(copy, config) - calculateMaxPopulation(state, config)
+  return {
+    cost,
+    gain: `+${formatFigure(room)} room`,
+    command: blocked ? null : { type: 'COLONISE_PROVINCE' },
+    blocked,
+  }
 }

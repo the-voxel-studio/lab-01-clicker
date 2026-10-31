@@ -70,10 +70,10 @@ describe('Task 3: gauges', () => {
     expect(shield.text()).toContain('births +0.1%')
   })
 
-  it('sets the host against the scouted force', () => {
+  it('sets your force against the scouted force', () => {
     const banners = mount(WarBanners, { props: { yours: 22, theirsMin: 18, theirsMax: 30 } })
     expect(banners.text()).toContain('22')
-    expect(banners.text()).toContain('your host')
+    expect(banners.text()).toContain('your force')
     expect(banners.text()).toContain('18 to 30')
   })
 

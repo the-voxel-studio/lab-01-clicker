@@ -50,6 +50,9 @@ const tempo = computed(() => {
       <div data-order-body class="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-2">
         <slot />
       </div>
+      <div v-if="$slots.foot" class="shrink-0 px-4 pb-2 pt-1">
+        <slot name="foot" />
+      </div>
       <ResumeBand v-if="game.preparing" />
       <div data-order-bar :inert="closed" class="z-20 shrink-0" :class="closed ? 'opacity-60' : ''">
         <ActionBar />

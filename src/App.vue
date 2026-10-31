@@ -10,6 +10,7 @@ import FortunePage from '@/components/game/orders/FortunePage.vue'
 import OrderPage from '@/components/game/orders/OrderPage.vue'
 import RunScreen from '@/components/game/RunScreen.vue'
 import BattleMissive from '@/components/game/moments/BattleMissive.vue'
+import HowToReign from '@/components/game/run/HowToReign.vue'
 import { useGameLoop } from '@/components/game/useGameLoop'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
@@ -35,6 +36,7 @@ watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
       <FateScreen v-else-if="nav.screen === 'fate'" />
       <EndScreen v-else-if="nav.screen === 'end'" />
       <ChroniclePage v-else-if="nav.screen === 'chronicle'" />
+      <HowToReign v-else-if="nav.screen === 'how_to_reign'" />
       <OrderPage v-else-if="nav.screen === 'order_people'" order="people" />
       <OrderPage v-else-if="nav.screen === 'order_admin'" order="admin" />
       <OrderPage v-else-if="nav.screen === 'order_military'" order="military" />

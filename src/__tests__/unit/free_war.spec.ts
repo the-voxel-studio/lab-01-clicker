@@ -155,8 +155,8 @@ describe('Task 4: casualties on a curve', () => {
     const state = reign()
     generateCampaignTarget(state, config)
     state.currentTarget = { ...state.currentTarget!, isAmbush: true, isFalseLedger: true }
-    expect(fortuneView(state).target?.warnings).toEqual([])
+    expect(fortuneView(state).forecast?.warnings).toEqual([])
     state.units.spymaster = 1
-    expect(fortuneView(state).target?.warnings).toHaveLength(2)
+    expect(fortuneView(state).forecast?.warnings).toHaveLength(2)
   })
 })

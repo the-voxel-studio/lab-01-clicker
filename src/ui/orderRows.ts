@@ -49,6 +49,7 @@ export interface PatentRow {
   order: UnitOrder
   cost: number
   unmet: string[]
+  unlocks: string
   command: Command | null
 }
 
@@ -160,6 +161,10 @@ export function patentRow(state: GameState, order: UnitOrder): PatentRow | null 
     order,
     cost,
     unmet,
+    unlocks: unitsOf(order)
+      .filter((id) => UNITS_DATA[id].tier === 2)
+      .map((id) => UNIT_COPY[id].name)
+      .join(', '),
     command: unmet.length === 0 ? { type: 'UNLOCK_PATENT', order } : null,
   }
 }

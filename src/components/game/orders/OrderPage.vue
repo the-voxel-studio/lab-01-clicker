@@ -11,11 +11,14 @@ import {
   unitRows,
   type BulkChoice,
 } from '@/ui/orderRows'
+import { projectAudit, verdict } from '@/ui/projection'
 import BulkSelector from './BulkSelector.vue'
 import DisbandPanel from './DisbandPanel.vue'
 import OrderFrame from './OrderFrame.vue'
 import PatentRow from './PatentRow.vue'
+import PeopleCount from '../ledger/PeopleCount.vue'
 import UnitRow from './UnitRow.vue'
+import { useUnitEffects } from './useUnitEffects'
 
 /** One of the three orders of the realm: its panel, bulk sizes, unit rows and patent. */
 const props = defineProps<{ order: UnitOrder }>()
@@ -67,8 +70,30 @@ const patent = computed(() => {
   return run ? patentRow(run, props.order) : null
 })
 
+const { lines, rates, refresh } = useUnitEffects(
+  () => props.order,
+  (unitId) => rows.value.find((row) => row.unitId === unitId)?.count ?? 1,
+)
+
+const AXES = { people: 'pop', admin: 'ap', military: 'military' } as const
+/** The quota of this order at the audit, if nothing changes. */
+const ahead = computed(() => {
+  const run = current()
+  const quota = game.quotas.find((item) => item.axis === AXES[props.order])
+  if (!run || !rates.value || !quota) return null
+  const projected = projectAudit(run, rates.value, game.secondsLeft)
+  const value = { people: projected.people, admin: projected.ap, military: projected.force }
+  return {
+    value: value[props.order],
+    capped: projected.capped,
+    demand: quota.required,
+    ...verdict(value[props.order], quota.required),
+  }
+})
+
 function act(command: Command): void {
   refused.value = !game.act(command).success
+  refresh()
   if (!refused.value && command.type === 'UNLOCK_PATENT') broken.value++
 }
 </script>
@@ -81,6 +106,25 @@ function act(command: Command): void {
         The Crown refuses this order.
       </p>
     </template>
+    <PeopleCount
+      v-if="order === 'people' && ahead && rates"
+      :living="game.run?.totalPopulation ?? 0"
+      :crown="ahead.demand"
+      :room="rates.room"
+      :projected="ahead.value"
+      :capped="ahead.capped"
+      class="order-gauge mb-1"
+    />
+    <p
+      v-if="ahead"
+      data-verdict
+      class="mb-1 flex items-baseline justify-between border-y border-ink-faded/40 py-1 font-body text-[18px] text-ink"
+    >
+      The audit
+      <span class="font-display text-[21px]" :class="ahead.met ? 'text-verdigris' : 'text-rubric'">
+        {{ ahead.text }}
+      </span>
+    </p>
     <div
       v-if="panel"
       data-panel
@@ -97,8 +141,23 @@ function act(command: Command): void {
       class="motion-lock-break absolute right-6 size-10 text-ink-faded"
       label=""
     />
-    <UnitRow v-for="row in rows" :key="row.unitId" :row="row" @buy="act" />
+    <UnitRow
+      v-for="row in rows"
+      :key="row.unitId"
+      :row="row"
+      :effect="lines[row.unitId]"
+      @buy="act"
+    />
     <PatentRow v-if="patent" :row="patent" @seal="act" />
     <DisbandPanel v-if="order === 'military'" @act="act" />
   </OrderFrame>
 </template>
+
+<style scoped>
+/* Short screens keep the verdict and give the height to the units. */
+@media (max-height: 700px) {
+  .order-gauge {
+    display: none;
+  }
+}
+</style>

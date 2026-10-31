@@ -443,6 +443,33 @@ function captainCasualtyDiscount(state: GameState, config: EngineConfig): number
 }
 
 /**
+ * Share of the army a campaign really costs at a casualty rate: captains, then modifiers.
+ *
+ * @param state - Active state that supplies the captains and the modifiers.
+ * @param rate - Casualty rate before any mitigation.
+ * @param config - Injected engine configuration.
+ * @returns The share lost, in [0, 1].
+ */
+export function campaignLossRate(state: GameState, rate: number, config: EngineConfig): number {
+  return modifiedCasualtyRate(state, rate * (1.0 - captainCasualtyDiscount(state, config)))
+}
+
+/**
+ * Chance that a new target is an ambush, known to the player as a rule of war.
+ *
+ * @param state - Active state that supplies the modifiers.
+ * @param config - Injected engine configuration.
+ */
+export function campaignAmbushChance(state: GameState, config: EngineConfig): number {
+  return composeStat(
+    'ambush_chance',
+    config.balance.AMBUSH_BASE_CHANCE,
+    state.activeModifiers,
+    extractRawEvaluationState(state),
+  )
+}
+
+/**
  * Applies the `battle_casualty_rate` modifiers (base 1) to a casualty rate.
  *
  * @param state - Active state that supplies the modifiers.
@@ -532,11 +559,7 @@ export function resolveOffensiveCampaign(
   }
 
   // Casualties applied proportionally to soldiers and men-at-arms, mitigated by Captains
-  const captainDiscount = captainCasualtyDiscount(state, config)
-  applyRetinueCasualties(
-    state,
-    modifiedCasualtyRate(state, outcomeData.casualtyRate * (1.0 - captainDiscount)),
-  )
+  applyRetinueCasualties(state, campaignLossRate(state, outcomeData.casualtyRate, config))
 
   // Apply loot (Neither cumulativeApThisDeadline nor totalCumulativeAp is credited with spoils of war!)
   state.ap += loot.ap
@@ -829,12 +852,7 @@ export function generateCampaignTarget(
         )
       : Math.max(config.balance.SCOUT_UNCERTAINTY_MIN, reducedMargin)
 
-  const ambushChance = composeStat(
-    'ambush_chance',
-    config.balance.AMBUSH_BASE_CHANCE,
-    state.activeModifiers,
-    rawState,
-  )
+  const ambushChance = campaignAmbushChance(state, config)
   const isFalseLedger = prng.next() < config.balance.FALSE_LEDGER_CHANCE
   const isAmbush = prng.next() < ambushChance
   // Drawn last so the earlier draws of a target keep their sequence.
