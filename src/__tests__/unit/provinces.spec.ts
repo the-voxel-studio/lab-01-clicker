@@ -47,7 +47,7 @@ describe('One province list', () => {
 
   it('keeps provinces equal to provinceBiomes.length across a dispatched LAUNCH_ATTACK win', () => {
     const state = createInitialGameState()
-    state.phase = 'EXPEDITION'
+    state.phase = 'ACTIVE_CYCLE'
     state.units.soldier = 200
     state.currentTarget = {
       power: 1,

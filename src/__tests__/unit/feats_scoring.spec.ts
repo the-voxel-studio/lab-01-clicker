@@ -283,7 +283,7 @@ describe('Task 2.4: Threats, Factions, Archives, Feats & Dynastic Scoring', () =
 
     it('counts a campaign win as a victory', () => {
       const state = createInitialGameState({ seed: 3 })
-      state.phase = 'EXPEDITION'
+      state.phase = 'ACTIVE_CYCLE'
       state.units.man_at_arms = 50
       state.currentTarget = {
         power: 1,

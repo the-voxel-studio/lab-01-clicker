@@ -19,7 +19,7 @@ export type RunPhase =
   | 'COUNCIL_DILEMMA' // 2. Steward dilemma presentation
   | 'COUNCIL_LAWS' // 3. Council laws draft / reject
   | 'THREAT_HERALD' // 4. Upcoming threat announcement & response
-  | 'EXPEDITION' // 5. Campaign planning, scout rerolls, launch
+  | 'EXPEDITION' // Old saves only: migration v6 moves it to AWAIT_RESUME
   | 'AWAIT_RESUME' // 6. Paused before unpausing, "Resume Governance" CTA
 
   // Active loop & Crisis states
@@ -39,6 +39,8 @@ export const ALLOWED_COMMANDS_BY_PHASE: Record<RunPhase, readonly Command['type'
     'COLONISE_PROVINCE',
     'ENACT_EDICT',
     'UNLOCK_PATENT',
+    'LAUNCH_ATTACK',
+    'RECON_PATROL',
     'TICK',
     'SET_PAUSED',
   ],
@@ -46,9 +48,12 @@ export const ALLOWED_COMMANDS_BY_PHASE: Record<RunPhase, readonly Command['type'
   COUNCIL_DILEMMA: ['RESOLVE_DILEMMA', 'SET_PAUSED'],
   COUNCIL_LAWS: ['ENACT_LAW', 'REJECT_LAWS', 'SET_PAUSED'],
   THREAT_HERALD: ['SELECT_THREAT_RESPONSE', 'SET_PAUSED'],
-  EXPEDITION: ['LAUNCH_ATTACK', 'RECON_PATROL', 'SKIP_EXPEDITION', 'SET_PAUSED'],
+  // Left for the type only: migration v6 moves saved expeditions to the resume.
+  EXPEDITION: ['SET_PAUSED'],
   AWAIT_RESUME: [
     'RESUME_GOVERNANCE',
+    'LAUNCH_ATTACK',
+    'RECON_PATROL',
     'BUY_UNIT',
     'DISBAND_UNIT',
     'COLONISE_PROVINCE',
@@ -87,7 +92,7 @@ export function assertCommandAllowed(phase: RunPhase, command: Command): void {
  * Sequential inter-deadline progression pipeline following GAME_RULES §8.
  *
  * Flow:
- * AUDIT_ASSESSMENT -> COUNCIL_DILEMMA -> COUNCIL_LAWS -> THREAT_HERALD -> EXPEDITION -> AWAIT_RESUME -> ACTIVE_CYCLE
+ * AUDIT_ASSESSMENT -> COUNCIL_DILEMMA -> COUNCIL_LAWS -> THREAT_HERALD -> AWAIT_RESUME -> ACTIVE_CYCLE
  *
  * @param currentPhase - The current inter-deadline phase.
  * @param deadline - The deadline index just evaluated (1 to 10).
@@ -112,12 +117,9 @@ export function getNextInterDeadlinePhase(
       return deadline >= config.balance.THREAT_HERALD_FIRST_DEADLINE &&
         deadline < config.balance.TOTAL_DEADLINES
         ? 'THREAT_HERALD'
-        : 'EXPEDITION'
+        : 'AWAIT_RESUME'
 
     case 'THREAT_HERALD':
-      return 'EXPEDITION'
-
-    case 'EXPEDITION':
       return 'AWAIT_RESUME'
 
     case 'AWAIT_RESUME':

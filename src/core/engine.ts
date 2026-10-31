@@ -336,14 +336,36 @@ export interface EffectiveQuota {
 }
 
 /**
- * Scales a deadline quota by the `quota_requirement` stat (base 1, clamped at 0), as read by the
- * audit and by the 50 s interim projection.
+ * Factor the Crown adds to all quotas for conquests beyond the free one of each audit.
+ *
+ * @param state - Current GameState.
+ * @param config - Engine configuration.
+ */
+export function crownSurchargeFactor(
+  state: GameState,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): number {
+  return 1 + config.balance.CONQUEST_SURCHARGE_STEP * state.crownSurchargeSteps
+}
+
+/**
+ * True when soldiers or men-at-arms can march: a flat force bonus alone is no army.
+ *
+ * @param state - Current GameState.
+ */
+export function hasFieldArmy(state: GameState): boolean {
+  return (state.units.soldier ?? 0) + (state.units.man_at_arms ?? 0) > 0
+}
+
+/**
+ * Scales a deadline quota by the `quota_requirement` stat alone (base 1, clamped at 0), as faction
+ * traits read it: the Crown's surcharge does not move a threat.
  *
  * @param state - Current GameState.
  * @param quota - The quota to scale.
  * @param modifiers - Modifiers to compose (defaults to the active ones).
  */
-export function effectiveQuota(
+export function scopedQuota(
   state: GameState,
   quota: EffectiveQuota,
   modifiers: readonly Modifier[] = state.activeModifiers,
@@ -356,6 +378,30 @@ export function effectiveQuota(
     apRate: quota.apRate * requirement,
     pop: quota.pop * requirement,
     military: quota.military * requirement,
+  }
+}
+
+/**
+ * Scales a deadline quota by the `quota_requirement` stat and the Crown's surcharge, as read by the
+ * audit and by the 50 s interim projection.
+ *
+ * @param state - Current GameState.
+ * @param quota - The quota to scale.
+ * @param modifiers - Modifiers to compose (defaults to the active ones).
+ * @param config - Engine configuration.
+ */
+export function effectiveQuota(
+  state: GameState,
+  quota: EffectiveQuota,
+  modifiers: readonly Modifier[] = state.activeModifiers,
+  config: EngineConfig = DEFAULT_ENGINE_CONFIG,
+): EffectiveQuota {
+  const scoped = scopedQuota(state, quota, modifiers)
+  const surcharge = crownSurchargeFactor(state, config)
+  return {
+    apRate: scoped.apRate * surcharge,
+    pop: scoped.pop * surcharge,
+    military: scoped.military * surcharge,
   }
 }
 
@@ -405,6 +451,7 @@ export function getForesightQuotas(
         state,
         quota,
         quota.deadline === first ? state.activeModifiers : lastingModifiers,
+        config,
       ),
     }))
 }
@@ -429,7 +476,7 @@ export function evaluateDeadlineAudit(
 ): AuditOutcome {
   const quota = quotaForDeadline(config, state.deadline)
 
-  const required = effectiveQuota(state, quota)
+  const required = effectiveQuota(state, quota, state.activeModifiers, config)
   const { total: grossApRate } = calculateGrossApRate(state, config)
   const apMet = grossApRate >= required.apRate
   const popMet = state.totalPopulation >= required.pop
@@ -490,6 +537,7 @@ export function evaluateDeadlineAudit(
     grossApRate,
   }
   state.lastAuditOutcome = outcome
+  state.conquestsThisAudit = 0
   return outcome
 }
 
@@ -977,7 +1025,12 @@ function runFixedStep(state: GameState, dt: number, config: EngineConfig): TickR
     interimWarningTriggered = true
 
     // Compute 2-out-of-3 on-track status comparing to deadline quotas
-    const quota = effectiveQuota(state, quotaForDeadline(config, state.deadline))
+    const quota = effectiveQuota(
+      state,
+      quotaForDeadline(config, state.deadline),
+      state.activeModifiers,
+      config,
+    )
     const apOnTrack = grossApRate >= quota.apRate
     const popOnTrack = state.totalPopulation >= quota.pop
     const milOnTrack = calculateMilitaryPower(state, config) >= quota.military

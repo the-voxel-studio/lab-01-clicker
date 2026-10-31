@@ -251,7 +251,7 @@ Rather than a passive bar that only kills at 100%, Unrest acts as an escalating 
 Battles are **instant tactical wagers** governed by reconnaissance, risk allocation, and fog of war.
 
 ### 7.1 Infinite Scout Reroll (Reconnaissance Patrols) & Target State
-- Between deadlines (during `EXPEDITION`), `GameState` holds a generated prospective campaign target (`currentTarget`: real enemy power, perceived power band, biome, loot type, and hidden `isFalseLedger` / `isAmbush` flags).
+- During a reign, `GameState` holds a generated prospective campaign target (`currentTarget`: real enemy power, perceived power band, biome, loot type, and hidden `isFalseLedger` / `isAmbush` flags). A target is generated when the reign starts, when governance resumes and after each campaign. `LAUNCH_ATTACK` and `RECON_PATROL` are allowed in `ACTIVE_CYCLE` and `AWAIT_RESUME`, with no count limit, while the clock keeps running; letters block them.
 - **Target Generation:** A target's power is 0.85 to 1.25 times the Military Quota of the current deadline (at least 15). Its biome is one of the four non-Heartland biomes, and its faction (§7.5) sets the loot type: Outlaws and Zealots yield Population, Rebel Barons Soldiers, Mercenaries AP, the other factions a random type among AP, Population, Soldiers and Mixed.
 - **The Reroll Mechanism (`RECON_PATROL`):** If the player dislikes the target (e.g. enemy too strong, unwanted biome, suspected false loot), they may press **"Send Recon Patrol"** to generate a fresh target using the persisted `prngState`.
 - **THE PATROL MORTALITY COST:**
@@ -298,15 +298,22 @@ $$\text{CombatRatio} = \frac{\text{AttackerPower}}{\text{DefenderPower}}$$
     - *Mixed War Spoils:* A hybrid combination (e.g., 50% AP, 30% Population, 20% Soldiers).
 - **Offensive Outcome Matrix ($R = \frac{\text{PlayerAttackingPower}}{\text{EnemyDefendingPower}}$):**
 
-| Ratio ($R$) | Outcome | Province Awarded | Loot Yield | Soldier Casualties | Unrest Impact |
-| :---: | :--- | :---: | :---: | :---: | :---: |
-| $\ge 1.40$ | **Decisive Victory** | **Captured** | 120% | 8% to 12% | -5 (Triumphant) |
-| $1.05 < R < 1.40$ | **Clear Victory** | **Captured** | 100% | 20% to 30% | 0 |
-| $1.00 \le R \le 1.05$ | **Razor-Thin Margin Victory** | **NONE** | 50% | 45% to 55% | +5 (Bloodied) |
-| $0.80 \le R < 1.00$ | **Pyrrhic Standoff** | None | 0% | 70% to 80% | +15 (Humiliated) |
-| $< 0.80$ | **Crushing Defeat** | None | 0% | **100% committed lost** | +25 (Panic) |
+| Ratio ($R$) | Outcome | Province Awarded | Loot Yield | Unrest Impact |
+| :---: | :--- | :---: | :---: | :---: |
+| $\ge 1.40$ | **Decisive Victory** | **Captured** | 120% | -5 (Triumphant) |
+| $1.05 < R < 1.40$ | **Clear Victory** | **Captured** | 100% | 0 |
+| $1.00 \le R \le 1.05$ | **Razor-Thin Margin Victory** | **NONE** | 50% | +5 (Bloodied) |
+| $0.80 \le R < 1.00$ | **Pyrrhic Standoff** | None | 0% | +15 (Humiliated) |
+| $< 0.80$ | **Crushing Defeat** | None | 0% | +25 (Panic) |
 
 *(Note on the Razor-Thin Rule: If victory is achieved within a $\le 5\%$ margin above parity, the surviving vanguard is too bloodied and exhausted to secure and occupy enemy territory. No province is awarded).*
+
+- **Soldier Casualties:** A continuous curve of the clash ratio, linear between these points, flat outside them, then a roll of ±0.02 clamped to [0, 1], before Captains and other modifiers. The tiers still decide the province, loot and unrest.
+
+| Ratio ($R$) | $\le 0.8$ | 0.9 | 1.0 | 1.2 | $\ge 1.4$ |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| Soldiers lost | 100% | 75% | 50% | 25% | 10% |
+- **The Crown's Surcharge:** One conquered province per audit is free. Each further one raises `crownSurchargeSteps` by one, and all three quotas become $\text{quota} \times \text{quota\_requirement} \times (1 + \text{CONQUEST\_SURCHARGE\_STEP} \times \text{steps})$, at once and for the rest of the reign, even if the province is lost. `conquestsThisAudit` resets when an audit is evaluated, so a war of the open resume counts towards the audit ahead. Colonising raises nothing, and threat, raid and target force do not move.
 
 #### 7.4.2 Defensive Battles (Surprise Raids & Crown Invasions, Player as Defender)
 - The player is attacked on sovereign soil: Receives the **Defender's Fortification Bonus (+20%)** plus any passive **Border Stronghold Defense (+12 flat)** and **Man-at-Arms garrison bonus (+0.5 flat per Man-at-Arms)**.
@@ -349,13 +356,12 @@ Enemy threats and tactical campaign targets belong to thematic feudal factions w
 
 ## 8. The Inter-Deadline Council Phase & Threat Matrix
 
-At the 100-second mark of each deadline, game time pauses completely. The game advances through a strict **6-step sequence**:
+At the 100-second mark of each deadline, game time pauses completely. The game advances through a strict **5-step sequence**:
 1. **Crown Audit Verdict:** Emissaries inspect the 3 metrics. Grants an Imperial Gold Seal or issues a Royal Censure fine.
 2. **Steward Dilemma:** An interactive narrative decision triggering choices based on the realm's current condition. The step is skipped when no dilemma qualifies or none has an affordable choice.
 3. **Council of Laws:** The Prelate, Chancellor, and Marshal offer 3 law cards. Player enacts 1 or rejects all (+1 Archive).
 4. **Threat Herald (Deadlines 2 to 9):** Announces and resolves the upcoming scheduled threat for deadline **$d+1$** (commencing after the Deadline 2 audit for Threat 3, through after the Deadline 9 audit for Threat 10).
-5. **Expeditionary Phase:** Optional window to launch up to 2 military campaigns (with scout rerolls).
-6. **"Resume Governance" CTA:** Player manually presses the button to unpause time and start the next 100-second cycle.
+5. **"Resume Governance" CTA:** Time stands still and the realm stays open: the player may buy and go to war, then presses the button to start the next 100-second cycle.
 
 ### 8.1 Crown Threats Matrix (Deadlines 3 to 10)
 > [!NOTE]

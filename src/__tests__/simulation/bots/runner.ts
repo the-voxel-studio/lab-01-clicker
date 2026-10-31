@@ -102,10 +102,8 @@ function frozenPhaseCommand(
       return strategy.chooseLaw(state, ctx)
     case 'THREAT_HERALD':
       return { type: 'SELECT_THREAT_RESPONSE', response: strategy.answerThreat(state, ctx) }
-    case 'EXPEDITION':
-      return strategy.planExpedition(state, ctx)
     case 'AWAIT_RESUME':
-      return { type: 'RESUME_GOVERNANCE' }
+      return strategy.planResume?.(state, ctx) ?? { type: 'RESUME_GOVERNANCE' }
     case 'SURPRISE_RAID':
       return { type: 'RESOLVE_RAID_DEFENSE' }
     case 'LOMBARD_OFFER':

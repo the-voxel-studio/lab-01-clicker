@@ -16,7 +16,7 @@ const percent = (value: number): string => `${(value / top.value) * 100}%`
     <p class="font-caps text-sm text-rubric">Next target</p>
     <h2 class="font-display text-2xl leading-[30px] text-ink">{{ target.biome }}</h2>
     <p class="font-body text-[13px] italic leading-[18px] text-ink-faded">
-      Held by {{ target.faction }}. Campaigns left: {{ target.campaignsLeft }}.
+      Held by {{ target.faction }}.
     </p>
     <p
       v-for="warning in target.warnings"

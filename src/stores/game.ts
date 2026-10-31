@@ -88,6 +88,7 @@ const TOLD_COMMANDS: ReadonlySet<Command['type']> = new Set([
 
 /** Fights leave their letter at once, so the next screen carries how they went. */
 const FIGHT_COMMANDS: ReadonlySet<Command['type']> = new Set([
+  'LAUNCH_ATTACK',
   'SELECT_THREAT_RESPONSE',
   'RESOLVE_RAID_DEFENSE',
 ])

@@ -9,6 +9,7 @@ import { ARCHIVES_DATA, applyArchivePerks, isArchivePerkId } from '@/data/archiv
 import type { ArchivePerkId } from '@/data/archives'
 import { FEATS_DATA, evaluateFeats } from '@/data/feats'
 import type { FeatId } from '@/data/feats'
+import { generateCampaignTarget } from './battle'
 import { createInitialGameState } from './state'
 import type { DispatchResult, GameState } from './types'
 
@@ -89,6 +90,7 @@ export function resetPerks(archive: ArchiveData): void {
 export function startRun(archive: ArchiveData, seed: number): GameState {
   const state = createInitialGameState({ seed })
   applyArchivePerks(state, archive.investedPerks)
+  generateCampaignTarget(state)
   return state
 }
 

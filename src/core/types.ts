@@ -383,10 +383,12 @@ export interface GameState {
   currentThreatPower: number
   /** Tribute AP cost to appease current threat. */
   currentThreatTributeAp: number
-  /** Currently scouted target province during expedition phase. */
+  /** Currently scouted target province, generated at the coronation and after each campaign. */
   currentTarget: CampaignTarget | null
-  /** Number of campaigns launched during the current deadline expedition. */
-  campaignsLaunchedThisDeadline: number
+  /** Provinces conquered towards the audit ahead; the first is free. */
+  conquestsThisAudit: number
+  /** Conquests beyond the free one, ever; each raises all quotas by `CONQUEST_SURCHARGE_STEP`. */
+  crownSurchargeSteps: number
   /** Timestamp of the last surprise border raid. */
   lastSurpriseRaidTime: number
   /** Whether a surprise raid already triggered during the current deadline. */

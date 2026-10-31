@@ -154,8 +154,6 @@ describe('Task 7: bare playable shell', () => {
     const inActiveCycle = () => game.phase === 'ACTIVE_CYCLE'
     for (let guard = 0; guard < 20 && !inActiveCycle(); guard++) {
       const before = game.revision
-      const leave = wrapper.find('[data-leave]')
-      if (leave.exists()) await leave.trigger('click')
       const open = wrapper.findAll('[data-moment-answer]:not([disabled])')
       await (open[open.length - 1] ?? button(wrapper, 'Resume governance')).trigger('click')
       expect(game.revision).toBeGreaterThan(before)

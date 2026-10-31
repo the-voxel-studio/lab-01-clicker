@@ -113,10 +113,6 @@ export const bureaucratBotStrategy: BotStrategy = {
     return safeThreatResponse(state, config)
   },
 
-  planExpedition(): Command {
-    return { type: 'SKIP_EXPEDITION' }
-  },
-
   answerLombard(): boolean {
     return true
   },

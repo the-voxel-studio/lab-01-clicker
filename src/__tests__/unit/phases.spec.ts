@@ -87,8 +87,7 @@ describe('RunPhase State Machine & Permissions Matrix (Gate B)', () => {
     expect(getNextInterDeadlinePhase('COUNCIL_DILEMMA', 1, DEFAULT_ENGINE_CONFIG)).toBe(
       'COUNCIL_LAWS',
     )
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
-    expect(getNextInterDeadlinePhase('EXPEDITION', 1, DEFAULT_ENGINE_CONFIG)).toBe('AWAIT_RESUME')
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1, DEFAULT_ENGINE_CONFIG)).toBe('AWAIT_RESUME')
     expect(getNextInterDeadlinePhase('AWAIT_RESUME', 1, DEFAULT_ENGINE_CONFIG)).toBe('ACTIVE_CYCLE')
 
     // Deadlines 2 to 9 (Herald announces upcoming threat D+1 for D3..D10)
@@ -97,12 +96,14 @@ describe('RunPhase State Machine & Permissions Matrix (Gate B)', () => {
         'THREAT_HERALD',
       )
       expect(getNextInterDeadlinePhase('THREAT_HERALD', deadline, DEFAULT_ENGINE_CONFIG)).toBe(
-        'EXPEDITION',
+        'AWAIT_RESUME',
       )
     }
 
     // Deadline 10 (No further threats beyond D10)
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe(
+      'AWAIT_RESUME',
+    )
   })
 
   it('permits patent unlocks in active governance and inter-deadline resume', () => {

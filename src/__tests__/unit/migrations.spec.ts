@@ -19,6 +19,7 @@ import { validateGameState } from '@/core/validation'
 import { DILEMMAS_DATA } from '@/data/dilemmas'
 import fixtureV1 from '../__fixtures__/saves/v1-save.json'
 import fixtureV2 from '../__fixtures__/saves/v2-save.json'
+import fixtureV5 from '../__fixtures__/saves/v5-save.json'
 
 function encode(payload: unknown): string {
   return `${SAVE_PREFIX}${Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64')}`
@@ -71,10 +72,10 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.archivePoints).toBe(2)
   })
 
-  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v5 migration pipeline', () => {
+  it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v6 migration pipeline', () => {
     expect(isSerializedSavePayload(fixtureV1)).toBe(true)
     expect(fixtureV1.schemaVersion).toBe(1)
-    expect(CURRENT_SCHEMA_VERSION).toBe(5)
+    expect(CURRENT_SCHEMA_VERSION).toBe(6)
 
     // Encode raw v1 fixture directly into save string
     const jsonStr = JSON.stringify(fixtureV1)
@@ -100,7 +101,6 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
     expect(imported.desertionTimer).toBe(0)
     expect(imported.forcedTitheFreezeTimer).toBe(0)
     expect(imported.currentTarget).toBeNull()
-    expect(imported.campaignsLaunchedThisDeadline).toBe(0)
     expect(imported.lastSurpriseRaidTime).toBe(-60)
     expect(imported.surpriseRaidTriggeredThisDeadline).toBe(false)
     expect(imported.disbandedMilitaryHistory).toEqual([])
@@ -466,5 +466,40 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
       state.totalPopulation = 100
     })
     expect(importSaveFromBase64(encoded).state.currentDilemmaId).toBe(taxable.id)
+  })
+})
+
+describe('Task 2: save schema v6', () => {
+  const v5 = (patch: Record<string, unknown> = {}) => {
+    const { conquestsThisAudit: _c, crownSurchargeSteps: _s, ...state } = createInitialGameState({})
+    return {
+      schemaVersion: 5,
+      timestamp: 1,
+      state: { ...state, campaignsLaunchedThisDeadline: 1, ...patch },
+      archive: createArchiveData(),
+    }
+  }
+
+  it('moves a save in EXPEDITION to the resume and keeps its target', () => {
+    const target = fixtureV5.state.currentTarget
+    expect(fixtureV5.state.phase).toBe('EXPEDITION')
+    const state = importSaveFromBase64(encode(fixtureV5)).state
+    expect(state.phase).toBe('AWAIT_RESUME')
+    expect(state.currentTarget).toEqual(target)
+    expect(state.conquestsThisAudit).toBe(0)
+    expect(state.crownSurchargeSteps).toBe(0)
+    expect('campaignsLaunchedThisDeadline' in state).toBe(false)
+  })
+
+  it('leaves another phase where it was', () => {
+    const state = importSaveFromBase64(encode(v5({ phase: 'ACTIVE_CYCLE' }))).state
+    expect(state.phase).toBe('ACTIVE_CYCLE')
+  })
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])('rejects a surcharge count of %f', (bad) => {
+    const state = { ...createInitialGameState({}), crownSurchargeSteps: bad }
+    expect(() => validateGameState(state)).toThrow('crownSurchargeSteps')
+    const count = { ...createInitialGameState({}), conquestsThisAudit: bad }
+    expect(() => validateGameState(count)).toThrow('conquestsThisAudit')
   })
 })

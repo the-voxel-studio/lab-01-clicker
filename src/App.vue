@@ -19,8 +19,8 @@ const game = useGameStore()
 useGameLoop()
 
 // Events are answered on their own screen: without this the reign would wait behind an order page.
-watch([() => game.phase, () => nav.screen], ([phase, screen], [previous]) => {
-  const next = routeForPhase(phase, previous, screen)
+watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
+  const next = routeForPhase(phase, screen)
   if (next) nav.go(next)
 })
 </script>

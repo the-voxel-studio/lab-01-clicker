@@ -110,8 +110,8 @@ describe('Task 5: the fate of a reign', () => {
   })
 
   it('stays outside the reign for the router', () => {
-    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'fate')).toBeNull()
-    expect(routeForPhase('AUDIT_ASSESSMENT', 'ACTIVE_CYCLE', 'fate')).toBeNull()
+    expect(routeForPhase('THREAT_HERALD', 'fate')).toBeNull()
+    expect(routeForPhase('AUDIT_ASSESSMENT', 'fate')).toBeNull()
   })
 
   it.each(TITLES)('renders the %s scene with its title', async (reason, title) => {

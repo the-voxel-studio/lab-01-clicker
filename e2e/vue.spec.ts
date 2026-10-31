@@ -43,7 +43,6 @@ async function playToTheEnd(page: Page) {
   // A letter that was answered stays on screen a moment while its seal breaks.
   const letter = page.locator('[data-moment-letter]:not(.letter-leave-active)')
   const answer = letter.locator('[data-moment-answer]:not([disabled])').last()
-  const leave = page.locator('[data-leave]')
   const resume = page.locator('[data-resume]')
   const fate = page.locator('[data-fate]')
   let bought = false
@@ -51,8 +50,6 @@ async function playToTheEnd(page: Page) {
   for (let turn = 0; turn < 200 && (await fate.count()) === 0; turn++) {
     if ((await letter.count()) > 0) {
       await answer.click()
-    } else if ((await leave.count()) > 0) {
-      await leave.click()
     } else if ((await resume.count()) > 0) {
       if (!bought) {
         bought = true

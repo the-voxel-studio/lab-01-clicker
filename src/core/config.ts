@@ -13,11 +13,9 @@
 
 import { BALANCE, type DeadlineQuota, DEADLINE_QUOTAS } from '@/data/balance'
 
-/** Outcome values shared by the campaign bands that roll a casualty range. */
+/** Outcome values of one campaign tier; the casualty curve is separate. */
 export interface CampaignBand {
   readonly lootMultiplier: number
-  readonly casualtyMin: number
-  readonly casualtyMax: number
   readonly unrestDelta: number
 }
 
@@ -168,7 +166,6 @@ export interface BalanceConfig {
   readonly COLLAPSE_AP_LOSS_MAX: number
   readonly COLLAPSE_UNREST: number
   readonly CAMPAIGN_BASE_LOOT_QUOTA_SECONDS: number
-  readonly CAMPAIGNS_PER_DEADLINE: number
   readonly CAMPAIGN_DEFAULT_BASE_LOOT_AP: number
   readonly LOOT_VARIANCE_MIN: number
   readonly LOOT_VARIANCE_MAX: number
@@ -199,12 +196,11 @@ export interface BalanceConfig {
     readonly clear: CampaignBand
     readonly razorThin: CampaignBand
     readonly pyrrhic: CampaignBand & { readonly minRatio: number }
-    readonly crushing: {
-      readonly lootMultiplier: number
-      readonly casualtyRate: number
-      readonly unrestDelta: number
-    }
+    readonly crushing: CampaignBand
   }
+  readonly CAMPAIGN_CASUALTY_CURVE: readonly (readonly [ratio: number, rate: number])[]
+  readonly CAMPAIGN_CASUALTY_ROLL: number
+  readonly CONQUEST_SURCHARGE_STEP: number
 }
 
 /** Complete engine configuration injected into tick, dispatch, and formulas. */

@@ -70,8 +70,8 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(clear.outcome).toBe('clear_victory')
     expect(clear.provinceWon).toBe(true)
     expect(clear.lootMultiplier).toBe(1.0)
-    expect(clear.casualtyRate).toBeGreaterThanOrEqual(0.2)
-    expect(clear.casualtyRate).toBeLessThanOrEqual(0.3)
+    expect(clear.casualtyRate).toBeGreaterThanOrEqual(0.23)
+    expect(clear.casualtyRate).toBeLessThanOrEqual(0.27)
 
     // RAZOR-THIN VICTORY (1.00 <= R <= 1.05): Army exhausted, NO PROVINCE WON!
     const razorThin = evaluateCampaignOutcome(1.03, DEFAULT_ENGINE_CONFIG, new PRNG(1))
@@ -87,14 +87,14 @@ describe('Tactical Battle & Combat Asymmetry (Gate C)', () => {
     expect(pyrrhic.outcome).toBe('pyrrhic_standoff')
     expect(pyrrhic.provinceWon).toBe(false)
     expect(pyrrhic.lootMultiplier).toBe(0)
-    expect(pyrrhic.casualtyRate).toBeGreaterThanOrEqual(0.7)
-    expect(pyrrhic.casualtyRate).toBeLessThanOrEqual(0.8)
+    expect(pyrrhic.casualtyRate).toBeGreaterThanOrEqual(0.5)
+    expect(pyrrhic.casualtyRate).toBeLessThanOrEqual(1)
 
     // Crushing Defeat (R < 0.80)
     const crushing = evaluateCampaignOutcome(0.6, DEFAULT_ENGINE_CONFIG, new PRNG(1))
     expect(crushing.outcome).toBe('crushing_defeat')
     expect(crushing.provinceWon).toBe(false)
-    expect(crushing.casualtyRate).toBe(1.0)
+    expect(crushing.casualtyRate).toBeGreaterThanOrEqual(0.98)
     expect(crushing.unrestDelta).toBe(25)
   })
 
@@ -226,11 +226,11 @@ describe('Task 4: rolled casualties and campaign details', () => {
     expect(new Set(rates).size).toBeGreaterThan(1)
   })
 
-  it('rolls the other outcome casualties inside their documented ranges', () => {
+  it('rolls the casualties around the curve at each tier', () => {
     const cases: Array<[number, number, number]> = [
-      [1.2, 0.2, 0.3],
-      [1.03, 0.45, 0.55],
-      [0.9, 0.7, 0.8],
+      [1.2, 0.23, 0.27],
+      [1.03, 0.4425, 0.4825],
+      [0.9, 0.73, 0.77],
     ]
     for (const [ratio, low, high] of cases) {
       const rates = outcomeRates(ratio)
@@ -238,7 +238,7 @@ describe('Task 4: rolled casualties and campaign details', () => {
       expect(Math.max(...rates)).toBeLessThanOrEqual(high)
       expect(new Set(rates).size).toBeGreaterThan(1)
     }
-    expect(new Set(outcomeRates(0.5))).toEqual(new Set([1]))
+    expect(Math.min(...outcomeRates(0.5))).toBeGreaterThanOrEqual(0.98)
   })
 
   it('base loot is 10 x the AP rate quota', () => {

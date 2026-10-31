@@ -42,7 +42,7 @@ function begin() {
 }
 
 function expedition(state: ReturnType<typeof begin>['state']): void {
-  state.phase = 'EXPEDITION'
+  state.phase = 'ACTIVE_CYCLE'
   state.currentTarget = { ...TARGET }
   state.units.soldier = 50
   state.totalPopulation += 50
@@ -62,16 +62,24 @@ describe('Task 5: Fortune', () => {
     expect(evaluateFeats(state)).not.toContain('imperial_barony')
   })
 
-  it('never shows a stale target during the reign', () => {
+  it('closes the war behind a letter', () => {
     const { pinia, state } = begin()
     state.currentTarget = { ...TARGET }
-    expect(fortuneView(state)).toMatchObject({ live: false, target: null })
+    state.phase = 'THREAT_HERALD'
+    expect(fortuneView(state).live).toBe(false)
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
-    expect(page.text()).toContain('The next campaign follows the audit.')
     expect(page.find('[data-attack]').exists()).toBe(false)
   })
 
-  it('shows the guess of the scouts during the expedition', () => {
+  it('opens the war during the cycle, even before a migrated save has a target', () => {
+    const { pinia, state } = begin()
+    state.currentTarget = null
+    expect(fortuneView(state)).toMatchObject({ live: true, target: null })
+    const page = mount(FortunePage, { global: { plugins: [pinia] } })
+    expect(page.find('[data-attack]').exists()).toBe(true)
+  })
+
+  it('shows the guess of the scouts', () => {
     const { state } = begin()
     expedition(state)
     expect(fortuneView(state).target).toMatchObject({
@@ -95,8 +103,9 @@ describe('Task 5: Fortune', () => {
   it('tells a revealed ambush and a false ledger', () => {
     const { state } = begin()
     expedition(state)
-    state.currentTarget!.revealedAmbush = true
-    state.currentTarget!.revealedFalseLedger = true
+    state.currentTarget!.isAmbush = true
+    state.currentTarget!.isFalseLedger = true
+    state.units.spymaster = 1
     expect(fortuneView(state).target!.warnings).toEqual([
       'Your spies smell an ambush.',
       'Your spies doubt the loot.',
@@ -153,34 +162,34 @@ describe('Task 5: Fortune', () => {
     expect(fortuneView(state).scout).toMatchObject({ blocked: 'No scouts to send', command: null })
   })
 
-  it('draws a new target after the first of two campaigns', async () => {
+  it('draws a new target after every campaign, on the same page', async () => {
     const { pinia, game, state } = begin()
     expedition(state)
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
-    expect(fortuneView(state).target!.campaignsLeft).toBe(2)
     await page.get('[data-attack]').trigger('click')
     await flushPromises()
-    expect(fortuneView(game.run!).target!.campaignsLeft).toBe(1)
+    expect(game.run!.currentTarget).not.toEqual(TARGET)
     expect(page.find('[data-outcome]').exists()).toBe(true)
+    expect(page.find('[data-attack]').exists()).toBe(true)
+    expect(page.text()).not.toContain('Leave in peace')
   })
 })
 
-describe('Task 6: expedition moment', () => {
+describe('Task 6: war during the reign', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it('routes each phase, and leaves the screens outside the reign alone', () => {
-    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'run')).toBe('fortune')
-    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'fortune')).toBeNull()
-    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'chronicle')).toBeNull()
-    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'hall')).toBeNull()
-    expect(routeForPhase('AWAIT_RESUME', 'EXPEDITION', 'fortune')).toBe('run')
-    expect(routeForPhase('ACTIVE_CYCLE', 'AWAIT_RESUME', 'crown')).toBeNull()
-    expect(routeForPhase('RUN_DEFEAT', 'ACTIVE_CYCLE', 'end')).toBeNull()
+  it('routes a letter to the run screen, and leaves the rest alone', () => {
+    expect(routeForPhase('THREAT_HERALD', 'fortune')).toBe('run')
+    expect(routeForPhase('THREAT_HERALD', 'run')).toBeNull()
+    expect(routeForPhase('THREAT_HERALD', 'hall')).toBeNull()
+    expect(routeForPhase('AWAIT_RESUME', 'fortune')).toBeNull()
+    expect(routeForPhase('ACTIVE_CYCLE', 'crown')).toBeNull()
+    expect(routeForPhase('RUN_DEFEAT', 'end')).toBeNull()
   })
 
-  it('moves from the herald to Fortune and on to the resume', async () => {
+  it('moves from the herald straight to the resume', async () => {
     const { pinia, game, nav, state } = begin()
     nav.go('run')
     const app = mount(App, { global: { plugins: [pinia] } })
@@ -190,31 +199,49 @@ describe('Task 6: expedition moment', () => {
     state.units.soldier = 50
     game.act({ type: 'SET_PAUSED', paused: false })
     await flushPromises()
-    expect(nav.screen).toBe('run')
     expect(game.act({ type: 'SELECT_THREAT_RESPONSE', response: 'defense' }).success).toBe(true)
-    await flushPromises()
-    expect(game.phase).toBe('EXPEDITION')
-    expect(nav.screen).toBe('fortune')
-    expect(app.find('[data-leave]').exists()).toBe(true)
-    await app.get('[data-leave]').trigger('click')
     await flushPromises()
     expect(game.phase).toBe('AWAIT_RESUME')
     expect(nav.screen).toBe('run')
     expect(app.text()).toContain('Resume governance')
   })
 
-  it('brings a resumed expedition back to Fortune', async () => {
+  it('keeps the page live after a save in the resume', async () => {
     const { pinia, game, nav, state } = begin()
     expedition(state)
+    state.phase = 'AWAIT_RESUME'
     game.save()
     nav.go('hall')
     const app = mount(App, { global: { plugins: [pinia] } })
     await flushPromises()
     expect(game.resume()).toBe(true)
-    nav.go('run')
+    nav.go('fortune')
     await flushPromises()
     expect(nav.screen).toBe('fortune')
     expect(app.find('[data-attack]').exists()).toBe(true)
+  })
+
+  it('sends the player to the letter that interrupts a war', async () => {
+    const { pinia, game, nav, state } = begin()
+    expedition(state)
+    nav.go('fortune')
+    mount(App, { global: { plugins: [pinia] } })
+    await flushPromises()
+    state.phase = 'SURPRISE_RAID'
+    game.act({ type: 'SET_PAUSED', paused: false })
+    await flushPromises()
+    expect(nav.screen).toBe('run')
+  })
+
+  it('keeps the clock on its value through a battle', async () => {
+    const { pinia, game, state } = begin()
+    expedition(state)
+    state.deadlineTimeSeconds = 40
+    const page = mount(FortunePage, { global: { plugins: [pinia] } })
+    await page.get('[data-attack]').trigger('click')
+    await flushPromises()
+    expect(game.phase).toBe('ACTIVE_CYCLE')
+    expect(game.run!.deadlineTimeSeconds).toBe(40)
   })
 
   it('leaves the end screen in place after a fatal attack', async () => {
@@ -231,28 +258,25 @@ describe('Task 6: expedition moment', () => {
     expect(nav.screen).toBe('fate')
   })
 
-  it('closes the order bar during the expedition, but not the menu', async () => {
+  it('leaves the order bar open during a war', () => {
     const { pinia, nav, state } = begin()
     expedition(state)
     nav.go('fortune')
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
-    expect(page.get('[data-order-bar]').attributes('inert')).toBeDefined()
-    await page.get('button[aria-label="Menu"]').trigger('click')
-    expect(nav.menuOpen).toBe(true)
+    expect(page.get('[data-order-bar]').classes()).not.toContain('opacity-60')
   })
 
-  it('tells the last campaign before the resume', async () => {
+  it('tells a campaign of the resume, and stays on the page', async () => {
     const { pinia, game, nav, state } = begin()
     expedition(state)
-    state.campaignsLaunchedThisDeadline = 1
+    state.phase = 'AWAIT_RESUME'
     nav.go('fortune')
     const app = mount(App, { global: { plugins: [pinia] } })
     await flushPromises()
     await app.get('[data-attack]').trigger('click')
     await flushPromises()
     expect(game.phase).toBe('AWAIT_RESUME')
-    expect(app.get('[data-resume-band]').text()).toMatch(
-      /Your host (took a province|came back without a province)\./,
-    )
+    expect(nav.screen).toBe('fortune')
+    expect(game.tidings).toMatch(/Your host (took a province|came back without a province)\./)
   })
 })

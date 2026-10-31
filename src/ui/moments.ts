@@ -7,7 +7,7 @@
  */
 
 import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
-import { calculateMilitaryPower, calculateNetApRate, effectiveQuota } from '@/core/engine'
+import { calculateMilitaryPower, calculateNetApRate, scopedQuota } from '@/core/engine'
 import { canAffordEffects, composeStat, extractRawEvaluationState } from '@/core/modifiers'
 import { hasRule } from '@/core/rules'
 import type { AuditOutcome, Command, GameState, RunPhase } from '@/core/types'
@@ -258,7 +258,7 @@ function threatToll(
     state.currentThreatTributeAp,
     {
       militaryPower: calculateMilitaryPower(state, config),
-      militaryQuota: effectiveQuota(state, quotaForDeadline(config, deadline)).military,
+      militaryQuota: scopedQuota(state, quotaForDeadline(config, deadline)).military,
     },
   )
 }

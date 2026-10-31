@@ -49,12 +49,12 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(state.phase).toBe('THREAT_HERALD')
     expect(state.ap).toBe(250) // Untouched
 
-    // When funds become sufficient, tribute succeeds and transitions to EXPEDITION
+    // When funds become sufficient, tribute succeeds and transitions to AWAIT_RESUME
     state.ap = 500
     const successRes = dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
     expect(successRes.success).toBe(true)
     expect(state.ap).toBe(100)
-    expect(state.phase).toBe('EXPEDITION')
+    expect(state.phase).toBe('AWAIT_RESUME')
   })
 
   // Criterion 2: Immediate defeat on Deadline 10 audit failure with 0 strikes
@@ -96,7 +96,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
   // Criterion 3: Effective reroll of currentTarget by RECON_PATROL
   it('sacrifices exactly 1 scout and rerolls currentTarget with RECON_PATROL', () => {
     const state = createInitialGameState()
-    state.phase = 'EXPEDITION'
+    state.phase = 'ACTIVE_CYCLE'
     state.units.scout = 2
     state.totalPopulation = 100
     state.currentTarget = generateCampaignTarget(state, DEFAULT_ENGINE_CONFIG, new PRNG(111))
@@ -234,11 +234,13 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(heraldedThreats[0]).toEqual({ heraldAtDeadline: 2, targetDeadline: 3 })
     expect(heraldedThreats[7]).toEqual({ heraldAtDeadline: 9, targetDeadline: 10 })
 
-    // Verify D1 skips herald and goes straight to EXPEDITION
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
+    // Verify D1 skips herald and goes straight to AWAIT_RESUME
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 1, DEFAULT_ENGINE_CONFIG)).toBe('AWAIT_RESUME')
 
     // Verify D10 skips herald
-    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe('EXPEDITION')
+    expect(getNextInterDeadlinePhase('COUNCIL_LAWS', 10, DEFAULT_ENGINE_CONFIG)).toBe(
+      'AWAIT_RESUME',
+    )
   })
 
   it('heralds the deadline 8 threat with a tribute of 4 seconds of its AP rate quota', () => {
@@ -276,7 +278,7 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
       DEFAULT_ENGINE_CONFIG,
     )
     expect(threatRes.success).toBe(true)
-    expect(state.phase).toBe('EXPEDITION')
+    expect(state.phase).toBe('AWAIT_RESUME')
   })
 
   // Criterion 8: Tick clock bounds stepDt, advances clock, and exposes consumedDt when switching to LOMBARD_OFFER
@@ -468,25 +470,6 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
     expect(state.cumulativeApThisDeadline).toBe(200)
   })
 
-  it('enforces 2 campaigns maximum per expedition phase before transitioning to AWAIT_RESUME', () => {
-    const state = createInitialGameState()
-    state.phase = 'EXPEDITION'
-    state.campaignsLaunchedThisDeadline = 0
-    state.units.soldier = 50
-
-    // First campaign
-    const res1 = dispatch(state, { type: 'LAUNCH_ATTACK' })
-    expect(res1.success).toBe(true)
-    expect(state.campaignsLaunchedThisDeadline).toBe(1)
-    expect(state.phase).toBe('EXPEDITION') // Still in expedition
-
-    // Second campaign
-    const res2 = dispatch(state, { type: 'LAUNCH_ATTACK' })
-    expect(res2.success).toBe(true)
-    expect(state.campaignsLaunchedThisDeadline).toBe(2)
-    expect(state.phase).toBe('AWAIT_RESUME') // Auto-transition to AWAIT_RESUME
-  })
-
   it('rejects RESUME_GOVERNANCE when state.deadline >= 10', () => {
     const state = createInitialGameState()
     state.phase = 'AWAIT_RESUME'
@@ -568,14 +551,12 @@ describe('Task 1.6: Military, Threats & Clock Bounding (Gate C/D)', () => {
 
   it('rejects an attack with no army', () => {
     const state = createInitialGameState()
-    state.phase = 'EXPEDITION'
+    state.phase = 'ACTIVE_CYCLE'
     state.units.soldier = 0
     state.units.man_at_arms = 0
-    const before = state.campaignsLaunchedThisDeadline
     const res = dispatch(state, { type: 'LAUNCH_ATTACK' })
     expect(res.success).toBe(false)
-    expect(state.phase).toBe('EXPEDITION')
-    expect(state.campaignsLaunchedThisDeadline).toBe(before)
+    expect(state.phase).toBe('ACTIVE_CYCLE')
   })
 
   it('standing garrisons absorbs 60% of threat power', () => {
@@ -836,7 +817,7 @@ describe('Factions and scheduled threats (GAME_RULES 7.5, 8.1)', () => {
     state.ap = 1_000_000
     dispatch(state, { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' }, DEFAULT_ENGINE_CONFIG)
     expect(state.currentThreatId).toBeNull()
-    expect(state.phase).toBe('EXPEDITION')
+    expect(state.phase).toBe('AWAIT_RESUME')
   })
 
   it('keeps the threat announced when the tribute is refused', () => {

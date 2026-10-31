@@ -5,7 +5,7 @@
  */
 
 import type { Command } from '@/core/types'
-import { calculateMilitaryPower, calculateNetApRate } from '@/core/engine'
+import { calculateNetApRate } from '@/core/engine'
 import { canAffordEffects } from '@/core/modifiers'
 import type { PRNG } from '@/core/prng'
 import { UNIT_IDS } from './realm'
@@ -16,6 +16,9 @@ import type { BotStrategy, ThreatResponse } from './strategy'
 const BUY_CHANCE = 0.3
 /** Chance per second to set a random tax rate. */
 const TAX_CHANCE = 0.1
+
+/** Chance per decision of sending the host; a refusal costs nothing. */
+const WAR_CHANCE = 0.02
 /** Chance to accept the Lombard bailout. */
 const LOMBARD_ACCEPT_CHANCE = 0.5
 /** Range of the random tax rates. */
@@ -46,6 +49,7 @@ export const randomBotStrategy: BotStrategy = {
     if (rng.next() < TAX_CHANCE) {
       commands.push({ type: 'SET_TAX_RATE', rate: rng.nextInt(TAX_RANGE[0], TAX_RANGE[1]) })
     }
+    if (rng.next() < WAR_CHANCE) commands.push({ type: 'LAUNCH_ATTACK' })
     return commands
   },
 
@@ -73,13 +77,6 @@ export const randomBotStrategy: BotStrategy = {
         ? ['defense', 'levy', 'tribute']
         : ['defense', 'levy']
     return pick(rng, answers, 'levy')
-  },
-
-  planExpedition(state, { config, rng }): Command {
-    const answers: Command[] = [{ type: 'SKIP_EXPEDITION' }]
-    if (calculateMilitaryPower(state, config) > 0) answers.push({ type: 'LAUNCH_ATTACK' })
-    if (state.units.scout > 0) answers.push({ type: 'RECON_PATROL' })
-    return pick(rng, answers, { type: 'SKIP_EXPEDITION' })
   },
 
   answerLombard(_state, { rng }): boolean {

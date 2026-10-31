@@ -1,13 +1,13 @@
 /**
- * The Fortune page: provinces held towards the Imperial Barony, and the expedition between two
- * audits. Only what the scouts report reaches the view: the true force of a target, its ambush and
+ * The Fortune page: provinces held towards the Imperial Barony, and war at any time of the reign.
+ * Only what the scouts report reaches the view: the true force of a target, its ambush and
  * its false ledger stay hidden until a spymaster reveals them.
  *
  * @module ui/fortune
  */
 
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
-import { calculateMilitaryPower } from '@/core/engine'
+import { calculateMilitaryPower, hasFieldArmy } from '@/core/engine'
 import type { Command, GameState, RunPhase } from '@/core/types'
 import { BIOMES_DATA } from '@/data/biomes'
 import { FACTIONS_DATA } from '@/data/threats'
@@ -19,7 +19,7 @@ const config = DEFAULT_ENGINE_CONFIG
 /** Provinces of the Imperial Barony feat, inline in `evaluateFeats`. */
 export const IMPERIAL_BARONY_PROVINCES = 8
 
-/** An action of the expedition and what stops it. */
+/** An action of a war and what stops it. */
 export interface FortuneAction {
   command: Command | null
   blocked: string | null
@@ -35,7 +35,6 @@ export interface TargetView {
   reach: number
   odds: string
   warnings: string[]
-  campaignsLeft: number
 }
 
 /** Everything the Fortune page shows. */
@@ -46,7 +45,6 @@ export interface FortuneView {
   target: TargetView | null
   attack: FortuneAction
   scout: FortuneAction
-  leave: Command
 }
 
 /** Public terms of a siege: friction, fortification and the margin a province needs (rolls aside). */
@@ -66,11 +64,13 @@ function oddsCaption(reach: number, min: number, max: number): string {
 
 function targetView(state: GameState): TargetView | null {
   const target = state.currentTarget
-  if (state.phase !== 'EXPEDITION' || !target) return null
+  if (!target) return null
   const reach = siegeReach(calculateMilitaryPower(state, config))
   const warnings: string[] = []
-  if (target.revealedAmbush) warnings.push('Your spies smell an ambush.')
-  if (target.revealedFalseLedger) warnings.push('Your spies doubt the loot.')
+  // A target outlives purchases, so the spymasters are read now, not when it was drawn.
+  const spies = (state.units.spymaster ?? 0) >= 1
+  if (spies && target.isAmbush) warnings.push('Your spies smell an ambush.')
+  if (spies && target.isFalseLedger) warnings.push('Your spies doubt the loot.')
   return {
     biome: BIOMES_DATA[target.biome].name,
     faction: FACTIONS_DATA[target.factionId].name,
@@ -79,41 +79,30 @@ function targetView(state: GameState): TargetView | null {
     reach: Math.floor(reach),
     odds: oddsCaption(reach, target.perceivedMin, target.perceivedMax),
     warnings,
-    campaignsLeft: config.balance.CAMPAIGNS_PER_DEADLINE - state.campaignsLaunchedThisDeadline,
   }
 }
 
-/** Reads the page: live with its target during the expedition, a tally of provinces otherwise. */
+/** Reads the page: live while the reign runs or rests, a tally of provinces otherwise. */
 export function fortuneView(state: GameState): FortuneView {
-  const force = calculateMilitaryPower(state, config)
-  const noArmy = force <= 0 ? 'You have no army' : null
+  const noArmy = hasFieldArmy(state) ? null : 'You have no army'
   const noScout = (state.units.scout ?? 0) <= 0 ? 'No scouts to send' : null
   return {
     provinces: state.provinces,
     goal: IMPERIAL_BARONY_PROVINCES,
-    live: state.phase === 'EXPEDITION',
+    live: state.phase === 'ACTIVE_CYCLE' || state.phase === 'AWAIT_RESUME',
     target: targetView(state),
     attack: { command: noArmy ? null : { type: 'LAUNCH_ATTACK' }, blocked: noArmy },
     scout: { command: noScout ? null : { type: 'RECON_PATROL' }, blocked: noScout },
-    leave: { type: 'SKIP_EXPEDITION' },
   }
 }
 
 const OUTSIDE_THE_REIGN: readonly Screen[] = ['hall', 'fate', 'end', 'chronicle', 'hall_of_feats']
 
 /**
- * The screen a phase requires, or null when the current one is right. It takes the screen as well
- * as the phase, because a resumed reign keeps its phase, and the previous phase, because leaving the
- * expedition moves the player once while a later visit to an order page must stand.
+ * The screen a phase requires, or null when the current one is right: a letter is answered on the
+ * run screen. It takes the screen as well as the phase, because a resumed reign keeps its phase.
  */
-export function routeForPhase(
-  phase: RunPhase | null,
-  previous: RunPhase | null,
-  screen: Screen,
-): Screen | null {
+export function routeForPhase(phase: RunPhase | null, screen: Screen): Screen | null {
   if (OUTSIDE_THE_REIGN.includes(screen)) return null
-  if (phase === 'EXPEDITION') return screen === 'fortune' ? null : 'fortune'
-  if (phase === 'AWAIT_RESUME')
-    return previous === 'EXPEDITION' && screen === 'fortune' ? 'run' : null
   return isMomentPhase(phase) && screen !== 'run' ? 'run' : null
 }

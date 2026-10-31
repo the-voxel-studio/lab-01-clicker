@@ -231,7 +231,7 @@ function measure(state: GameState): Metrics {
   out['threat.power'] = herald.currentThreatPower
   out['threat.tribute'] = herald.currentThreatTributeAp
 
-  const target = scenario(state, 'EXPEDITION')
+  const target = scenario(state, 'ACTIVE_CYCLE')
   generateCampaignTarget(target, config)
   out['target.margin'] = target.currentTarget?.uncertaintyMargin ?? -1
   out['target.ambush'] = target.currentTarget?.isAmbush ?? false
@@ -243,7 +243,7 @@ function measure(state: GameState): Metrics {
     ['rout', REFERENCE_POWER * 3, 'population'],
   ]
   for (const [name, power, lootType] of campaigns) {
-    const campaign = scenario(state, 'EXPEDITION')
+    const campaign = scenario(state, 'ACTIVE_CYCLE')
     campaign.currentTarget = fixedTarget(power, lootType)
     const result = dispatch(campaign, { type: 'LAUNCH_ATTACK' }, config)
     out[`campaign.${name}.events`] = (result.events ?? []).join(' ')

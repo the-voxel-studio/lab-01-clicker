@@ -138,7 +138,7 @@ describe('National Archives meta progression', () => {
       delete state[key]
     }
     const imported = importSaveFromBase64(encode({ schemaVersion: 4, timestamp: 1, state }))
-    expect(CURRENT_SCHEMA_VERSION).toBe(5)
+    expect(CURRENT_SCHEMA_VERSION).toBe(6)
     expect(imported.archive).toEqual({ points: 6, investedPerks: [], unlockedFeats: [] })
     expect(imported.state.archivePoints).toBe(0)
     expect(imported.state.peakActiveLaws).toBe(2)

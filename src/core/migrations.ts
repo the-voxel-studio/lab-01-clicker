@@ -11,7 +11,7 @@ import {
 import { createArchiveData, type ArchiveData } from './archives'
 
 /** Active master save schema version. */
-export const CURRENT_SCHEMA_VERSION = 5
+export const CURRENT_SCHEMA_VERSION = 6
 
 /** Integrity prefix for clipboard import and export strings. */
 export const SAVE_PREFIX = 'GRA-v1:'
@@ -77,7 +77,6 @@ export function migrateV1ToV2(oldData: unknown): unknown {
     forcedTitheFreezeTimer:
       typeof oldState.forcedTitheFreezeTimer === 'number' ? oldState.forcedTitheFreezeTimer : 0,
     currentTarget: null,
-    campaignsLaunchedThisDeadline: 0,
     lastSurpriseRaidTime:
       typeof oldState.lastSurpriseRaidTime === 'number' ? oldState.lastSurpriseRaidTime : -60,
     surpriseRaidTriggeredThisDeadline: false,
@@ -297,6 +296,36 @@ export function migrateV4ToV5(oldData: unknown): unknown {
 }
 
 /**
+ * Migrates a schema v5 save payload to schema v6.
+ * Moves a saved `EXPEDITION` to `AWAIT_RESUME`, drops `campaignsLaunchedThisDeadline` and starts the
+ * conquest counts at 0. A null target stays null: `LAUNCH_ATTACK` generates one.
+ *
+ * @param oldData - Raw v5 payload to migrate.
+ * @returns Migrated payload conforming to schema v6.
+ */
+export function migrateV5ToV6(oldData: unknown): unknown {
+  if (!isSerializedSavePayload(oldData)) {
+    throw new Error('Migration v5 -> v6 failed: Source data is not a valid SerializedSavePayload.')
+  }
+  const oldState: unknown = oldData.state
+  if (!isRecord(oldState)) {
+    throw new Error('Migration v5 -> v6 failed: State is not an object.')
+  }
+  const { campaignsLaunchedThisDeadline: _dropped, ...state } = oldState
+  const newPayload: unknown = {
+    ...oldData,
+    schemaVersion: 6,
+    state: {
+      ...state,
+      phase: state.phase === 'EXPEDITION' ? 'AWAIT_RESUME' : state.phase,
+      conquestsThisAudit: 0,
+      crownSurchargeSteps: 0,
+    },
+  }
+  return newPayload
+}
+
+/**
  * Ordered registry of sequential version migrations.
  * Migrations chain sequentially: v1 -> v2 -> v3 -> v4 -> v5.
  */
@@ -305,6 +334,7 @@ export const MIGRATIONS: Record<number, MigrationFunction> = {
   2: migrateV2ToV3,
   3: migrateV3ToV4,
   4: migrateV4ToV5,
+  5: migrateV5ToV6,
 }
 
 /**

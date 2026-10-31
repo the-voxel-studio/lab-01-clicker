@@ -33,10 +33,10 @@ function begin() {
   return { pinia, game, nav, state: game.run! }
 }
 
-/** The reign on the expedition of the second audit, on the Fortune page. */
-async function atExpedition(state: GameState, game: ReturnType<typeof useGameStore>) {
+/** The reign at the open resume of the second audit. */
+async function atResume(state: GameState, game: ReturnType<typeof useGameStore>) {
   state.deadline = 2
-  state.phase = 'EXPEDITION'
+  state.phase = 'AWAIT_RESUME'
   state.ap = 100000
   game.act({ type: 'SET_PAUSED', paused: false })
   await flushPromises()
@@ -45,9 +45,7 @@ async function atExpedition(state: GameState, game: ReturnType<typeof useGameSto
 async function preparing() {
   const context = begin()
   const app = mount(App, { global: { plugins: [context.pinia] } })
-  await atExpedition(context.state, context.game)
-  await app.get('[data-leave]').trigger('click')
-  await flushPromises()
+  await atResume(context.state, context.game)
   return { ...context, app }
 }
 
@@ -162,8 +160,7 @@ describe('Task 3: the open resume', () => {
   })
 
   it('moves to the run screen only on the step out of the expedition', () => {
-    expect(routeForPhase('AWAIT_RESUME', 'EXPEDITION', 'fortune')).toBe('run')
-    expect(routeForPhase('AWAIT_RESUME', 'AWAIT_RESUME', 'fortune')).toBeNull()
-    expect(routeForPhase('AWAIT_RESUME', 'EXPEDITION', 'crown')).toBeNull()
+    expect(routeForPhase('AWAIT_RESUME', 'fortune')).toBeNull()
+    expect(routeForPhase('AWAIT_RESUME', 'crown')).toBeNull()
   })
 })

@@ -199,14 +199,36 @@ export function calculateClashRatio(
 }
 
 /**
+ * Share of the soldiers a campaign costs at a clash ratio, before its roll: linear between the
+ * points of `CAMPAIGN_CASUALTY_CURVE`, flat outside them.
+ *
+ * @param ratio - Clash ratio, after rolls, ambush and false ledger.
+ * @param config - Injected engine configuration.
+ * @returns The casualty rate in [0, 1].
+ */
+export function campaignCasualtyRate(ratio: number, config: EngineConfig): number {
+  const curve = config.balance.CAMPAIGN_CASUALTY_CURVE
+  let rate = curve[0]?.[1] ?? 0
+  for (const [index, [x1, y1]] of curve.entries()) {
+    const previous = curve[index - 1]
+    if (ratio >= x1) rate = y1
+    else if (previous && ratio > previous[0]) {
+      const [x0, y0] = previous
+      return y0 + ((ratio - x0) / (x1 - x0)) * (y1 - y0)
+    }
+  }
+  return rate
+}
+
+/**
  * Evaluates the offensive campaign outcome matrix according to GAME_RULES §10.1 and §7.4.1.
  *
- * Paliers (values from `CAMPAIGN_OUTCOMES`, casualties rolled uniformly in their range):
- * - R >= 1.40: Decisive Victory (Province Won, 120% loot, 8-12% casualties, -5 unrest)
- * - 1.05 < R < 1.40: Clear Victory (Province Won, 100% loot, 20-30% casualties, 0 unrest)
- * - 1.00 <= R <= 1.05: Razor-Thin Victory (NO PROVINCE WON, 50% loot, 45-55% casualties, +5 unrest)
- * - 0.80 <= R < 1.00: Pyrrhic Standoff (Defeat, no province, no loot, 70-80% casualties, +15 unrest)
- * - R < 0.80: Crushing Defeat (Defeat, no province, no loot, 100% casualties, +25 unrest)
+ * Paliers (values from `CAMPAIGN_OUTCOMES`, casualties from `campaignCasualtyRate` plus a roll):
+ * - R >= 1.40: Decisive Victory (Province Won, 120% loot, -5 unrest)
+ * - 1.05 < R < 1.40: Clear Victory (Province Won, 100% loot, 0 unrest)
+ * - 1.00 <= R <= 1.05: Razor-Thin Victory (NO PROVINCE WON, 50% loot, +5 unrest)
+ * - 0.80 <= R < 1.00: Pyrrhic Standoff (Defeat, no province, no loot, +15 unrest)
+ * - R < 0.80: Crushing Defeat (Defeat, no province, no loot, +25 unrest)
  *
  * @param ratio - Calculated clash ratio.
  * @param config - Injected engine configuration.
@@ -227,13 +249,18 @@ export function evaluateCampaignOutcome(
   const razorThinCeiling = 1.0 + config.balance.RAZOR_THIN_VICTORY_MARGIN
 
   const table = config.balance.CAMPAIGN_OUTCOMES
+  const roll = config.balance.CAMPAIGN_CASUALTY_ROLL
+  const casualtyRate = Math.min(
+    1,
+    Math.max(0, campaignCasualtyRate(ratio, config) + prng.nextBetween(-roll, roll)),
+  )
 
   if (ratio >= table.decisive.minRatio) {
     return {
       outcome: 'decisive_victory',
       provinceWon: true,
       lootMultiplier: table.decisive.lootMultiplier,
-      casualtyRate: prng.nextBetween(table.decisive.casualtyMin, table.decisive.casualtyMax),
+      casualtyRate,
       unrestDelta: table.decisive.unrestDelta,
     }
   }
@@ -243,7 +270,7 @@ export function evaluateCampaignOutcome(
       outcome: 'clear_victory',
       provinceWon: true,
       lootMultiplier: table.clear.lootMultiplier,
-      casualtyRate: prng.nextBetween(table.clear.casualtyMin, table.clear.casualtyMax),
+      casualtyRate,
       unrestDelta: table.clear.unrestDelta,
     }
   }
@@ -254,7 +281,7 @@ export function evaluateCampaignOutcome(
       outcome: 'razor_thin_victory',
       provinceWon: false,
       lootMultiplier: table.razorThin.lootMultiplier,
-      casualtyRate: prng.nextBetween(table.razorThin.casualtyMin, table.razorThin.casualtyMax),
+      casualtyRate,
       unrestDelta: table.razorThin.unrestDelta,
     }
   }
@@ -264,7 +291,7 @@ export function evaluateCampaignOutcome(
       outcome: 'pyrrhic_standoff',
       provinceWon: false,
       lootMultiplier: table.pyrrhic.lootMultiplier,
-      casualtyRate: prng.nextBetween(table.pyrrhic.casualtyMin, table.pyrrhic.casualtyMax),
+      casualtyRate,
       unrestDelta: table.pyrrhic.unrestDelta,
     }
   }
@@ -273,7 +300,7 @@ export function evaluateCampaignOutcome(
     outcome: 'crushing_defeat',
     provinceWon: false,
     lootMultiplier: table.crushing.lootMultiplier,
-    casualtyRate: table.crushing.casualtyRate,
+    casualtyRate,
     unrestDelta: table.crushing.unrestDelta,
   }
 }
@@ -500,6 +527,8 @@ export function resolveOffensiveCampaign(
   if (outcomeData.provinceWon) {
     addProvince(state, targetBiome)
     state.capturedProvincesCount += 1
+    state.conquestsThisAudit += 1
+    if (state.conquestsThisAudit > 1) state.crownSurchargeSteps += 1
   }
 
   // Casualties applied proportionally to soldiers and men-at-arms, mitigated by Captains

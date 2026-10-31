@@ -223,7 +223,6 @@ export const BALANCE = {
 
   // Campaigns, Loot & Reconnaissance
   CAMPAIGN_BASE_LOOT_QUOTA_SECONDS: 10, // seconds of the AP rate quota: base AP spoils of a campaign
-  CAMPAIGNS_PER_DEADLINE: 2, // campaigns: launched per expedition before it ends
   CAMPAIGN_DEFAULT_BASE_LOOT_AP: 300, // AP: base spoils when a caller gives none
   LOOT_VARIANCE_MIN: 0.8, // ratio: lowest AP loot variance
   LOOT_VARIANCE_MAX: 1.2, // ratio: highest AP loot variance
@@ -250,37 +249,39 @@ export const BALANCE = {
   AMBUSH_BASE_CHANCE: 0.1, // probability: base chance a target is an ambush
   FALSE_LEDGER_CHANCE: 0.15, // probability: chance a target carries a false ledger
 
-  // Campaign outcome table by clash ratio (casualty ranges are rolled uniformly)
+  // Campaign outcome table by clash ratio; casualties follow CAMPAIGN_CASUALTY_CURVE
+  // Soldiers lost by clash ratio: points of a linear curve, flat outside them
+  CAMPAIGN_CASUALTY_CURVE: [
+    [0.8, 1],
+    [0.9, 0.75],
+    [1.0, 0.5],
+    [1.2, 0.25],
+    [1.4, 0.1],
+  ],
+  CAMPAIGN_CASUALTY_ROLL: 0.02, // ratio: uniform roll around the curve
+  CONQUEST_SURCHARGE_STEP: 0.05, // ratio: added to all quotas per conquest beyond the free one
+
   CAMPAIGN_OUTCOMES: {
     decisive: {
       minRatio: 1.4, // ratio: clash ratio from which the victory is decisive
       lootMultiplier: 1.2, // ratio: share of the base loot
-      casualtyMin: 0.08, // ratio: lowest military casualty rate
-      casualtyMax: 0.12, // ratio: highest military casualty rate
       unrestDelta: -5, // Unrest points
     },
     clear: {
       lootMultiplier: 1.0, // ratio
-      casualtyMin: 0.2, // ratio
-      casualtyMax: 0.3, // ratio
       unrestDelta: 0, // Unrest points
     },
     razorThin: {
       lootMultiplier: 0.5, // ratio
-      casualtyMin: 0.45, // ratio
-      casualtyMax: 0.55, // ratio
       unrestDelta: 5, // Unrest points
     },
     pyrrhic: {
       minRatio: 0.8, // ratio: clash ratio from which a defeat is only a standoff
       lootMultiplier: 0, // ratio
-      casualtyMin: 0.7, // ratio
-      casualtyMax: 0.8, // ratio
       unrestDelta: 15, // Unrest points
     },
     crushing: {
       lootMultiplier: 0, // ratio
-      casualtyRate: 1.0, // ratio: fixed, the whole army dies
       unrestDelta: 25, // Unrest points
     },
   },

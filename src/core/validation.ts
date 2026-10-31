@@ -345,7 +345,12 @@ export function validateGameState(
     return fail('totalPopulation', 'must equal freeSerfs plus the sum of units')
   }
 
-  for (const field of ['peakActiveLaws', 'peakProvinces']) {
+  for (const field of [
+    'peakActiveLaws',
+    'peakProvinces',
+    'conquestsThisAudit',
+    'crownSurchargeSteps',
+  ]) {
     if (!isCount(value[field])) {
       return fail(field, 'expected a finite integer >= 0')
     }

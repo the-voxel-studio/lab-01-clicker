@@ -44,7 +44,8 @@ import {
   calculateMaxPopulation,
   calculateNetPaperwork,
   calculateMilitaryPower,
-  effectiveQuota,
+  hasFieldArmy,
+  scopedQuota,
   calculateNetApRate,
   openDeferredDeadlineAudit,
 } from './engine'
@@ -659,13 +660,13 @@ function forecastThreatTrait(
   return def
     ? FACTIONS_DATA[def.factionId].applyReactiveTrait(state, basePower, baseTribute, {
         militaryPower: calculateMilitaryPower(state, config),
-        militaryQuota: effectiveQuota(state, quota).military,
+        militaryQuota: scopedQuota(state, quota).military,
       })
     : neutralTrait(basePower, baseTribute)
 }
 
 /**
- * Transitions to the next inter-deadline phase, populating threat and expedition targets when entering them.
+ * Transitions to the next inter-deadline phase, populating the threat when entering it.
  */
 function transitionToNextInterDeadlinePhase(
   state: GameState,
@@ -716,9 +717,6 @@ function transitionToNextInterDeadlinePhase(
     state.currentThreatId = state.deadline + 1
     state.currentThreatPower = forecast.power
     state.currentThreatTributeAp = forecast.tribute
-  } else if (nextPhase === 'EXPEDITION') {
-    state.campaignsLaunchedThisDeadline = 0
-    generateCampaignTarget(state, config)
   }
 }
 
@@ -743,10 +741,10 @@ function handleResumeGovernance(
   state.deadlineTimeSeconds = 0
   state.cumulativeApThisDeadline = 0
   state.interimWarningShown = false
-  state.campaignsLaunchedThisDeadline = 0
   state.surpriseRaidTriggeredThisDeadline = false
   state.interimWarningOnTrack = null
   state.phase = 'ACTIVE_CYCLE'
+  generateCampaignTarget(state, config)
 
   return {
     success: true,
@@ -960,7 +958,7 @@ export function dispatch(
 
     case 'LAUNCH_ATTACK': {
       const playerPower = calculateMilitaryPower(state, config)
-      if (playerPower <= 0) {
+      if (playerPower <= 0 || !hasFieldArmy(state)) {
         return { success: false, error: 'Cannot launch an attack without an army.' }
       }
       const target = state.currentTarget ?? generateCampaignTarget(state, config)
@@ -989,14 +987,7 @@ export function dispatch(
         target.biome,
       )
 
-      state.campaignsLaunchedThisDeadline += 1
-      if (state.campaignsLaunchedThisDeadline < config.balance.CAMPAIGNS_PER_DEADLINE) {
-        generateCampaignTarget(state, config)
-      } else {
-        if (!state.isGameOver) {
-          state.phase = getNextInterDeadlinePhase(state.phase, state.deadline, config)
-        }
-      }
+      if (!state.isGameOver) generateCampaignTarget(state, config)
 
       return {
         success: true,
@@ -1010,13 +1001,6 @@ export function dispatch(
         return { success: false, error: 'No active scouts available for recon patrol.' }
       }
       return { success: true, events: ['Recon patrol dispatched. 1 Scout died in action.'] }
-    }
-
-    case 'SKIP_EXPEDITION': {
-      if (!state.isGameOver) {
-        state.phase = getNextInterDeadlinePhase(state.phase, state.deadline, config)
-      }
-      return { success: true }
     }
 
     case 'RESOLVE_RAID_DEFENSE': {

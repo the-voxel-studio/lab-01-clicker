@@ -7,7 +7,7 @@ import { fortuneView } from '@/ui/fortune'
 import OrderFrame from './OrderFrame.vue'
 import TargetCard from './TargetCard.vue'
 
-/** Fortune: the tally of provinces during the reign, the live expedition between two audits. */
+/** Fortune: the tally of provinces and war, at any time of the reign outside a letter. */
 const ATTACK_HOLD_MS = 900
 
 const game = useGameStore()
@@ -47,7 +47,6 @@ function attempt(command: Command): void {
   <OrderFrame
     title="Fortune"
     intro="Every conquest is a gamble. Scouts narrow the odds, and some of them do not come back."
-    :closed="view?.live ?? false"
   >
     <template #aside>
       <GameIcon
@@ -113,18 +112,7 @@ function attempt(command: Command): void {
             </span>
           </button>
         </div>
-        <button
-          type="button"
-          data-leave
-          class="mt-3 min-h-6 font-body text-sm italic text-rubric underline"
-          @click="attempt(view!.leave)"
-        >
-          Leave in peace
-        </button>
       </template>
-      <p v-else class="mt-3 font-body text-[15px] italic text-ink-faded">
-        The next campaign follows the audit.
-      </p>
     </template>
   </OrderFrame>
 </template>

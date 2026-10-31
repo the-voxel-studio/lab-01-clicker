@@ -109,7 +109,6 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
           },
         },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
-        { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 100.0, command: { type: 'RESUME_GOVERNANCE' } },
 
         // D2 Governance
@@ -128,7 +127,6 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
         },
         { timeSeconds: 200.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 200.0, command: { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' } },
-        { timeSeconds: 200.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 200.0, command: { type: 'RESUME_GOVERNANCE' } },
 
         // D3 Governance
@@ -193,7 +191,6 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
           },
         },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
-        { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 100.0, command: { type: 'RESUME_GOVERNANCE' } },
         { timeSeconds: 120.0, command: { type: 'BUY_UNIT', unitId: 'scribe', count: 1 } },
       ],
@@ -297,7 +294,6 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
           command: { type: 'RESOLVE_DILEMMA', dilemmaId: D1_DILEMMA, choiceIndex: 1 },
         },
         { timeSeconds: 100.0, command: { type: 'REJECT_LAWS' } },
-        { timeSeconds: 100.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 100.0, command: { type: 'RESUME_GOVERNANCE' } },
 
         // Council after deadline 2 (t = 200)
@@ -308,7 +304,6 @@ describe('Deterministic Replay & Step-Size Invariance (Gate B)', () => {
         },
         { timeSeconds: 200.0, command: { type: 'REJECT_LAWS' } },
         { timeSeconds: 200.0, command: { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' } },
-        { timeSeconds: 200.0, command: { type: 'SKIP_EXPEDITION' } },
         { timeSeconds: 200.0, command: { type: 'RESUME_GOVERNANCE' } },
       ],
     }

@@ -496,7 +496,7 @@ $$\text{DefenderEffectivePower} = \big(\text{DefenderForce} \times (1 + \text{Fo
 $$\text{ClashRatio} = \frac{\text{AttackerEffectivePower}}{\text{DefenderEffectivePower}}$$
 
 ### 10.1 Offensive Campaigns (Player is the Attacker)
-- Initiated voluntarily by the player between deadlines (up to 2 campaigns per interval).
+- Initiated voluntarily by the player at any time of a reign outside a letter, with no count limit and no AP cost; the clock keeps running. One conquered province per audit is free; each further one raises all three quotas for the rest of the reign (`CONQUEST_SURCHARGE_STEP`, see GAME_RULES 7.4.1).
 - Player commits troops and incurs the **Attacker's Siege Friction (-10%)**, while the enemy enjoys defensive fortifications.
 - **Estimated Loot Variance & Diverse Loot Types:**
   - Previewed plunder has an estimation variance of approximately **$\pm 20\%$**.
@@ -506,11 +506,12 @@ $$\text{ClashRatio} = \frac{\text{AttackerEffectivePower}}{\text{DefenderEffecti
     - *Mercenary Garrison Capitulation:* Grants **Trained Soldiers** (+5 to +15 Soldiers) liberated into service up to military order cap headroom ($\text{OrderCap} - \text{CurrentMilitary}$). Any surplus beyond the headroom joins the Free Serfs pool (and `totalPopulation`), strictly preserving the §4.1 demographic balance equation.
     - *Mixed War Spoils:* A balanced blend (e.g., 50% AP, 30% Population, 20% Soldiers).
 - **Offensive Outcome Matrix ($R = \frac{\text{PlayerAttackingPower}}{\text{EnemyDefendingPower}}$):**
-  - **Decisive Victory ($R \ge 1.40$):** Province Captured! Loot $120\%$, light casualties (8-12%), -5 Unrest.
-  - **Clear Victory ($1.05 < R < 1.40$):** Province Captured! Full loot $100\%$, moderate casualties (20-30%), 0 Unrest.
-  - **Razor-Thin Victory ($1.00 \le R \le 1.05$, within 5% of defeat):** **NO PROVINCE CAPTURED!** The army barely survived the assault; too bloodied and exhausted to occupy territory. Receives 50% loot, heavy casualties (45-55%), +5 Unrest.
-  - **Pyrrhic Standoff ($0.80 \le R < 1.00$):** Defeat. No province, no loot, 70-80% casualties, +15 Unrest.
-  - **Crushing Defeat ($R < 0.80$):** Defeat. No province, **100% of committed soldiers killed**, +25 Unrest.
+  - **Decisive Victory ($R \ge 1.40$):** Province Captured! Loot $120\%$, -5 Unrest.
+  - **Clear Victory ($1.05 < R < 1.40$):** Province Captured! Full loot $100\%$, 0 Unrest.
+  - **Razor-Thin Victory ($1.00 \le R \le 1.05$, within 5% of defeat):** **NO PROVINCE CAPTURED!** The army barely survived the assault; too bloodied and exhausted to occupy territory. Receives 50% loot, +5 Unrest.
+  - **Pyrrhic Standoff ($0.80 \le R < 1.00$):** Defeat. No province, no loot, +15 Unrest.
+  - **Crushing Defeat ($R < 0.80$):** Defeat. No province, +25 Unrest.
+- **Soldier Casualties:** a continuous curve of the ratio: 100% at 0.8 or less, 75% at 0.9, 50% at 1.0, 25% at 1.2, 10% at 1.4 or more, then a roll of ±0.02, before Captains.
 
 ### 10.2 Defensive Battles (Surprise Raids & Threats, Player is Defender)
 - The player is attacked in their realm: Gains the **Defender's Fortification Bonus (+20%)** plus any passive **Border Stronghold Defense (+12 flat)** and **Man-at-Arms garrison bonus (+0.5 flat per Man-at-Arms)**.

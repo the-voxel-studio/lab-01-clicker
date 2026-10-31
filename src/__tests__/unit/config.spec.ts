@@ -18,6 +18,7 @@ import {
   evaluateDeadlineAudit,
   isFastForwardUnlocked,
   tick,
+  effectiveQuota,
 } from '@/core/engine'
 import { dispatch } from '@/core/commands'
 import { createInitialGameState, cloneGameState } from '@/core/state'
@@ -264,8 +265,11 @@ function scaleAt(node: unknown, parts: readonly string[]): unknown {
     return node === 0 ? KEY_SCALE - 1 : node * KEY_SCALE
   }
   if (typeof node !== 'object' || node === null) throw new Error('Unknown balance path.')
-  const record = Object.fromEntries(Object.entries(node))
   const [head, ...rest] = parts
+  if (Array.isArray(node)) {
+    return node.map((item, index) => (String(index) === head ? scaleAt(item, rest) : item))
+  }
+  const record = Object.fromEntries(Object.entries(node))
   if (head === undefined || !(head in record)) throw new Error(`Unknown balance key ${head}.`)
   record[head] = scaleAt(record[head], rest)
   return record
@@ -526,7 +530,7 @@ function launched(
     v,
     { soldier: o.army ?? 400 },
     {
-      phase: 'EXPEDITION',
+      phase: 'ACTIVE_CYCLE',
       deadline: 3,
       ap: 100,
       unrest: 30,
@@ -557,6 +561,11 @@ function lootOf(
   return [1, 2, 3]
     .map((seed) => JSON.stringify(resolveCampaignLoot(type, 500, 20, new PRNG(seed), state, c)))
     .join('|')
+}
+
+function surchargedAudit(c: EngineConfig): string {
+  const state = realm(1, {}, { crownSurchargeSteps: 2 })
+  return JSON.stringify(effectiveQuota(state, quotaForDeadline(c, 3), [], c))
 }
 
 function outcomeAt(c: EngineConfig, ratio: number): string {
@@ -960,9 +969,6 @@ const ROWS: readonly Row[] = [
   row('UNDEFENDED_CLASH_RATIO', (c, v) => attacked(c, v, { enemy: 0 })),
   row('CAMPAIGN_DEFAULT_BASE_LOOT_AP', (c, v) => attacked(c, v, { power: 300 })),
   row('CAMPAIGN_BASE_LOOT_QUOTA_SECONDS', (c, v) => launched(c, v)),
-  row('CAMPAIGNS_PER_DEADLINE', (c, v) =>
-    launched(c, v, { patch: { campaignsLaunchedThisDeadline: 1 } }),
-  ),
   row('FALSE_LEDGER_LOOT_MIN', (c, v) => launched(c, v, { target: { isFalseLedger: true } })),
   row('FALSE_LEDGER_LOOT_MAX', (c, v) => launched(c, v, { target: { isFalseLedger: true } })),
   row(
@@ -983,26 +989,26 @@ const ROWS: readonly Row[] = [
   row('LOOT_MIXED_POPULATION_MAX', (c) => lootOf(c, 'mixed')),
   row('LOOT_MIXED_SOLDIERS_MIN', (c) => lootOf(c, 'mixed')),
   row('LOOT_MIXED_SOLDIERS_MAX', (c) => lootOf(c, 'mixed')),
+  row('CAMPAIGN_CASUALTY_ROLL', (c) => outcomeAt(c, 1.2)),
+  row('CONQUEST_SURCHARGE_STEP', (c) => surchargedAudit(c)),
+  ...[0, 1, 2, 3, 4].flatMap((point) =>
+    [0, 1].map((field) =>
+      row(`CAMPAIGN_CASUALTY_CURVE.${point}.${field}`, (c) =>
+        JSON.stringify([0.7, 0.85, 0.95, 1.1, 1.3, 1.5].map((ratio) => outcomeAt(c, ratio))),
+      ),
+    ),
+  ),
   row('CAMPAIGN_OUTCOMES.decisive.minRatio', (c) => outcomeAt(c, 1.45)),
   row('CAMPAIGN_OUTCOMES.decisive.lootMultiplier', (c) => outcomeAt(c, 1.5)),
-  row('CAMPAIGN_OUTCOMES.decisive.casualtyMin', (c) => outcomeAt(c, 1.5)),
-  row('CAMPAIGN_OUTCOMES.decisive.casualtyMax', (c) => outcomeAt(c, 1.5)),
   row('CAMPAIGN_OUTCOMES.decisive.unrestDelta', (c) => outcomeAt(c, 1.5)),
   row('CAMPAIGN_OUTCOMES.clear.lootMultiplier', (c) => outcomeAt(c, 1.2)),
-  row('CAMPAIGN_OUTCOMES.clear.casualtyMin', (c) => outcomeAt(c, 1.2)),
-  row('CAMPAIGN_OUTCOMES.clear.casualtyMax', (c) => outcomeAt(c, 1.2)),
   row('CAMPAIGN_OUTCOMES.clear.unrestDelta', (c) => outcomeAt(c, 1.2)),
   row('CAMPAIGN_OUTCOMES.razorThin.lootMultiplier', (c) => outcomeAt(c, 1.02)),
-  row('CAMPAIGN_OUTCOMES.razorThin.casualtyMin', (c) => outcomeAt(c, 1.02)),
-  row('CAMPAIGN_OUTCOMES.razorThin.casualtyMax', (c) => outcomeAt(c, 1.02)),
   row('CAMPAIGN_OUTCOMES.razorThin.unrestDelta', (c) => outcomeAt(c, 1.02)),
   row('CAMPAIGN_OUTCOMES.pyrrhic.minRatio', (c) => outcomeAt(c, 0.85)),
   row('CAMPAIGN_OUTCOMES.pyrrhic.lootMultiplier', (c) => outcomeAt(c, 0.85)),
-  row('CAMPAIGN_OUTCOMES.pyrrhic.casualtyMin', (c) => outcomeAt(c, 0.85)),
-  row('CAMPAIGN_OUTCOMES.pyrrhic.casualtyMax', (c) => outcomeAt(c, 0.85)),
   row('CAMPAIGN_OUTCOMES.pyrrhic.unrestDelta', (c) => outcomeAt(c, 0.85)),
   row('CAMPAIGN_OUTCOMES.crushing.lootMultiplier', (c) => outcomeAt(c, 0.5)),
-  row('CAMPAIGN_OUTCOMES.crushing.casualtyRate', (c) => outcomeAt(c, 0.5)),
   row('CAMPAIGN_OUTCOMES.crushing.unrestDelta', (c) => outcomeAt(c, 0.5)),
   // Targets and reconnaissance
   row('TARGET_MIN_POWER', (c, v) => targeted(c, v)),

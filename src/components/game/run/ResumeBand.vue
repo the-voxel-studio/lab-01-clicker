@@ -8,7 +8,7 @@ const game = useGameStore()
 const chronicle = useChronicleStore()
 const error = ref<string | null>(null)
 
-/** A final campaign leaves no page to tell its outcome, so its line is told here. */
+/** The last deed of the reign, told beside the button that takes it up again. */
 const lastDeed = computed(() => chronicle.entries[0]?.text ?? null)
 
 function resume(): void {

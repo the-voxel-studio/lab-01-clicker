@@ -175,8 +175,8 @@ describe('Task 2: the letter replaces the stub', () => {
       await flushPromises()
     }
     expect(seen).toEqual(['AUDIT_ASSESSMENT', 'COUNCIL_DILEMMA', 'COUNCIL_LAWS', 'THREAT_HERALD'])
-    expect(game.phase).toBe('EXPEDITION')
-    expect(nav.screen).toBe('fortune')
+    expect(game.phase).toBe('AWAIT_RESUME')
+    expect(nav.screen).toBe('run')
   })
 
   it.each(KINDS)('lands on the same %s letter after a save and a resume', async (kind) => {
@@ -262,9 +262,10 @@ describe('Task 2: the letter replaces the stub', () => {
     refresh(game)
     const app = mount(App, { global: { plugins: [pinia], stubs: { transition: false } } })
     await flushPromises()
+    nav.go('run')
     game.act({ type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
     await flushPromises()
-    expect(nav.screen).toBe('fortune')
+    expect(game.phase).toBe('AWAIT_RESUME')
     expect(app.find('[data-moment-letter].letter-leave-active').exists()).toBe(true)
   })
 
@@ -278,11 +279,10 @@ describe('Task 2: the letter replaces the stub', () => {
     expect(app.find('[data-moment-letter]').exists()).toBe(false)
   })
 
-  it('routes a moment to the run screen and an expedition to Fortune', () => {
-    expect(routeForPhase('AUDIT_ASSESSMENT', 'ACTIVE_CYCLE', 'crown')).toBe('run')
-    expect(routeForPhase('COUNCIL_LAWS', 'COUNCIL_DILEMMA', 'run')).toBeNull()
-    expect(routeForPhase('EXPEDITION', 'THREAT_HERALD', 'run')).toBe('fortune')
-    expect(routeForPhase('LOMBARD_OFFER', 'ACTIVE_CYCLE', 'hall')).toBeNull()
+  it('routes a moment to the run screen', () => {
+    expect(routeForPhase('AUDIT_ASSESSMENT', 'crown')).toBe('run')
+    expect(routeForPhase('COUNCIL_LAWS', 'run')).toBeNull()
+    expect(routeForPhase('LOMBARD_OFFER', 'hall')).toBeNull()
   })
 })
 

@@ -113,7 +113,7 @@ describe('Task 1: honest bots', () => {
       strategy.resolveDilemma(state, ctx, dilemma)
       strategy.chooseLaw(state, ctx)
       strategy.answerThreat(state, ctx)
-      strategy.planExpedition(state, ctx)
+      strategy.planResume?.(state, ctx)
       strategy.answerLombard(state, ctx)
       expect({ bot: strategy.name, state }).toStrictEqual({ bot: strategy.name, state: before })
     }

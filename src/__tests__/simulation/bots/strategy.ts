@@ -34,8 +34,8 @@ export interface BotStrategy {
   chooseLaw(state: Readonly<GameState>, ctx: BotContext): Command
   /** Response to the announced threat. */
   answerThreat(state: Readonly<GameState>, ctx: BotContext): ThreatResponse
-  /** `LAUNCH_ATTACK`, `RECON_PATROL` or `SKIP_EXPEDITION`; asked until the expedition ends. */
-  planExpedition(state: Readonly<GameState>, ctx: BotContext): Command
   /** Whether to accept the Lombard bailout. */
+  /** War or recon during the open resume, until it answers null and governance resumes. */
+  planResume?(state: Readonly<GameState>, ctx: BotContext): Command | null
   answerLombard(state: Readonly<GameState>, ctx: BotContext): boolean
 }
