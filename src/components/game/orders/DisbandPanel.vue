@@ -49,9 +49,7 @@ function disband(unitId: UnitId): void {
         @click="disband(row.unitId)"
       >
         <span>{{ row.name }}, {{ formatCompact(row.owned) }} left</span>
-        <span class="italic text-ink-faded"
-          >{{ formatCompact(row.severance, 1, 'up') }} AP each</span
-        >
+        <span class="italic text-ink-faded">{{ formatCompact(row.severance, 1) }} AP each</span>
       </button>
     </div>
   </div>

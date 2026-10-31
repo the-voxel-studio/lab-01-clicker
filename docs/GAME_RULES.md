@@ -115,7 +115,7 @@ The realm is divided into **three Orders**, each with **four distinct roles** sp
 
 ### 4.1 Tier II Access Rules (Royal Charters)
 Tier II units cannot be purchased at the start. Unlocking Tier II roles for an Order requires meeting **three cumulative prerequisites**:
-1. **Institutional Maturity:** Reached at least **Deadline 4**.
+1. **Institutional Maturity:** Reached at least **Deadline 3**.
 2. **Order Mastery:** Maintaining at least **12 active Tier I units** within that Order.
 3. **Royal Patent Purchase (One-time AP fee):**
    - *The People:* **Charter of Urban Franchises** (500 AP).
@@ -252,7 +252,7 @@ Battles are **instant tactical wagers** governed by reconnaissance, risk allocat
 
 ### 7.1 Infinite Scout Reroll (Reconnaissance Patrols) & Target State
 - During a reign, `GameState` holds a generated prospective campaign target (`currentTarget`: real enemy power, perceived power band, biome, loot type, and hidden `isFalseLedger` / `isAmbush` flags). A target is generated when the reign starts, when governance resumes and after each campaign. `LAUNCH_ATTACK` and `RECON_PATROL` are allowed in `ACTIVE_CYCLE` and `AWAIT_RESUME`, with no count limit, while the clock keeps running; letters block them.
-- **Target Generation:** A target's power is 0.85 to 1.25 times the Military Quota of the current deadline (at least 15). Its biome is one of the four non-Heartland biomes, and its faction (§7.5) sets the loot type: Outlaws and Zealots yield Population, Rebel Barons Soldiers, Mercenaries AP, the other factions a random type among AP, Population, Soldiers and Mixed.
+- **Target Generation:** A target's power is 0.7 to 1.1 times the Military Quota of the current deadline (at least 15). Its biome is one of the four non-Heartland biomes, and its faction (§7.5) sets the loot type: Outlaws and Zealots yield Population, Rebel Barons Soldiers, Mercenaries AP, the other factions a random type among AP, Population, Soldiers and Mixed.
 - **The Reroll Mechanism (`RECON_PATROL`):** If the player dislikes the target (e.g. enemy too strong, unwanted biome, suspected false loot), they may press **"Send Recon Patrol"** to generate a fresh target using the persisted `prngState`.
 - **THE PATROL MORTALITY COST:**
   - The player may reroll **infinitely as long as they possess active Scouts**.
@@ -376,7 +376,7 @@ The defensive salvage (§7.4.2) reads the same tribute rule, at the raid's own d
 | Threat Deadline | Threat Title | Faction | Base Power | 3 Responses Available |
 | :---: | :--- | :--- | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaws | 22 | Combat / 660 AP Tribute / Levy (+30 Unrest) |
-| **4** | *The Rebellious Marches Baron* | Rebel Barons | 24 | Combat / 1,140 AP Tribute / Levy (+30 Unrest) |
+| **4** | *The Rebellious Marches Baron* | Rebel Barons | 43 | Combat / 1,400 AP Tribute / Levy (+30 Unrest) |
 | **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 83 | Combat / 2,980 AP Tribute / Levy (+30 Unrest) |
 | **6** | *The Renegade Free Companies* | Free Company Mercenaries | 158 | Combat / 5,500 AP Tribute / Levy (+30 Unrest) |
 | **7** | *The Holy League Crusade* | Holy League Zealots | 298 | Combat / 10,140 AP Tribute / Levy (+30 Unrest) |

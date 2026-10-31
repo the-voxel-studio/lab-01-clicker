@@ -87,7 +87,7 @@ function act(command: Command): void {
       >
         <span class="font-caps text-[18px] leading-5">{{ colonise.blocked ?? 'Colonise' }}</span>
         <span class="font-body text-base italic leading-[22px]">
-          {{ formatCompact(colonise.cost, 0, 'up') }} AP
+          {{ formatCompact(colonise.cost) }} AP
         </span>
       </button>
     </section>

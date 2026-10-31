@@ -11,7 +11,7 @@ import {
 import { createArchiveData, type ArchiveData } from './archives'
 
 /** Active master save schema version. */
-export const CURRENT_SCHEMA_VERSION = 6
+export const CURRENT_SCHEMA_VERSION = 7
 
 /** Integrity prefix for clipboard import and export strings. */
 export const SAVE_PREFIX = 'GRA-v1:'
@@ -326,6 +326,28 @@ export function migrateV5ToV6(oldData: unknown): unknown {
 }
 
 /**
+ * Migrates a schema v6 save payload to schema v7: the time played starts at 0.
+ *
+ * @param oldData - Raw v6 payload to migrate.
+ * @returns Migrated payload conforming to schema v7.
+ */
+export function migrateV6ToV7(oldData: unknown): unknown {
+  if (!isSerializedSavePayload(oldData)) {
+    throw new Error('Migration v6 -> v7 failed: Source data is not a valid SerializedSavePayload.')
+  }
+  const oldState: unknown = oldData.state
+  if (!isRecord(oldState)) {
+    throw new Error('Migration v6 -> v7 failed: State is not an object.')
+  }
+  const newPayload: unknown = {
+    ...oldData,
+    schemaVersion: 7,
+    state: { ...oldState, playedSeconds: 0 },
+  }
+  return newPayload
+}
+
+/**
  * Ordered registry of sequential version migrations.
  * Migrations chain sequentially: v1 -> v2 -> v3 -> v4 -> v5.
  */
@@ -335,6 +357,7 @@ export const MIGRATIONS: Record<number, MigrationFunction> = {
   3: migrateV3ToV4,
   4: migrateV4ToV5,
   5: migrateV5ToV6,
+  6: migrateV6ToV7,
 }
 
 /**

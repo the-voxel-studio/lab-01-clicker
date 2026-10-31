@@ -385,6 +385,8 @@ export interface GameState {
   currentThreatTributeAp: number
   /** Currently scouted target province, generated at the coronation and after each campaign. */
   currentTarget: CampaignTarget | null
+  /** Real seconds spent on the reign, pauses and letters included; the interface counts them. */
+  playedSeconds: number
   /** Provinces conquered towards the audit ahead; the first is free. */
   conquestsThisAudit: number
   /** Conquests beyond the free one, ever; each raises all quotas by `CONQUEST_SURCHARGE_STEP`. */

@@ -28,9 +28,9 @@ function outcomeOf(state: GameState): FateView['outcome'] {
   return state.defeatReason ?? 'quota_failure'
 }
 
-/** Time since the coronation, as the foot of a fate writes it. */
+/** Real time spent on the reign, as the foot of a fate writes it. */
 function reignLength(state: GameState): string {
-  const seconds = Math.floor(state.totalElapsedSeconds)
+  const seconds = Math.floor(state.playedSeconds)
   return `${Math.floor(seconds / 60)} min ${seconds % 60} s`
 }
 
@@ -39,7 +39,7 @@ function firstShortfall(state: GameState): string | null {
   const outcome = state.lastAuditOutcome
   if (!outcome) return null
   const short = (target: number, held: number): string =>
-    formatCompact(Math.max(1, Math.ceil(target - held)), 0, 'up')
+    formatCompact(Math.max(1, Math.ceil(target - held)))
   const { required } = outcome
   if (!outcome.apMet) {
     return required ? `${short(required.apRate, outcome.grossApRate)} AP/s` : 'your AP'

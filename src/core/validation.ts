@@ -360,6 +360,9 @@ export function validateGameState(
   }
   // Run points may be negative: a dilemma can spend more than the run earned so far.
   checkFiniteNumber(value, 'archivePoints')
+  if (checkFiniteNumber(value, 'playedSeconds') < 0) {
+    return fail('playedSeconds', 'expected a number >= 0')
+  }
 
   const remainder = checkFiniteNumber(value, 'tickRemainderSeconds')
   const step = config.balance.FIXED_STEP_SECONDS

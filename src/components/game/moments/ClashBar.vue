@@ -24,7 +24,7 @@ const theirs = computed(() => percent(props.clash.theirs))
     </div>
     <p class="mt-1.5 flex justify-between font-body text-base italic leading-[22px]">
       <span class="text-verdigris">your force, {{ formatCompact(clash.yours) }}</span>
-      <span class="text-rubric">their force, {{ formatCompact(clash.theirs, 0, 'up') }}</span>
+      <span class="text-rubric">their force, {{ formatCompact(clash.theirs) }}</span>
     </p>
   </div>
 </template>

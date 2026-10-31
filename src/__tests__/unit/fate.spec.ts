@@ -137,6 +137,20 @@ describe('Task 5: the fate of a reign', () => {
     expect(ledger).not.toMatch(/\d of \d/)
   })
 
+  it('counts the real time of a reign, pauses and letters included', () => {
+    const { game, state } = begin()
+    state.phase = 'THREAT_HERALD'
+    game.advance(0.25)
+    game.act({ type: 'SET_PAUSED', paused: true })
+    game.advance(0.25)
+    expect(state.playedSeconds).toBeCloseTo(0.5)
+    state.playedSeconds = 125
+    state.isGameOver = true
+    state.isVictory = true
+    state.phase = 'RUN_VICTORY'
+    expect(fateView(state).foot).toBe('reigned 2 min 5 s')
+  })
+
   it('renders the victory at dawn', async () => {
     const { pinia, game } = begin()
     const app = mount(App, { global: { plugins: [pinia] } })

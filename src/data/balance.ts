@@ -104,7 +104,7 @@ export const BALANCE = {
     admin: 600,
     military: 700,
   },
-  PATENT_MIN_DEADLINE: 4,
+  PATENT_MIN_DEADLINE: 3,
   PATENT_MIN_TIER_I_UNITS: 12,
 
   // Unrest Scale Thresholds
@@ -240,8 +240,8 @@ export const BALANCE = {
   FALSE_LEDGER_LOOT_MIN: 0.2, // ratio: lowest loot kept from a false ledger
   FALSE_LEDGER_LOOT_MAX: 0.4, // ratio: highest loot kept from a false ledger
   TARGET_MIN_POWER: 15, // power: floor of a campaign target
-  TARGET_POWER_ROLL_MIN: 0.85, // ratio of the military quota: lowest target power
-  TARGET_POWER_ROLL_MAX: 1.25, // ratio of the military quota: highest target power
+  TARGET_POWER_ROLL_MIN: 0.7, // ratio of the military quota: lowest target power
+  TARGET_POWER_ROLL_MAX: 1.1, // ratio of the military quota: highest target power
   SCOUT_MARGIN_PER_SCOUT: 0.12, // ratio: uncertainty margin removed per Scout
   SCOUT_MARGIN_PER_SPYMASTER: 0.3, // ratio: uncertainty margin removed per Spymaster
   STEPPE_MARGIN_FACTOR: 2, // ratio: factor on the margin of Steppe Horsemen

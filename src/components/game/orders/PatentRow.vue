@@ -43,9 +43,7 @@ const name = computed(() => NAMES[props.row.order])
       @click="row.command && $emit('seal', row.command)"
     >
       <span class="font-caps text-base leading-4">Seal patent</span>
-      <span class="font-body text-base italic leading-4">
-        {{ formatCompact(row.cost, 0, 'up') }} AP
-      </span>
+      <span class="font-body text-base italic leading-4"> {{ formatCompact(row.cost) }} AP </span>
     </button>
   </div>
 </template>

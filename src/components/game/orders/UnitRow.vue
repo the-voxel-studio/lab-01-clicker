@@ -11,7 +11,7 @@ const props = defineProps<{ row: UnitRow }>()
 defineEmits<{ buy: [command: Command] }>()
 
 const icon = computed(() => UNIT_COPY[props.row.unitId].icon)
-const cost = computed(() => `${formatCompact(Math.ceil(props.row.price), 0, 'up')} AP`)
+const cost = computed(() => `${formatCompact(Math.ceil(props.row.price))} AP`)
 /** Bumped by each purchase, which replays the falling coin. */
 const coin = ref(0)
 watch(

@@ -12,24 +12,22 @@ const game = useGameStore()
 const LABELS: Record<QuotaView['axis'], string> = { ap: 'AP/s', pop: 'People', military: 'Force' }
 
 const label = computed(() => LABELS[props.quota.axis])
-/** Whole souls, tenths of AP or force; what is held rounds down, what is demanded rounds up. */
-const amount = (value: number, round: 'down' | 'up' = 'down'): string =>
-  props.quota.axis === 'pop'
-    ? formatCompact(Math.floor(value), 0, round)
-    : formatCompact(value, 1, round)
+/** Whole souls, tenths of AP or force. */
+const amount = (value: number): string => formatCompact(value, props.quota.axis === 'pop' ? 0 : 1)
 const motionOn = useMotionAllowed()
 const current = useRolledNumber(
   () => props.quota.current,
   () => motionOn.value,
 )
-const figures = computed(() => `${amount(current.value)} / ${amount(props.quota.required, 'up')}`)
+const target = computed(() => amount(props.quota.required))
+const figures = computed(() => `${amount(current.value)} / ${target.value}`)
 const room = computed(() =>
   props.quota.axis === 'pop' ? `Room ${formatCompact(game.room)}` : null,
 )
 const ariaLabel = computed(
   () =>
     `${label.value} quota ${props.quota.met ? 'met' : 'short'}, ` +
-    `${amount(props.quota.current)} of ${amount(props.quota.required, 'up')}`,
+    `${amount(props.quota.current)} of ${target.value}`,
 )
 const filled = computed(() => {
   const { required } = props.quota

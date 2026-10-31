@@ -75,6 +75,32 @@ describe('Task 4: counsel and realm phrases', () => {
     expect(warning.text).toBe('The army is 29 force short, and the audit is close.')
   })
 
+  it('sends a dear army to the patent of the Host', () => {
+    const state = createInitialGameState({ ap: 100000, deadline: 3 })
+    state.units.soldier = 15
+    state.totalPopulation += 15
+    const advice = adviseCounsel(state, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    expect(advice.text).toContain('men-at-arms are worth 7 force each')
+    expect(advice.action?.command).toEqual({ type: 'UNLOCK_PATENT', order: 'military' })
+
+    const early = createInitialGameState({ ap: 100000, deadline: 2 })
+    early.units.soldier = 15
+    early.totalPopulation += 15
+    const waiting = adviseCounsel(early, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    expect(waiting.action).toBeNull()
+    expect(waiting.go).toBe('order_military')
+  })
+
+  it('offers men-at-arms once the patent is sealed', () => {
+    const state = createInitialGameState({ ap: 100000, deadline: 4 })
+    state.unlockedPatents.military = true
+    state.freeSerfs += 100
+    state.totalPopulation += 100
+    const advice = adviseCounsel(state, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    expect(advice.action?.label).toMatch(/^Hire 3 men-at-arms, /)
+    expect(advice.action?.command).toEqual({ type: 'BUY_UNIT', unitId: 'man_at_arms', count: 3 })
+  })
+
   it('sends the Steward for the People with a purchase of peasants', () => {
     const state = createInitialGameState({ ap: 100000, deadline: 3 })
     const advice = adviseCounsel(state, quotas([9, 5], [500, 550], [70, 70]), 'rotting', 60)

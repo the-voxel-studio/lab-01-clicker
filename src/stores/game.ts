@@ -293,6 +293,7 @@ export const useGameStore = defineStore('game', () => {
   /** Steps the engine by `dt` seconds (doubled when double speed is on and unlocked). */
   function advance(dt: number): void {
     const state = run.value
+    if (state && !state.isGameOver) state.playedSeconds += dt
     if (!state || report.value) return
     const factor = settings.doubleSpeed && isFastForwardUnlocked(state, config) ? 2 : 1
     const phaseBefore = state.phase

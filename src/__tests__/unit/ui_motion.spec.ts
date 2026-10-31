@@ -32,15 +32,13 @@ describe('Task 11: motion foundation', () => {
     expect(formatCompact(999)).toBe('999')
     expect(formatCompact(2.46, 1)).toBe('2.5')
     expect(formatCompact(1000)).toBe('1.0k')
-    expect(formatCompact(1999)).toBe('1.9k')
+    expect(formatCompact(1999)).toBe('2.0k')
+    expect(formatCompact(3699)).toBe('3.7k')
+    expect(formatCompact(3640)).toBe('3.6k')
     expect(formatCompact(12340)).toBe('12.3k')
-    expect(formatCompact(1234567)).toBe('1,234.5k')
+    expect(formatCompact(1234567)).toBe('1,234.6k')
     expect(formatCompact(-1500)).toBe('−1.5k')
-    expect(formatCompact(1910, 0, 'up')).toBe('2.0k')
-    expect(formatCompact(1901, 0, 'up')).toBe('2.0k')
-    expect(formatCompact(1234567, 0, 'up')).toBe('1,234.6k')
-    expect(formatCompact(-1510, 0, 'up')).toBe('−1.5k')
-    expect(formatCompact(-1510)).toBe('−1.6k')
+    expect(formatCompact(-1510)).toBe('−1.5k')
   })
 
   it('writes the rate with the same thousands', () => {
@@ -81,5 +79,18 @@ describe('Task 11: motion foundation', () => {
     expect(shared).toEqual([])
     for (const [, ref] of a.matchAll(/url\(#([^)]+)\)/g)) expect(ids(a).has(ref)).toBe(true)
     expect(a).toContain('id="enchanted-Kingdom"')
+  })
+})
+
+describe('One rounding everywhere', () => {
+  it('never reads a figure under one it has reached', () => {
+    for (let target = 900; target < 9000; target += 37) {
+      for (const held of [target, target + 1, target + 49, target + 120]) {
+        const [shownHeld, shownTarget] = [formatCompact(held), formatCompact(target)]
+        expect(Number.parseFloat(shownHeld.replace(',', ''))).toBeGreaterThanOrEqual(
+          held >= 1000 && target < 1000 ? 0 : Number.parseFloat(shownTarget.replace(',', '')),
+        )
+      }
+    }
   })
 })

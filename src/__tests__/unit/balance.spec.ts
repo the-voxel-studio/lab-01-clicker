@@ -135,7 +135,7 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
       [11, 151, 11],
       [21, 289, 21],
       [33, 500, 28],
-      [57, 682, 30],
+      [70, 584, 54],
       [149, 683, 104],
       [275, 847, 197],
       [507, 1309, 373],
@@ -146,7 +146,7 @@ describe('Game Balance Constants & Catalog Integrity (Gate A)', () => {
 
     const documentedThreats = [
       [3, 22, 660],
-      [4, 24, 1140],
+      [4, 43, 1400],
       [5, 83, 2980],
       [6, 158, 5500],
       [7, 298, 10140],

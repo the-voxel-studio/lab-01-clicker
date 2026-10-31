@@ -78,19 +78,15 @@ export function formatFigure(value: number, decimals = 0): string {
 
 /**
  * A figure for the interface, in thousands from 1,000, always with its tenth: `1.5k`, `50.0k`.
- * Thousands are never rounded to nearest: `down` suits what the player holds, `up` what
- * is owed or demanded, so the screen never promises more than the engine grants.
+ * Every figure rounds to nearest, the only rule of the game: a figure that reached another never
+ * reads under it, whatever the two are.
  *
  * @param decimals - Decimals of figures under 1,000.
- * @param round - Direction of the thousands, on the signed value.
  */
-export function formatCompact(value: number, decimals = 0, round: 'down' | 'up' = 'down'): string {
+export function formatCompact(value: number, decimals = 0): string {
   const magnitude = Math.abs(value)
   if (magnitude < 1000) return formatFigure(value, decimals)
-  const towardsZero = (round === 'down') === value > 0
-  const step = towardsZero ? Math.floor : Math.ceil
-  const thousands = magnitude / 1000
-  const shown = step(Number((thousands * 10).toFixed(6))) / 10
+  const shown = Math.round(Number((magnitude / 100).toFixed(6))) / 10
   const text = shown.toLocaleString('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   return `${value < 0 ? '−' : ''}${text}k`
 }

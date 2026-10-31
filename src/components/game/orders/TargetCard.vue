@@ -46,7 +46,7 @@ const percent = (value: number): string => `${(value / top.value) * 100}%`
     <p class="mt-2.5 flex justify-between font-body text-base italic">
       <span class="text-verdigris">your reach, {{ formatCompact(target.reach) }}</span>
       <span class="text-rubric">
-        {{ formatCompact(target.guessMin) }} to {{ formatCompact(target.guessMax, 0, 'up') }}
+        {{ formatCompact(target.guessMin) }} to {{ formatCompact(target.guessMax) }}
       </span>
     </p>
     <p class="mt-2 font-body text-base italic leading-[22px] text-ink-faded">

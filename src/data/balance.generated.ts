@@ -20,7 +20,7 @@ export const DEADLINE_QUOTAS: readonly DeadlineQuota[] = [
   { deadline: 1, apRate: 11, pop: 151, military: 11 },
   { deadline: 2, apRate: 21, pop: 289, military: 21 },
   { deadline: 3, apRate: 33, pop: 500, military: 28 },
-  { deadline: 4, apRate: 57, pop: 682, military: 30 },
+  { deadline: 4, apRate: 70, pop: 584, military: 54 },
   { deadline: 5, apRate: 149, pop: 683, military: 104 },
   { deadline: 6, apRate: 275, pop: 847, military: 197 },
   { deadline: 7, apRate: 507, pop: 1309, military: 373 },

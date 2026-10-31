@@ -25,7 +25,7 @@ import { hasRule } from '@/core/rules'
 import type { Command, GameState, UnitId, UnitOrder } from '@/core/types'
 import { UNITS_DATA } from '@/data/balance'
 import { UNIT_COPY } from '@/data/orderCopy'
-import { formatCompact } from '@/ui/realmText'
+import { auditOrdinal, formatCompact } from '@/ui/realmText'
 
 const config = DEFAULT_ENGINE_CONFIG
 
@@ -152,7 +152,8 @@ export function patentRow(state: GameState, order: UnitOrder): PatentRow | null 
     .filter((id) => UNITS_DATA[id].tier === 1)
     .reduce((sum, id) => sum + (state.units[id] ?? 0), 0)
   const unmet: string[] = []
-  if (state.deadline < PATENT_MIN_DEADLINE) unmet.push('Reach the fourth audit')
+  if (state.deadline < PATENT_MIN_DEADLINE)
+    unmet.push(`Reach the ${auditOrdinal(PATENT_MIN_DEADLINE)} audit`)
   if (tierOne < PATENT_MIN_TIER_I_UNITS) unmet.push(`Keep ${PATENT_MIN_TIER_I_UNITS} Tier I units`)
   if (state.ap < cost) unmet.push(`Hold ${cost} AP`)
   return {
@@ -193,10 +194,10 @@ export function hostLine(state: GameState): { title: string; note: string } {
   const wanted = effectiveQuota(state, quotaForDeadline(config, state.deadline)).military
   const upkeep = calculateMilitaryUpkeep(state, config)
   const short = Math.ceil(wanted - force)
-  const upkeepText = `Upkeep ${formatCompact(Math.ceil(upkeep * 10) / 10, 1, 'up')} AP each second.`
+  const upkeepText = `Upkeep ${formatCompact(Math.ceil(upkeep * 10) / 10, 1)} AP each second.`
   return {
-    title: `Force ${formatCompact(Math.floor(force))}. The Crown wants ${formatCompact(wanted, 0, 'up')}.`,
-    note: short > 0 ? `${upkeepText} ${formatCompact(short, 0, 'up')} force short.` : upkeepText,
+    title: `Force ${formatCompact(Math.floor(force))}. The Crown wants ${formatCompact(wanted)}.`,
+    note: short > 0 ? `${upkeepText} ${formatCompact(short)} force short.` : upkeepText,
   }
 }
 

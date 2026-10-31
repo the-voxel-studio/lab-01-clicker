@@ -76,7 +76,7 @@ function gainLines(before: GameState, after: GameState): ReportLine[] {
 function forceLines(before: GameState, theirs: number): ReportLine[] {
   return [
     { label: 'Your force', figure: formatCompact(calculateMilitaryPower(before, config)) },
-    { label: 'Their force', figure: formatCompact(theirs, 0, 'up') },
+    { label: 'Their force', figure: formatCompact(theirs) },
   ]
 }
 

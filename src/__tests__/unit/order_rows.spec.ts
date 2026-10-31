@@ -120,7 +120,7 @@ describe('Task 2: unit rows', () => {
     state.ap = 0
     expect(patentRow(state, 'people')).toMatchObject({
       cost: 500,
-      unmet: ['Reach the fourth audit', 'Keep 12 Tier I units', 'Hold 500 AP'],
+      unmet: ['Reach the third audit', 'Keep 12 Tier I units', 'Hold 500 AP'],
       command: null,
     })
     state.ap = 500

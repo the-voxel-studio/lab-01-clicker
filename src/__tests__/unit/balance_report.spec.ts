@@ -105,6 +105,11 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
       defeats: {},
     }
 
+    it('bridges deadline 4 between its neighbours, so the curve has no step', () => {
+      const table = quotaTable(1, calibration)
+      expect(table[3]?.pop).toBe(Math.round(Math.sqrt(380 * 800)))
+    })
+
     it('keeps deadline 1 at the floor of its medians whatever c', () => {
       expect(quotaTable(1, calibration)[0]).toEqual({
         deadline: 1,
@@ -128,12 +133,12 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
       expect(quotaTable(1, slow)[0]!.apRate).toBe(0.7)
     })
 
-    it('weights c by 0.9 at deadline 2, 0.95 at deadline 3 and 1 from deadline 4', () => {
+    it('weights c by 0.9 at deadline 2 and 0.95 at deadline 3, and bridges deadline 4', () => {
       const table = quotaTable(2, calibration)
       expect(table.map((row) => row.deadline)).toEqual([1, 2, 3, 4, 5])
       expect(table[1]).toEqual({ deadline: 2, apRate: 36, pop: 360, military: 72 })
       expect(table[2]).toEqual({ deadline: 3, apRate: 76, pop: 760, military: 152 })
-      expect(table[3]).toEqual({ deadline: 4, apRate: 160, pop: 1600, military: 320 })
+      expect(table[3]).toEqual({ deadline: 4, apRate: 110, pop: 1103, military: 221 })
     })
 
     it('is strictly increasing on every axis, even when the medians are flat or c is low', () => {
@@ -145,7 +150,7 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
           expect(table[index]!.military).toBeGreaterThan(table[index - 1]!.military)
         }
       }
-      expect(quotaTable(2, calibration)[4]!.apRate).toBe(161)
+      expect(quotaTable(2, calibration)[4]!.apRate).toBe(160)
       expect(quotaTable(0.3, calibration)[1]!.apRate).toBe(11)
     })
 
@@ -202,7 +207,7 @@ describe('Balance report helpers (GAME_RULES §21)', () => {
         })
         const fitted = table.slice(4).map((row) => row.apRate)
         expect(fitted).toEqual([58, 98, 166, 280, 474, 803])
-        expect(table[3]!.apRate).toBe(40)
+        expect(table[3]!.apRate).toBe(41)
       })
     })
 

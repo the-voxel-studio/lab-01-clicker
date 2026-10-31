@@ -123,7 +123,7 @@ export function edictRows(state: GameState): EdictRow[] {
       id,
       name: EDICT_NAMES[id],
       text: edictText(state, id),
-      priceLabel: cost > 0 ? `Pay ${formatCompact(Math.ceil(cost), 0, 'up')} AP` : 'Proclaim',
+      priceLabel: cost > 0 ? `Pay ${formatCompact(Math.ceil(cost))} AP` : 'Proclaim',
       command: blocked ? null : { type: 'ENACT_EDICT', edictId: id },
       blocked,
     }

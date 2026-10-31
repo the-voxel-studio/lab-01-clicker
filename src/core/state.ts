@@ -103,6 +103,7 @@ export function createInitialGameState(overrides: Partial<GameState> = {}): Game
     currentThreatPower: 0,
     currentThreatTributeAp: 0,
     currentTarget: null,
+    playedSeconds: 0,
     conquestsThisAudit: 0,
     crownSurchargeSteps: 0,
     lastSurpriseRaidTime: -BALANCE.SURPRISE_RAID_COOLDOWN_SECONDS,

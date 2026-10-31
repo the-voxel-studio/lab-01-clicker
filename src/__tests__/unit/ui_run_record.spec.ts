@@ -18,7 +18,7 @@ function defeatedState() {
     phase: 'RUN_DEFEAT',
     defeatReason: 'quota_failure',
     deadline: 3,
-    totalElapsedSeconds: 272,
+    playedSeconds: 272,
   })
 }
 

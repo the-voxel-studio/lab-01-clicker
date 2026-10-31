@@ -75,7 +75,7 @@ describe('Save State Versioning & Migrations (Gate B)', () => {
   it('loads and validates legacy save fixtures (v1-save.json) via v1 -> v6 migration pipeline', () => {
     expect(isSerializedSavePayload(fixtureV1)).toBe(true)
     expect(fixtureV1.schemaVersion).toBe(1)
-    expect(CURRENT_SCHEMA_VERSION).toBe(6)
+    expect(CURRENT_SCHEMA_VERSION).toBe(7)
 
     // Encode raw v1 fixture directly into save string
     const jsonStr = JSON.stringify(fixtureV1)
@@ -501,5 +501,15 @@ describe('Task 2: save schema v6', () => {
     expect(() => validateGameState(state)).toThrow('crownSurchargeSteps')
     const count = { ...createInitialGameState({}), conquestsThisAudit: bad }
     expect(() => validateGameState(count)).toThrow('conquestsThisAudit')
+  })
+})
+
+describe('Save schema v7', () => {
+  it('starts the time played of an older save at 0, and rejects a bad one', () => {
+    const { playedSeconds: _played, ...state } = createInitialGameState({})
+    const payload = { schemaVersion: 6, timestamp: 1, state, archive: createArchiveData() }
+    expect(importSaveFromBase64(encode(payload)).state.playedSeconds).toBe(0)
+    const bad = { ...createInitialGameState({}), playedSeconds: -1 }
+    expect(() => validateGameState(bad)).toThrow('playedSeconds')
   })
 })

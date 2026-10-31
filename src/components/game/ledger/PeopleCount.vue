@@ -23,7 +23,7 @@ const pinAt = computed(() => {
   const top = Math.max(props.room, props.living, 1)
   return `${Math.min(100, (props.crown / top) * 100)}%`
 })
-const overBy = computed(() => formatCompact(Math.ceil(props.living - props.room), 0, 'up'))
+const overBy = computed(() => formatCompact(Math.ceil(props.living - props.room)))
 </script>
 
 <template>
@@ -55,7 +55,7 @@ const overBy = computed(() => formatCompact(Math.ceil(props.living - props.room)
     <div class="mt-1 flex justify-between text-center font-body text-base leading-5">
       <span><LedgerFigure :value="formatCompact(living)" size="lg" /><br />living</span>
       <span>
-        <LedgerFigure :value="formatCompact(crown, 0, 'up')" size="lg" tone="rubric" /><br />Crown
+        <LedgerFigure :value="formatCompact(crown)" size="lg" tone="rubric" /><br />Crown
       </span>
       <span><LedgerFigure :value="formatCompact(room)" size="lg" /><br />room</span>
     </div>

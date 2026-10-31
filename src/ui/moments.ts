@@ -121,7 +121,7 @@ export function quotaLines(state: GameState, outcome: AuditOutcome): QuotaLine[]
   const figure = (held: number, target: number | undefined): string =>
     target === undefined
       ? formatCompact(held)
-      : `${formatCompact(held)} of ${formatCompact(target, 0, 'up')}`
+      : `${formatCompact(held)} of ${formatCompact(target)}`
   const { required } = outcome
   return [
     {
@@ -129,7 +129,11 @@ export function quotaLines(state: GameState, outcome: AuditOutcome): QuotaLine[]
       figure: `${figure(outcome.grossApRate, required?.apRate)} AP/s`,
       met: outcome.apMet,
     },
-    { label: 'People', figure: figure(state.totalPopulation, required?.pop), met: outcome.popMet },
+    {
+      label: 'People',
+      figure: figure(state.totalPopulation, required?.pop),
+      met: outcome.popMet,
+    },
     {
       label: 'Force',
       figure: figure(calculateMilitaryPower(state, config), required?.military),
@@ -245,7 +249,7 @@ function fightDetail(
   theirs: number,
 ): string {
   const lost = provincesAtStake > 1 ? 'two provinces' : 'one province'
-  const stakes = `Your force ${formatCompact(yours)} against their ${formatCompact(theirs, 0, 'up')}. Losing costs ${lost}, the whole army, part of your people and coffer, and ${balance.COLLAPSE_UNREST} unrest.`
+  const stakes = `Your force ${formatCompact(yours)} against their ${formatCompact(theirs)}. Losing costs ${lost}, the whole army, part of your people and coffer, and ${balance.COLLAPSE_UNREST} unrest.`
   return state.provinces <= provincesAtStake
     ? `${stakes} ${MOMENT_COPY.herald.lastProvince}`
     : stakes
@@ -315,7 +319,7 @@ function heraldMoment(state: GameState): MomentView {
       blockedWhen(
         answer(
           MOMENT_COPY.herald.tribute,
-          `${formatCompact(tribute, 0, 'up')} AP leave the coffer. The Crown will notice the hole.`,
+          `${formatCompact(tribute)} AP leave the coffer. The Crown will notice the hole.`,
           { type: 'SELECT_THREAT_RESPONSE', response: 'tribute' },
           'threatTribute',
         ),

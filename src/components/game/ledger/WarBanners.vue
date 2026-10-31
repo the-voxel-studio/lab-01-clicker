@@ -20,7 +20,7 @@ defineProps<{ yours: number; theirsMin: number; theirsMax: number }>()
     </span>
     <div class="banner-theirs bg-blood px-2 py-2 text-center text-cream">
       <p class="font-display text-[25px] leading-7">
-        {{ formatCompact(theirsMin) }} to {{ formatCompact(theirsMax, 0, 'up') }}
+        {{ formatCompact(theirsMin) }} to {{ formatCompact(theirsMax) }}
       </p>
       <p class="font-body text-base leading-5">their force</p>
     </div>

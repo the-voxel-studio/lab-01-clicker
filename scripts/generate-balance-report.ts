@@ -67,6 +67,12 @@ const DEADLINE_COUNT = 10
 const EARLY_C_WEIGHTS: Readonly<Record<number, number>> = { 2: 0.9, 3: 0.95 }
 
 /**
+ * Deadline set to the geometric mean of its neighbours: the opening table and the late fit are
+ * solved apart, and the quotas must not step between them (force 30 to 104, user 2026-10-31).
+ */
+const BRIDGE_DEADLINE = 4
+
+/**
  * First deadline whose medians are replaced by their log linear fit. The late medians sit between a
  * take off and a stall mode, so the raw ones jump (balance follow ups, plan 01).
  */
@@ -304,7 +310,8 @@ function rawQuota(c: number, deadline: number, median: number): number {
 
 /**
  * Quota table for a coefficient: deadline 1 at the floor of its medians, then c times the early
- * weight times the calibration medians (log linear fit from deadline 5), rounded and strictly
+ * weight times the calibration medians (log linear fit from deadline 5), deadline 4 bridged
+ * between its neighbours, rounded and strictly
  * increasing per axis.
  *
  * @param c - Coefficient applied to the medians.
@@ -317,6 +324,11 @@ export function quotaTable(c: number, calibration: Calibration): DeadlineQuota[]
     const raw = calibration.deadlines.map((entry, index) =>
       rawQuota(c, entry.deadline, medians[index] ?? Number.NaN),
     )
+    const bridge = calibration.deadlines.findIndex((entry) => entry.deadline === BRIDGE_DEADLINE)
+    const [below, above] = [raw[bridge - 1], raw[bridge + 1]]
+    if (bridge > 0 && below !== undefined && above !== undefined) {
+      raw[bridge] = Math.sqrt(below * above)
+    }
     const broken = raw.findIndex((value) => !Number.isFinite(value))
     if (broken >= 0) {
       throw new Error(

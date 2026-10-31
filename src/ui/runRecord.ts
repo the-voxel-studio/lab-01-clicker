@@ -83,7 +83,7 @@ export function createRunRecord(
     endedAt: endedAt.toISOString(),
     outcome: outcomeOf(state, abandoned),
     deadlineReached: state.deadline,
-    elapsedSeconds: state.totalElapsedSeconds,
+    elapsedSeconds: state.playedSeconds,
     totalCumulativeAp: state.totalCumulativeAp,
     peakPopulation: state.peakPopulation,
     peakProvinces: state.peakProvinces,

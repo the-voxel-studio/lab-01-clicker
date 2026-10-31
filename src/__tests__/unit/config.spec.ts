@@ -713,7 +713,7 @@ const ROWS: readonly Row[] = [
   ),
   row('PATENT_COSTS.admin', (c) =>
     commanded(
-      realm(1, { scribe: 12 }, { ap: 1e5, deadline: 4 }),
+      realm(1, { scribe: 12 }, { ap: 1e5, deadline: 3 }),
       { type: 'UNLOCK_PATENT', order: 'admin' },
       c,
     ),
@@ -727,14 +727,14 @@ const ROWS: readonly Row[] = [
   ),
   row('PATENT_MIN_DEADLINE', (c) =>
     commanded(
-      realm(1, { scribe: 12 }, { ap: 1e5, deadline: 4 }),
+      realm(1, { scribe: 12 }, { ap: 1e5, deadline: 3 }),
       { type: 'UNLOCK_PATENT', order: 'admin' },
       c,
     ),
   ),
   row('PATENT_MIN_TIER_I_UNITS', (c) =>
     commanded(
-      realm(1, { scribe: 12 }, { ap: 1e5, deadline: 4 }),
+      realm(1, { scribe: 12 }, { ap: 1e5, deadline: 3 }),
       { type: 'UNLOCK_PATENT', order: 'admin' },
       c,
     ),

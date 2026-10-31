@@ -83,8 +83,8 @@
 | :---: | :---: | :---: | :---: | :--- |
 | **1** | 11 AP/s | 151 Pop | 11 Power | All Tier I units, clicks, tax slider |
 | **2** | 21 AP/s | 289 Pop | 21 Power | Threat Herald opens after this audit |
-| **3** | 33 AP/s | 500 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy |
-| **4** | 57 AP/s | 682 Pop | 30 Power | Tier II patents can be bought |
+| **3** | 33 AP/s | 500 Pop | 28 Power | First Crown threat, surprise raids, 10× Bulk Buy, Tier II patents can be bought |
+| **4** | 70 AP/s | 584 Pop | 54 Power | |
 | **5** | 149 AP/s | 683 Pop | 104 Power | 2× Fast-Forward |
 | **6** | 275 AP/s | 847 Pop | 197 Power | 50× Bulk Buy |
 | **7** | 507 AP/s | 1,309 Pop | 373 Power | Holy League Crusade |
@@ -189,7 +189,7 @@ $$\text{Growth/s} = r \times \text{TotalPopulation} \times \left(1 - \frac{\text
 
 ### 5.1 Tier II Access Rules (Royal Patents)
 Unlocking Tier II units within an Order requires:
-1. Reached at least **Deadline 4**.
+1. Reached at least **Deadline 3**.
 2. Maintaining at least **12 active Tier I units** in that Order.
 3. Purchasing the royal charter (one-time AP fee):
    - *The People:* **Charter of Urban Franchises** (500 AP).
@@ -424,7 +424,7 @@ The realm faces two distinct vectors of military hostility:
 | Threat Deadline | Scheduled Threat | Faction | Base Power (80% Mil Quota) | Tribute (20s Gross AP Rate, 4s from D8) | Failure Penalty (Defensive Collapse) |
 | :---: | :--- | :--- | :---: | :---: | :--- |
 | **3** | *Border Raiders & Deserters* | Outlaw Bandits & Marauders | 22 | 660 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
-| **4** | *The Rebellious Marches Baron* | Rebel Barons | 24 | 1,140 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
+| **4** | *The Rebellious Marches Baron* | Rebel Barons | 43 | 1,400 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **5** | *Nomadic Steppe Horde* | Steppe Horsemen | 83 | 2,980 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **6** | *The Renegade Free Companies* | Free Company Mercenaries | 158 | 5,500 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |
 | **7** | *The Holy League Crusade* | Holy League Zealots | 298 | 10,140 AP | 1 Province, 100% Army dead, 15-25% Pop, 30-50% AP |

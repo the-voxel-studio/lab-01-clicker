@@ -15,6 +15,7 @@ import { UNITS_DATA } from '@/data/balance'
 import type { QuotaView } from '@/stores/game'
 import type { Screen } from '@/stores/nav'
 import type { DreadBand } from '@/ui/dread'
+import { patentRow } from '@/ui/orderRows'
 import { formatCompact } from '@/ui/realmText'
 
 /** What the counsel line shows: who speaks, what they say, and the purchase they offer. */
@@ -27,6 +28,8 @@ export interface Counsel {
 }
 
 const WARNING_SECONDS = 30
+/** Soldiers from which each new one costs more than the same force in men-at-arms. */
+const DEAR_SOLDIERS = 12
 const ROUND_PURCHASE = 10
 /** Highest tax that does not slow the births. */
 const FAIR_TAX = 25
@@ -57,16 +60,16 @@ const ADVISERS: Record<
 
 function shortfallText(quota: QuotaView, warn: boolean): string {
   const missing = quota.required - quota.current
-  const force = formatCompact(Math.ceil(missing), 0, 'up')
+  const force = formatCompact(Math.ceil(missing))
   switch (quota.axis) {
     case 'military':
       return warn
         ? `The army is ${force} force short, and the audit is close.`
         : `The army is ${force} force short of the Crown's demand.`
     case 'pop':
-      return `The People are ${formatCompact(Math.ceil(missing), 0, 'up')} souls short of the Crown's demand.`
+      return `The People are ${formatCompact(Math.ceil(missing))} souls short of the Crown's demand.`
     case 'ap':
-      return `The Chancery is ${formatCompact(missing, 1, 'up')} AP each second short of the Crown's demand.`
+      return `The Chancery is ${formatCompact(missing, 1)} AP each second short of the Crown's demand.`
   }
 }
 
@@ -127,6 +130,38 @@ function birthBrake(
 }
 
 /**
+ * The Host's way out of dear soldiers: each one costs 7% more than the last, so the force of late
+ * audits comes from men-at-arms, behind a patent.
+ */
+function hostCounsel(
+  state: GameState,
+  shortfall: string,
+  missing: number,
+): Pick<Counsel, 'text' | 'action' | 'go'> | null {
+  const { man_at_arms: veteran } = UNITS_DATA
+  if (state.unlockedPatents.military) {
+    const purchase = acceptedPurchase(state, 'man_at_arms', Math.ceil(missing / veteran.baseValue))
+    if (!purchase) return null
+    return {
+      text: shortfall,
+      action: {
+        label: `Hire ${purchase.count} men-at-arms, ${formatCompact(Math.ceil(purchase.cost))} AP`,
+        command: { type: 'BUY_UNIT', unitId: 'man_at_arms', count: purchase.count },
+      },
+    }
+  }
+  if ((state.units.soldier ?? 0) < DEAR_SOLDIERS) return null
+  const patent = patentRow(state, 'military')
+  return {
+    text: `Soldiers grow dear. Seal the Host's patent: men-at-arms are worth ${veteran.baseValue} force each.`,
+    action: patent?.command
+      ? { label: `Seal the patent, ${patent.cost} AP`, command: patent.command }
+      : null,
+    go: 'order_military',
+  }
+}
+
+/**
  * Chooses the counsel for the run: nobody at death throes, praise when every quota is met, else
  * the counsellor of the quota with the largest shortfall ratio, warning when the band is rotting
  * or less than 30 s are left.
@@ -166,6 +201,10 @@ export function adviseCounsel(
     const brake = birthBrake(state, shortfallText(worst, warn))
     if (brake) return { title, ...brake }
   }
+  if (worst.axis === 'military') {
+    const host = hostCounsel(state, shortfallText(worst, warn), worst.required - worst.current)
+    if (host) return { title, ...host }
+  }
   const wanted = worst.axis === 'military' ? men : ROUND_PURCHASE
   const purchase = acceptedPurchase(state, adviser.unit, wanted)
   return {
@@ -174,7 +213,7 @@ export function adviseCounsel(
     action: purchase
       ? {
           // Whole AP, rounded up: the player never holds less than the price shown.
-          label: adviser.label(purchase.count, formatCompact(Math.ceil(purchase.cost), 0, 'up')),
+          label: adviser.label(purchase.count, formatCompact(Math.ceil(purchase.cost))),
           command: { type: 'BUY_UNIT', unitId: adviser.unit, count: purchase.count },
         }
       : null,
