@@ -25,8 +25,8 @@ const name = computed(() => NAMES[props.row.order])
       <GameIcon name="padlock" class="size-[22px] text-ink-faded" label="Locked" />
     </span>
     <div class="min-w-0 flex-1">
-      <p class="font-body text-[17px] leading-6 text-ink">{{ name }}</p>
-      <p class="font-body text-[13px] italic leading-[18px] text-ink-faded">
+      <p class="font-body text-[18px] leading-6 text-ink">{{ name }}</p>
+      <p class="font-body text-base italic leading-[22px] text-ink-faded">
         {{ row.unmet.length ? row.unmet.join('. ') + '.' : 'Tier II patent' }}
       </p>
     </div>
@@ -42,8 +42,8 @@ const name = computed(() => NAMES[props.row.order])
       "
       @click="row.command && $emit('seal', row.command)"
     >
-      <span class="font-caps text-[13px] leading-4">Seal patent</span>
-      <span class="font-body text-[13px] italic leading-4">
+      <span class="font-caps text-base leading-4">Seal patent</span>
+      <span class="font-body text-base italic leading-4">
         {{ formatCompact(row.cost, 0, 'up') }} AP
       </span>
     </button>

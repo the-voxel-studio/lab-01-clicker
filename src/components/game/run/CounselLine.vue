@@ -34,13 +34,13 @@ function follow(): void {
 <template>
   <section v-if="counsel" class="flex items-start gap-3 px-4">
     <div class="min-w-0 flex-1">
-      <p class="font-caps text-sm text-rubric">{{ counsel.title }}</p>
+      <p class="font-caps text-base text-rubric">{{ counsel.title }}</p>
       <Transition name="fade" mode="out-in">
-        <p :key="adviceKey" data-counsel-text class="font-body text-[17px] leading-6 text-ink">
+        <p :key="adviceKey" data-counsel-text class="font-body text-[18px] leading-6 text-ink">
           {{ counsel.text }}
         </p>
       </Transition>
-      <p v-if="error" class="font-body text-sm italic text-rubric">{{ error }}</p>
+      <p v-if="error" class="font-body text-base italic text-rubric">{{ error }}</p>
     </div>
     <button
       v-if="counsel.action"

@@ -27,7 +27,7 @@ const BALLS = ['left-0 top-0', 'right-0 top-0', 'left-[25px] top-[42px]']
               :class="place"
             />
           </div>
-          <p class="font-body text-sm italic leading-[18px] text-[#6e5037]">The Lombard's mark</p>
+          <p class="font-body text-base italic leading-[22px] text-[#6e5037]">The Lombard's mark</p>
         </div>
       </div>
       <div class="min-h-0 flex-1 px-12"><FatePlate :src="merchant" /></div>

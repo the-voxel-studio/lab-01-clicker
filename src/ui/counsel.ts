@@ -55,13 +55,14 @@ const ADVISERS: Record<
   },
 }
 
-function shortfallText(quota: QuotaView, men: number, warn: boolean): string {
+function shortfallText(quota: QuotaView, warn: boolean): string {
   const missing = quota.required - quota.current
+  const force = formatCompact(Math.ceil(missing), 0, 'up')
   switch (quota.axis) {
     case 'military':
       return warn
-        ? `The army is ${men} men short, and the audit is close.`
-        : `The army is ${men} men short of the Crown's demand.`
+        ? `The army is ${force} force short, and the audit is close.`
+        : `The army is ${force} force short of the Crown's demand.`
     case 'pop':
       return `The People are ${formatCompact(Math.ceil(missing), 0, 'up')} souls short of the Crown's demand.`
     case 'ap':
@@ -162,14 +163,14 @@ export function adviseCounsel(
   const title = `${adviser.name} ${warn ? 'warns' : 'advises'}`
   const men = Math.ceil((worst.required - worst.current) / UNITS_DATA.soldier.baseValue)
   if (worst.axis === 'pop') {
-    const brake = birthBrake(state, shortfallText(worst, men, warn))
+    const brake = birthBrake(state, shortfallText(worst, warn))
     if (brake) return { title, ...brake }
   }
   const wanted = worst.axis === 'military' ? men : ROUND_PURCHASE
   const purchase = acceptedPurchase(state, adviser.unit, wanted)
   return {
     title,
-    text: shortfallText(worst, men, warn),
+    text: shortfallText(worst, warn),
     action: purchase
       ? {
           // Whole AP, rounded up: the player never holds less than the price shown.

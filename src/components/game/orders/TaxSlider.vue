@@ -42,7 +42,7 @@ onBeforeUnmount(flush)
 <template>
   <section>
     <div class="flex items-baseline justify-between">
-      <h2 class="font-caps text-sm text-rubric">Tax rate</h2>
+      <h2 class="font-caps text-base text-rubric">Tax rate</h2>
       <p class="font-display text-[22px] leading-[30px] text-ink">{{ draft }}%</p>
     </div>
     <input
@@ -56,13 +56,13 @@ onBeforeUnmount(flush)
       class="tax-slider w-full"
       @change="settleLater"
     />
-    <div class="flex justify-between font-body text-xs italic text-ink-faded">
+    <div class="flex justify-between font-body text-base italic text-ink-faded">
       <span>0%</span><span>{{ view.max / 2 }}%</span><span>{{ view.max }}%</span>
     </div>
     <p
       v-if="view.pending !== null"
       data-proclaim
-      class="motion-ink font-body text-[13px] italic leading-[18px] text-rubric"
+      class="motion-ink font-body text-base italic leading-[22px] text-rubric"
     >
       {{ view.pending }}% proclaimed in {{ view.secondsLeft }} seconds.
     </p>
@@ -73,13 +73,13 @@ onBeforeUnmount(flush)
         :style="{ transform: `scaleX(${fuse})` }"
       />
     </div>
-    <p v-else class="font-body text-[13px] italic leading-[18px] text-ink-faded">
+    <p v-else class="font-body text-base italic leading-[22px] text-ink-faded">
       A rise is proclaimed after {{ view.delay }} seconds, a cut at once.
     </p>
     <p
       v-if="warning"
       data-tax-warning
-      class="font-body text-[13px] italic leading-[18px] text-rubric"
+      class="font-body text-base italic leading-[22px] text-rubric"
     >
       {{ warning }}
     </p>

@@ -13,22 +13,15 @@ const ORDERS: { screen: Screen; label: string; icon: GameIconKey }[] = [
   { screen: 'run', label: 'Reign', icon: 'waxSeal' },
   { screen: 'order_people', label: 'Commons', icon: 'roleFarmer' },
   { screen: 'order_admin', label: 'Chancery', icon: 'quill' },
-  { screen: 'order_military', label: 'Host', icon: 'militaryPower' },
+  { screen: 'order_military', label: 'Host', icon: 'visoredHelm' },
   { screen: 'fortune', label: 'Fortune', icon: 'fortuneWheel' },
   { screen: 'crown', label: 'Crown', icon: 'crown' },
 ]
 const UNREST_ALARM = 75
 
 const badges = computed<Partial<Record<Screen, string>>>(() => {
-  const military = game.quotas.find((quota) => quota.axis === 'military')
   void game.revision
-  const unrest = game.run?.unrest ?? 0
-  const result: Partial<Record<Screen, string>> = {}
-  if (military && !military.met) {
-    result.order_military = String(Math.ceil(military.required - military.current))
-  }
-  if (unrest >= UNREST_ALARM) result.crown = '!'
-  return result
+  return (game.run?.unrest ?? 0) >= UNREST_ALARM ? { crown: '!' } : {}
 })
 </script>
 
@@ -44,12 +37,12 @@ const badges = computed<Partial<Record<Screen, string>>>(() => {
       @click="nav.go(order.screen)"
     >
       <GameIcon :name="order.icon" class="size-[28px] text-gold" :label="order.label" />
-      <span class="font-caps text-xs text-cream max-[360px]:text-[10px]">{{ order.label }}</span>
+      <span class="font-caps text-[13px] text-cream max-[360px]:text-xs">{{ order.label }}</span>
       <span
         v-if="badges[order.screen]"
         :key="badges[order.screen]"
         data-badge
-        class="motion-pop absolute right-0.5 top-1 min-w-5 rounded-full border border-cream bg-wax px-1 text-center font-body text-xs text-cream"
+        class="motion-pop absolute right-0 top-0 min-w-5 rounded-full border border-cream bg-wax px-1 text-center font-body text-base leading-5 text-cream"
       >
         {{ badges[order.screen] }}
       </span>

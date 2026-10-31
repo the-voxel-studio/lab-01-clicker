@@ -47,10 +47,10 @@ function act(command: Command): void {
       :revision="game.revision"
       @proclaim="act({ type: 'SET_TAX_RATE', rate: $event })"
     />
-    <p v-if="refused" data-refusal class="font-body text-[13px] italic text-rubric">
+    <p v-if="refused" data-refusal class="font-body text-base italic text-rubric">
       The Crown refuses this order.
     </p>
-    <h2 class="mt-3 font-caps text-sm text-rubric">Emergency edicts</h2>
+    <h2 class="mt-3 font-caps text-base text-rubric">Emergency edicts</h2>
     <EdictRow
       v-for="row in edicts"
       :key="row.id"
@@ -68,8 +68,8 @@ function act(command: Command): void {
           class="motion-raise absolute right-1 top-0 size-7 text-ink"
           label=""
         />
-        <h2 class="font-caps text-sm text-rubric">New land</h2>
-        <p class="font-body text-[13px] italic leading-[18px] text-ink-faded">
+        <h2 class="font-caps text-base text-rubric">New land</h2>
+        <p class="font-body text-base italic leading-[22px] text-ink-faded">
           Colonise an empty province: more room for your people.
         </p>
       </div>
@@ -77,7 +77,7 @@ function act(command: Command): void {
         type="button"
         data-colonise
         :disabled="colonise.command === null"
-        class="flex h-12 w-[112px] shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px]"
+        class="flex min-h-12 w-[112px] shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px] py-1"
         :class="
           colonise.command
             ? 'border-gold bg-wax text-cream'
@@ -85,8 +85,8 @@ function act(command: Command): void {
         "
         @click="colonise?.command && act(colonise.command)"
       >
-        <span class="font-caps text-[15px] leading-5">{{ colonise.blocked ?? 'Colonise' }}</span>
-        <span class="font-body text-[13px] italic leading-[18px]">
+        <span class="font-caps text-[18px] leading-5">{{ colonise.blocked ?? 'Colonise' }}</span>
+        <span class="font-body text-base italic leading-[22px]">
           {{ formatCompact(colonise.cost, 0, 'up') }} AP
         </span>
       </button>

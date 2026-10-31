@@ -263,7 +263,7 @@ describe('Task 1: moments model', () => {
       { type: 'ACCEPT_LOMBARD_LOAN' },
       { type: 'REFUSE_LOMBARD_LOAN' },
     ])
-    expect(moment.answers[0]?.detail).toContain('2k AP')
+    expect(moment.answers[0]?.detail).toContain('2.0k AP')
     expect(moment.answers[0]?.detail).toContain('one province')
   })
 

@@ -44,11 +44,14 @@ async function playToTheEnd(page: Page) {
   const letter = page.locator('[data-moment-letter]:not(.letter-leave-active)')
   const answer = letter.locator('[data-moment-answer]:not([disabled])').last()
   const resume = page.locator('[data-resume]')
+  const missive = page.locator('[data-report-close]')
   const fate = page.locator('[data-fate]')
   let bought = false
 
   for (let turn = 0; turn < 200 && (await fate.count()) === 0; turn++) {
-    if ((await letter.count()) > 0) {
+    if ((await missive.count()) > 0) {
+      await missive.click()
+    } else if ((await letter.count()) > 0) {
       await answer.click()
     } else if ((await resume.count()) > 0) {
       if (!bought) {

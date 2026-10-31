@@ -49,7 +49,7 @@ function firstShortfall(state: GameState): string | null {
   }
   if (outcome.militaryMet) return null
   const army = calculateMilitaryPower(state, config)
-  return required ? `${short(required.military, army)} army strength` : 'your army'
+  return required ? `${short(required.military, army)} force` : 'your force'
 }
 
 function fateLine(state: GameState, outcome: FateView['outcome']): string {

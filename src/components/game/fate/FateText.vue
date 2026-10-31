@@ -17,7 +17,7 @@ defineProps<{ view: FateView; reign: number; dark?: boolean; lead?: string }>()
       {{ view.line }}
     </p>
     <p
-      class="mt-2 font-body text-sm italic leading-[18px] text-[#6e5037]"
+      class="mt-2 font-body text-base italic leading-[22px] text-[#6e5037]"
       :class="dark ? 'text-[#c8aa82]' : ''"
     >
       Reign {{ reign }}, {{ view.foot }}

@@ -60,7 +60,7 @@ function attempt(command: Command): void {
       />
     </template>
     <template v-if="view">
-      <p class="font-caps text-sm text-rubric">
+      <p class="font-caps text-base text-rubric">
         You hold {{ view.provinces }} {{ view.provinces === 1 ? 'province' : 'provinces' }}
       </p>
       <div class="flex items-center gap-1.5">
@@ -73,10 +73,10 @@ function attempt(command: Command): void {
           :label="index <= view.provinces ? 'Province held' : 'Province to win'"
         />
       </div>
-      <p class="font-body text-[13px] italic text-ink-faded">
+      <p class="font-body text-base italic text-ink-faded">
         {{ view.goal }} to win Imperial Barony
       </p>
-      <p v-if="outcome" data-outcome class="motion-ink font-body text-[15px] italic text-rubric">
+      <p v-if="outcome" data-outcome class="motion-ink font-body text-[18px] italic text-rubric">
         {{ outcome }}
       </p>
       <template v-if="view.live">
@@ -89,8 +89,8 @@ function attempt(command: Command): void {
             class="flex h-14 flex-col items-center justify-center rounded-lg border-[1.5px] border-ink-faded/60 bg-vellum-shade text-ink disabled:text-ink-faded"
             @click="view?.scout.command && attempt(view.scout.command)"
           >
-            <span class="font-caps text-[15px] leading-5">Send a scout</span>
-            <span class="font-body text-[13px] italic leading-[18px]">
+            <span class="font-caps text-[18px] leading-5">Send a scout</span>
+            <span class="font-body text-base italic leading-[22px]">
               {{ view.scout.blocked ?? '1 scout dies, new target' }}
             </span>
           </button>
@@ -106,8 +106,8 @@ function attempt(command: Command): void {
             "
             @click="view?.attack.command && attempt(view.attack.command)"
           >
-            <span class="font-caps text-[15px] leading-5">Attack</span>
-            <span class="font-body text-[13px] italic leading-[18px]">
+            <span class="font-caps text-[18px] leading-5">Attack</span>
+            <span class="font-body text-base italic leading-[22px]">
               {{ view.attack.blocked ?? view.target?.odds }}
             </span>
           </button>

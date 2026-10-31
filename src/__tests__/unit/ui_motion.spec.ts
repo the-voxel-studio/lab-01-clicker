@@ -31,21 +31,21 @@ describe('Task 11: motion foundation', () => {
   it('shows every large figure in thousands, rounded the way the player is safe', () => {
     expect(formatCompact(999)).toBe('999')
     expect(formatCompact(2.46, 1)).toBe('2.5')
-    expect(formatCompact(1000)).toBe('1k')
+    expect(formatCompact(1000)).toBe('1.0k')
     expect(formatCompact(1999)).toBe('1.9k')
     expect(formatCompact(12340)).toBe('12.3k')
-    expect(formatCompact(1234567)).toBe('1,234k')
+    expect(formatCompact(1234567)).toBe('1,234.5k')
     expect(formatCompact(-1500)).toBe('−1.5k')
-    expect(formatCompact(1910, 0, 'up')).toBe('2k')
-    expect(formatCompact(1901, 0, 'up')).toBe('2k')
-    expect(formatCompact(1234567, 0, 'up')).toBe('1,235k')
+    expect(formatCompact(1910, 0, 'up')).toBe('2.0k')
+    expect(formatCompact(1901, 0, 'up')).toBe('2.0k')
+    expect(formatCompact(1234567, 0, 'up')).toBe('1,234.6k')
     expect(formatCompact(-1510, 0, 'up')).toBe('−1.5k')
     expect(formatCompact(-1510)).toBe('−1.6k')
   })
 
   it('writes the rate with the same thousands', () => {
     expect(formatRate(1500)).toBe('+1.5k AP each second')
-    expect(formatRate(-2000)).toBe('−2k AP each second')
+    expect(formatRate(-2000)).toBe('−2.0k AP each second')
   })
 
   it('gives loops their own phase, stable for a seed', () => {

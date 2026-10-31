@@ -31,7 +31,7 @@ const LEGEND: [ChronicleKind, string][] = [
       </p>
       <div data-chronicle-list class="mt-3 min-h-0 flex-1 overflow-y-auto">
         <template v-for="group in chronicle.byAudit" :key="group.deadline">
-          <p class="my-2 flex items-center gap-2 font-caps text-sm text-ink-faded">
+          <p class="my-2 flex items-center gap-2 font-caps text-base text-ink-faded">
             <span class="h-px flex-1 bg-ink-faded/60" />{{ group.title
             }}<span class="h-px flex-1 bg-ink-faded/60" />
           </p>
@@ -41,15 +41,24 @@ const LEGEND: [ChronicleKind, string][] = [
             class="flex items-start gap-2 py-1 font-body text-base leading-5 text-ink"
           >
             <ChronicleMark :kind="entry.kind" />
-            <span class="w-9 shrink-0 text-sm text-rubric">{{
+            <span class="w-9 shrink-0 text-base text-rubric">{{
               formatReignClock(entry.reignSeconds)
             }}</span>
-            <span>{{ entry.text }}</span>
+            <button
+              v-if="entry.report"
+              type="button"
+              data-entry-report
+              class="text-left underline decoration-rubric underline-offset-2"
+              @click="game.openReport(entry.report)"
+            >
+              {{ entry.text }}
+            </button>
+            <span v-else>{{ entry.text }}</span>
           </p>
         </template>
       </div>
       <p
-        class="mt-3 flex shrink-0 flex-wrap gap-x-4 gap-y-1 font-body text-sm italic text-ink-faded"
+        class="mt-3 flex shrink-0 flex-wrap gap-x-4 gap-y-1 font-body text-base italic text-ink-faded"
       >
         <span v-for="[kind, label] in LEGEND" :key="kind" class="flex items-center gap-1">
           <ChronicleMark :kind="kind" />{{ label }}

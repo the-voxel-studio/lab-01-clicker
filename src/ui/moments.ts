@@ -131,7 +131,7 @@ export function quotaLines(state: GameState, outcome: AuditOutcome): QuotaLine[]
     },
     { label: 'People', figure: figure(state.totalPopulation, required?.pop), met: outcome.popMet },
     {
-      label: 'Army',
+      label: 'Force',
       figure: figure(calculateMilitaryPower(state, config), required?.military),
       met: outcome.militaryMet,
     },
@@ -245,7 +245,7 @@ function fightDetail(
   theirs: number,
 ): string {
   const lost = provincesAtStake > 1 ? 'two provinces' : 'one province'
-  const stakes = `${formatCompact(yours)} against ${formatCompact(theirs, 0, 'up')}. Losing costs ${lost}, the whole army, part of your people and coffer, and ${balance.COLLAPSE_UNREST} unrest.`
+  const stakes = `Your force ${formatCompact(yours)} against their ${formatCompact(theirs, 0, 'up')}. Losing costs ${lost}, the whole army, part of your people and coffer, and ${balance.COLLAPSE_UNREST} unrest.`
   return state.provinces <= provincesAtStake
     ? `${stakes} ${MOMENT_COPY.herald.lastProvince}`
     : stakes
@@ -340,7 +340,7 @@ function heraldMoment(state: GameState): MomentView {
 }
 
 /** Power of the raid, as `RESOLVE_RAID_DEFENSE` composes it. */
-function raidPower(state: GameState): number {
+export function raidPower(state: GameState): number {
   const base = Math.round(
     balance.RAID_POWER_QUOTA_SHARE * quotaForDeadline(config, state.deadline).military,
   )

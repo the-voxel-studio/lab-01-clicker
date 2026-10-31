@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useChronicleStore } from '@/stores/chronicle'
+import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
 import { formatReignClock } from '@/ui/chronicle'
 import ChronicleMark from './ChronicleMark.vue'
@@ -8,6 +9,7 @@ import ChronicleMark from './ChronicleMark.vue'
 /** The latest of the chronicle under the counsel, cut short: the full page holds the rest. */
 const chronicle = useChronicleStore()
 const nav = useNavStore()
+const game = useGameStore()
 
 const groups = computed(() => chronicle.byAudit.slice(0, 2))
 /** The panel tells the verdict only; the figures sentence belongs to the full page. */
@@ -22,7 +24,7 @@ const firstSentence = (text: string): string =>
       <button
         type="button"
         data-read-all
-        class="font-body text-sm italic text-rubric underline"
+        class="font-body text-base italic text-rubric underline"
         @click="nav.go('chronicle')"
       >
         Read it all
@@ -30,7 +32,7 @@ const firstSentence = (text: string): string =>
     </div>
     <div class="chronicle-excerpt relative mt-1 min-h-0 flex-1 overflow-hidden">
       <template v-for="group in groups" :key="group.deadline">
-        <p class="my-1 flex items-center gap-2 font-caps text-sm text-ink-faded">
+        <p class="my-1 flex items-center gap-2 font-caps text-base text-ink-faded">
           <span class="h-px flex-1 bg-ink-faded/60" />{{ group.title
           }}<span class="h-px flex-1 bg-ink-faded/60" />
         </p>
@@ -40,10 +42,19 @@ const firstSentence = (text: string): string =>
           class="flex items-start gap-2 py-0.5 font-body text-base leading-5 text-ink"
         >
           <ChronicleMark :kind="entry.kind" />
-          <span class="w-9 shrink-0 font-body text-sm text-rubric">{{
+          <span class="w-9 shrink-0 font-body text-base text-rubric">{{
             formatReignClock(entry.reignSeconds)
           }}</span>
-          <span class="motion-ink">{{ firstSentence(entry.text) }}</span>
+          <button
+            v-if="entry.report"
+            type="button"
+            data-entry-report
+            class="motion-ink text-left underline decoration-rubric underline-offset-2"
+            @click="game.openReport(entry.report)"
+          >
+            {{ firstSentence(entry.text) }}
+          </button>
+          <span v-else class="motion-ink">{{ firstSentence(entry.text) }}</span>
         </p>
       </template>
     </div>

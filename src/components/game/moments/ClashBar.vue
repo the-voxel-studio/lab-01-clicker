@@ -17,14 +17,14 @@ const theirs = computed(() => percent(props.clash.theirs))
 
 <template>
   <div data-clash class="mt-3">
-    <p class="font-body text-[15px] leading-6 text-ink">Your force against theirs</p>
+    <p class="font-body text-[18px] leading-6 text-ink">Your force against theirs</p>
     <div class="relative mt-0.5 h-3 rounded-md border border-ink-faded/50 bg-vellum-shade">
       <div class="absolute inset-y-0 left-0 rounded-md bg-rubric/55" :style="{ width: theirs }" />
       <div class="absolute -top-1.5 h-6 w-[3px] bg-verdigris" :style="{ left: yours }" />
     </div>
-    <p class="mt-1.5 flex justify-between font-body text-[13px] italic leading-[18px]">
-      <span class="text-verdigris">you, {{ formatCompact(clash.yours) }}</span>
-      <span class="text-rubric">them, {{ formatCompact(clash.theirs, 0, 'up') }}</span>
+    <p class="mt-1.5 flex justify-between font-body text-base italic leading-[22px]">
+      <span class="text-verdigris">your force, {{ formatCompact(clash.yours) }}</span>
+      <span class="text-rubric">their force, {{ formatCompact(clash.theirs, 0, 'up') }}</span>
     </p>
   </div>
 </template>

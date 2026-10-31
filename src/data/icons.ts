@@ -77,6 +77,9 @@ import eventDilemmaSvg from '@assets/icons/lorc/scales.svg?raw'
 import taxRateSvg from '@assets/icons/delapouite/coins.svg?raw'
 import wheatHarvestSvg from '@assets/icons/lorc/wheat.svg?raw'
 import stoneTowerSvg from '@assets/icons/lorc/stone-tower.svg?raw'
+import visoredHelmSvg from '@assets/icons/lorc/visored-helm.svg?raw'
+import hutsVillageSvg from '@assets/icons/delapouite/huts-village.svg?raw'
+import forestSvg from '@assets/icons/delapouite/forest.svg?raw'
 import warBannerSvg from '@assets/icons/delapouite/knight-banner.svg?raw'
 import timerSvg from '@assets/icons/lorc/hourglass.svg?raw'
 import soundOnSvg from '@assets/icons/delapouite/sound-on.svg?raw'
@@ -182,6 +185,9 @@ export type GameIconKey =
   | 'taxRate'
   | 'wheatHarvest'
   | 'stoneTower'
+  | 'visoredHelm'
+  | 'hutsVillage'
+  | 'forest'
   | 'warBanner'
   | 'timer'
   | 'soundOn'
@@ -772,6 +778,22 @@ export const GAME_ICONS: Record<GameIconKey, IconDefinition> = {
     svg: wheatHarvestSvg,
     innerHtml: extractInnerHtml(wheatHarvestSvg),
   },
+  hutsVillage: {
+    key: 'hutsVillage',
+    label: 'Harvest & Fiefs',
+    category: 'people',
+    sourcePath: 'lorc/wheat.svg',
+    svg: hutsVillageSvg,
+    innerHtml: extractInnerHtml(hutsVillageSvg),
+  },
+  forest: {
+    key: 'forest',
+    label: 'Harvest & Fiefs',
+    category: 'people',
+    sourcePath: 'lorc/wheat.svg',
+    svg: forestSvg,
+    innerHtml: extractInnerHtml(forestSvg),
+  },
   stoneTower: {
     key: 'stoneTower',
     label: 'Fortification / Defense',
@@ -779,6 +801,14 @@ export const GAME_ICONS: Record<GameIconKey, IconDefinition> = {
     sourcePath: 'lorc/stone-tower.svg',
     svg: stoneTowerSvg,
     innerHtml: extractInnerHtml(stoneTowerSvg),
+  },
+  visoredHelm: {
+    key: 'visoredHelm',
+    label: 'The Host',
+    category: 'military',
+    sourcePath: 'lorc/visored-helm.svg',
+    svg: visoredHelmSvg,
+    innerHtml: extractInnerHtml(visoredHelmSvg),
   },
   warBanner: {
     key: 'warBanner',

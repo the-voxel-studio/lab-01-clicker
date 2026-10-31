@@ -77,7 +77,7 @@ function act(command: Command): void {
   <OrderFrame :title="copy.title" :intro="copy.intro">
     <template #header>
       <BulkSelector v-model="bulk" :options="options" class="mt-2" />
-      <p v-if="refused" data-refusal class="font-body text-[13px] italic text-rubric">
+      <p v-if="refused" data-refusal class="font-body text-base italic text-rubric">
         The Crown refuses this order.
       </p>
     </template>
@@ -86,8 +86,8 @@ function act(command: Command): void {
       data-panel
       class="mb-1 rounded-lg border-[1.5px] border-gold bg-vellum-shade/70 px-3 py-2"
     >
-      <p class="font-body text-[15px] leading-5 text-ink">{{ panel.title }}</p>
-      <p class="font-body text-[13px] italic leading-[18px] text-ink-faded">{{ panel.note }}</p>
+      <p class="font-body text-[18px] leading-5 text-ink">{{ panel.title }}</p>
+      <p class="font-body text-base italic leading-[22px] text-ink-faded">{{ panel.note }}</p>
     </div>
     <GameIcon
       v-if="broken"

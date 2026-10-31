@@ -87,10 +87,10 @@ Population represents a finite physical pool of living subjects rather than an a
  ┌───────────────┐               ┌───────────────┐               ┌───────────────┐
  │   THE PEOPLE  │               │ ADMINISTRATION│               │  THE MILITARY │
  ├───────────────┤               ├───────────────┤               ├───────────────┤
- │ • Peasants    │               │ • Scribes     │               │ • Soldiers    │
- │ • Artisans    │               │ • Supervisors │               │ • Officers    │
- │ • Clergy      │               │ • Archivists  │               │ • Quarterm'rs │
- │ • Notables    │               │ • Collectors  │               │ • Scouts      │
+ │ - Peasants    │               │ - Scribes     │               │ - Soldiers    │
+ │ - Artisans    │               │ - Supervisors │               │ - Officers    │
+ │ - Clergy      │               │ - Archivists  │               │ - Quarterm'rs │
+ │ - Notables    │               │ - Collectors  │               │ - Scouts      │
  └───────┬───────┘               └───────┬───────┘               └───────┬───────┘
          │                               │                               │
          └───────────────────────┬───────┴───────────────────────────────┘
@@ -631,7 +631,7 @@ Eight thematic achievements incentivize exploring diverse playstyles. Each unloc
    - Ensures readability on high-density mobile screens or for users with visual impairments.
 2. **Accessible Quota Badges:**
    - Quota completion states never rely solely on green/red color perception.
-   - Every threshold displays explicit iconographic indicators: `[✓ SATISFIED]` or `[✗ DEFICIT]` with high-contrast borders.
+   - Every threshold displays explicit iconographic indicators: `[yes SATISFIED]` or `[✗ DEFICIT]` with high-contrast borders.
 
 ---
 

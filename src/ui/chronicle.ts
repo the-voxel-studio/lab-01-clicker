@@ -21,6 +21,7 @@ import { DILEMMAS_DATA } from '@/data/dilemmas'
 import type { EdictId } from '@/data/edicts'
 import { LAWS_DATA } from '@/data/laws'
 import type { DreadBand } from '@/ui/dread'
+import { battleReport, type BattleReport } from '@/ui/report'
 import { formatCompact } from '@/ui/realmText'
 
 /** What an entry tells: the player's decisions, audits, folklore, deaths or money. */
@@ -39,6 +40,8 @@ export interface ChronicleEntry {
   verdict?: AuditVerdict
   /** Lets a repeated command add to this line instead of writing a new one. */
   merge?: ChronicleMerge
+  /** The missive of a fight, shown again when the line is opened. */
+  report?: BattleReport
 }
 
 /** What a mergeable command line adds up: a unit's purchases, or the tax rate's moves. */
@@ -394,5 +397,7 @@ export function entryFromCommand(
   }
   const merge = mergeOf(command, before, after)
   if (merge) entry.merge = merge
+  const report = battleReport(command, before, after)
+  if (report) entry.report = report
   return entry
 }

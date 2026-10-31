@@ -132,46 +132,46 @@ PHASE V1: COMPLETE ENGINE, HEADLESS & SIMULATION (Gates A through E)
 [Strict Rule: Zero UI / presentation component dev until Gate E is complete & frozen]
 ========================================================================================
 Gate A: Core Economy, 24 Units & Minimal Run Validation
-   │     • Formulas, Modifiers, Tiers I & II, Biomes, 24-Unit Catalog (src/data/units.ts)
-   │     • Minimal Run Core: state factory, unconstrained economic dispatch, tick integration,
+   │     - Formulas, Modifiers, Tiers I & II, Biomes, 24-Unit Catalog (src/data/units.ts)
+   │     - Minimal Run Core: state factory, unconstrained economic dispatch, tick integration,
    │       tax promulgation delay (8s), unrest model, 2-out-of-3 deadline quota audit
-   │     • Greedy ROI Bot v0 & provisional c solver on pure economy (no laws/dilemmas)
-   │     • Exit Criterion: Quotas generated, 35-65% win rate band reached, zero deadline cliffs
+   │     - Greedy ROI Bot v0 & provisional c solver on pure economy (no laws/dilemmas)
+   │     - Exit Criterion: Quotas generated, 35-65% win rate band reached, zero deadline cliffs
    ▼
 Gate B: Complete Run Loop, State Machine & Determinism
-   │     • Configurable tick (20 Hz UI, 1-2 Hz headless sim) & step-invariance testing (Δt = 0.05 vs 0.5 vs 1.0s)
-   │     • Complete RunPhase FSM (6 inter-deadline steps + active cycle + crises)
-   │     • LOMBARD_OFFER with bankruptcy timer paused during this phase
-   │     • In-run interimWarningShown state flag at t = 50s without phase interruption
-   │     • Single command dispatch API dispatch(Command) & phase permissions table
-   │     • Replay journal { seed, entries: [{ timeSeconds, command }] } indexed by game seconds
-   │     • Versioned save system with sequential typed migrations (unknown, zero any)
+   │     - Configurable tick (20 Hz UI, 1-2 Hz headless sim) & step-invariance testing (Δt = 0.05 vs 0.5 vs 1.0s)
+   │     - Complete RunPhase FSM (6 inter-deadline steps + active cycle + crises)
+   │     - LOMBARD_OFFER with bankruptcy timer paused during this phase
+   │     - In-run interimWarningShown state flag at t = 50s without phase interruption
+   │     - Single command dispatch API dispatch(Command) & phase permissions table
+   │     - Replay journal { seed, entries: [{ timeSeconds, command }] } indexed by game seconds
+   │     - Versioned save system with sequential typed migrations (unknown, zero any)
    ▼
 Gate C: Asymmetric Combat & Dynamic Threats
-   │     • Asymmetric combat model (Attacker -10% friction vs Defender +20% fortification)
-   │     • Razor-thin victory rule (≤ 5% margin → no province awarded), Province Floor = 1
-   │     • Dynamic threats & tributes calculated on the fly (0.8 mil quota, 0.2 AP quota)
-   │     • Reactive surprise border raids & adaptive factions
+   │     - Asymmetric combat model (Attacker -10% friction vs Defender +20% fortification)
+   │     - Razor-thin victory rule (≤ 5% margin to no province awarded), Province Floor = 1
+   │     - Dynamic threats & tributes calculated on the fly (0.8 mil quota, 0.2 AP quota)
+   │     - Reactive surprise border raids & adaptive factions
    ▼
 Gate D: Complete Narrative & System Content (30 Laws, 20 Dilemmas, Biomes, Edicts, Charters)
-   │     • Dynamic conditional modifiers via strongly typed ResolverKey (zero serialized functions)
-   │     • grant_units and archive_points effect evaluators
+   │     - Dynamic conditional modifiers via strongly typed ResolverKey (zero serialized functions)
+   │     - grant_units and archive_points effect evaluators
    ▼
 Gate E: Full Simulation, Final Calibration & Engine Freeze
-   │     • 3 Autonomous Bots: Random (< 5%), Greedy ROI (35-65%), Archetype Experts (> 65%)
-   │     • Final c calibration on 200 fixed seeds, validation on 100 seeds
-   │     • Dominance test suite per archetype build (after Deadline 3)
-   │     • Sensitivity analysis ±10%, interactive CLI REPL
+   │     - 3 Autonomous Bots: Random (< 5%), Greedy ROI (35-65%), Archetype Experts (> 65%)
+   │     - Final c calibration on 200 fixed seeds, validation on 100 seeds
+   │     - Dominance test suite per archetype build (after Deadline 3)
+   │     - Sensitivity analysis ±10%, interactive CLI REPL
    ▼  [CORE ENGINE CODE FROZEN & VERIFIED]
 ========================================================================================
 PHASE V2: PLAYABILITY & PRESENTATION
 ========================================================================================
-   • Pinia integration (reactive stores bridging to engine.ts)
-   • Web Audio API engine (Master/SFX/Music buses, polyphony limit, streaming)
-   • Modular Vue 3 components (< 200 lines) & accessible HUD gauges
-   • Contextual FTUE progressive onboarding
-   • Playwright E2E cross-browser tests
-   • Standalone single-file bundle (dist/index.html)
+   - Pinia integration (reactive stores bridging to engine.ts)
+   - Web Audio API engine (Master/SFX/Music buses, polyphony limit, streaming)
+   - Modular Vue 3 components (< 200 lines) & accessible HUD gauges
+   - Contextual FTUE progressive onboarding
+   - Playwright E2E cross-browser tests
+   - Standalone single-file bundle (dist/index.html)
 ```
 
 ---
@@ -335,7 +335,7 @@ PHASE V2: PLAYABILITY & PRESENTATION
 #### Phase 5: Modular UI Presentation Components (`src/components/game/`)
 - **Task 5.1: Layout & Header Components [V2]**
   - `<GameHeader.vue>`: Deadline indicator, 100s circular timer, pause & 2x buttons.
-  - `<QuotaBar.vue>`: 3 Crown metric gauges with accessible `[✓ SATISFIED]` / `[✗ DEFICIT]` badges.
+  - `<QuotaBar.vue>`: 3 Crown metric gauges with accessible `[yes SATISFIED]` / `[✗ DEFICIT]` badges.
   - `<DiscontentMeter.vue>`: Unrest bar with crisis stage labels (Tranquility to Revolution).
   - `<BottomNavigation.vue>`: Tabs for Orders, Ledger, Laws, Archives.
 - **Task 5.2: Ledger & Executive Actions [V2]**

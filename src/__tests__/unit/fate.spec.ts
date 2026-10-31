@@ -133,7 +133,7 @@ describe('Task 5: the fate of a reign', () => {
     await flushPromises()
     const ledger = app.get('.ledger').text()
     expect(ledger).toContain('AP, 1 AP/s, short')
-    expect(ledger).toContain('Army')
+    expect(ledger).toContain('Force')
     expect(ledger).not.toMatch(/\d of \d/)
   })
 
@@ -170,7 +170,7 @@ describe('Task 5: the fate of a reign', () => {
       popMet: true,
       militaryMet: false,
     }
-    expect(fateView(state).line).toContain('your army short')
+    expect(fateView(state).line).toContain('your force short')
   })
 
   it.each(['conquest', 'revolution', 'bankruptcy'] as const)(

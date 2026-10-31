@@ -126,8 +126,8 @@ describe('Task 7: bare playable shell', () => {
     const { wrapper } = mountApp()
     await beginReign(wrapper)
     const double = button(wrapper, '×2')
-    expect(double.attributes('disabled')).toBeDefined()
-    expect(double.attributes('title')).toBe('Unlocked at the fifth audit')
+    expect(double.attributes('aria-disabled')).toBe('true')
+    expect(double.attributes('title')).toBe('Unlocks at the fifth audit')
   })
 
   it('ends an abandoned reign and returns to a hall with nothing to continue', async () => {
@@ -154,6 +154,8 @@ describe('Task 7: bare playable shell', () => {
     const inActiveCycle = () => game.phase === 'ACTIVE_CYCLE'
     for (let guard = 0; guard < 20 && !inActiveCycle(); guard++) {
       const before = game.revision
+      const missive = wrapper.find('[data-report-close]')
+      if (missive.exists()) await missive.trigger('click')
       const open = wrapper.findAll('[data-moment-answer]:not([disabled])')
       await (open[open.length - 1] ?? button(wrapper, 'Resume governance')).trigger('click')
       expect(game.revision).toBeGreaterThan(before)

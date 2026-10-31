@@ -141,8 +141,8 @@ describe('Task 2: the letter replaces the stub', () => {
     refresh(game)
     const host = mount(MomentHost, { global: { plugins: [pinia] } })
     const clash = host.get('[data-clash]').text()
-    expect(clash).toContain('you, ')
-    expect(clash).toContain('them, 70')
+    expect(clash).toContain('your force, ')
+    expect(clash).toContain('their force, 70')
   })
 
   it('says whether each quota was met in words as well as in colour', async () => {
@@ -286,7 +286,7 @@ describe('Task 2: the letter replaces the stub', () => {
   })
 })
 
-describe('Task 4: tidings of a fight', () => {
+describe('Task 4: the missive of a fight', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.stubGlobal('requestAnimationFrame', () => 0)
@@ -308,51 +308,41 @@ describe('Task 4: tidings of a fight', () => {
     return context
   }
 
-  it('shows the line on the next screen and clears it when tapped', async () => {
+  it('opens the missive on the next screen and folds it', async () => {
     const { pinia, game } = atHerald()
     const app = mount(App, { global: { plugins: [pinia] } })
     game.act({ type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
     await flushPromises()
-    expect(game.tidings).toBe('You paid 1.9k AP and they turned back.')
-    await app.get('[data-tidings]').trigger('click')
-    expect(game.tidings).toBeNull()
-    expect(app.find('[data-tidings]').exists()).toBe(false)
+    expect(app.get('[data-battle-report]').text()).toContain('They took the gold')
+    await app.get('[data-report-close]').trigger('click')
+    await flushPromises()
+    expect(game.report).toBeNull()
   })
 
-  it('clears the line after six seconds', () => {
-    const { game } = atHerald()
-    game.act({ type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
-    vi.advanceTimersByTime(5900)
-    expect(game.tidings).not.toBeNull()
-    vi.advanceTimersByTime(200)
-    expect(game.tidings).toBeNull()
-  })
-
-  it('shows on the run screen after a raid', async () => {
+  it('opens after a raid', async () => {
     const { pinia, game, state } = begin()
     SETUP.raid(state)
     refresh(game)
     const app = mount(App, { global: { plugins: [pinia] } })
     game.act({ type: 'RESOLVE_RAID_DEFENSE' })
     await flushPromises()
-    expect(game.tidings).not.toBeNull()
-    expect(app.get('[data-tidings]').text()).toBe(game.tidings)
+    expect(app.find('[data-battle-report]').exists()).toBe(true)
   })
 
   it('stays silent over a refused tribute', () => {
     const { game, state } = atHerald()
     state.ap = 0
     game.act({ type: 'SELECT_THREAT_RESPONSE', response: 'tribute' })
-    expect(game.tidings).toBeNull()
+    expect(game.report).toBeNull()
   })
 
-  it('sets no tidings when the fight ends the reign', () => {
+  it('opens no missive when the fight ends the reign', () => {
     const { game, state } = atHerald()
     state.provinces = 1
     state.provinceBiomes = ['heartland']
     state.currentThreatPower = 10000000
     game.act({ type: 'SELECT_THREAT_RESPONSE', response: 'defense' })
     expect(game.phase).toBe('RUN_DEFEAT')
-    expect(game.tidings).toBeNull()
+    expect(game.report).toBeNull()
   })
 })

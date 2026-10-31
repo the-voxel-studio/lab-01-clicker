@@ -47,7 +47,7 @@ describe('Task 4: Crown', () => {
   it('prices the festival like the engine', () => {
     const { state } = begin()
     state.ap = 10000
-    expect(edictRows(state)[2]!.priceLabel).toBe('Pay 2k AP')
+    expect(edictRows(state)[2]!.priceLabel).toBe('Pay 2.0k AP')
     state.ap = 50
     const festival = edictRows(state)[2]!
     expect(festival.priceLabel).toBe('Pay 100 AP')

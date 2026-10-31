@@ -57,9 +57,14 @@ const UNREST_PHRASES: Record<UnrestCrisisStage, string> = {
   total_revolution: 'the towns rise against you',
 }
 
-/** The unrest line under the HUD, for example "Unrest 28%, the realm is quiet". */
+/** The unrest line under the HUD: the figure and where it ends the reign. */
 export function unrestLine(unrest: number): string {
-  return `Unrest ${Math.round(unrest)}%, ${UNREST_PHRASES[getUnrestCrisisStage(unrest)]}`
+  return `Unrest ${Math.round(unrest)} of 100, overthrown at 100`
+}
+
+/** What the realm does at this unrest, for example "the realm is quiet". */
+export function unrestPhrase(unrest: number): string {
+  return UNREST_PHRASES[getUnrestCrisisStage(unrest)]
 }
 
 /** A figure for the interface, rounded to `decimals`, with a true minus sign (U+2212). */
@@ -72,8 +77,8 @@ export function formatFigure(value: number, decimals = 0): string {
 }
 
 /**
- * A figure for the interface, in thousands from 1,000: `1.5k`, with one decimal up to `999.9k` and
- * none beyond. Thousands are never rounded to nearest: `down` suits what the player holds, `up` what
+ * A figure for the interface, in thousands from 1,000, always with its tenth: `1.5k`, `50.0k`.
+ * Thousands are never rounded to nearest: `down` suits what the player holds, `up` what
  * is owed or demanded, so the screen never promises more than the engine grants.
  *
  * @param decimals - Decimals of figures under 1,000.
@@ -85,6 +90,7 @@ export function formatCompact(value: number, decimals = 0, round: 'down' | 'up' 
   const towardsZero = (round === 'down') === value > 0
   const step = towardsZero ? Math.floor : Math.ceil
   const thousands = magnitude / 1000
-  const shown = thousands < 1000 ? step(thousands * 10) / 10 : step(thousands)
-  return `${value < 0 ? '−' : ''}${shown.toLocaleString('en')}k`
+  const shown = step(Number((thousands * 10).toFixed(6))) / 10
+  const text = shown.toLocaleString('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  return `${value < 0 ? '−' : ''}${text}k`
 }

@@ -9,10 +9,12 @@
 import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { startRun, type RunConclusion } from '@/core/archives'
+import type { BattleReport } from '@/ui/report'
 import { dispatch } from '@/core/commands'
 import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
 import {
   calculateGrossApRate,
+  calculateMaxPopulation,
   calculateMilitaryPower,
   effectiveQuota,
   isFastForwardUnlocked,
@@ -86,13 +88,12 @@ const TOLD_COMMANDS: ReadonlySet<Command['type']> = new Set([
   'RESOLVE_RAID_DEFENSE',
 ])
 
-/** Fights leave their letter at once, so the next screen carries how they went. */
+/** Fights open a missive with how they went. */
 const FIGHT_COMMANDS: ReadonlySet<Command['type']> = new Set([
   'LAUNCH_ATTACK',
   'SELECT_THREAT_RESPONSE',
   'RESOLVE_RAID_DEFENSE',
 ])
-const TIDINGS_MS = 6000
 const FINAL_ENTRIES = 3
 
 function isConcludedPhase(phase: RunPhase): boolean {
@@ -114,8 +115,7 @@ export const useGameStore = defineStore('game', () => {
   const lastSavedDeadline = ref<number | null>(null)
   const lastConclusion = ref<ConcludedReign | null>(null)
 
-  const tidings = ref<string | null>(null)
-  let tidingsTimer: ReturnType<typeof setTimeout> | null = null
+  const report = ref<BattleReport | null>(null)
 
   /** Reads the run after the last engine call, so computed getters track `revision`. */
   function current(): GameState | null {
@@ -164,6 +164,12 @@ export const useGameStore = defineStore('game', () => {
       view('military', calculateMilitaryPower(state, config), required.military),
     ]
   })
+  /** People the realm can house, unlike the Crown's demand on the same stick. */
+  const room = computed(() => {
+    void revision.value
+    const state = current()
+    return state ? Math.floor(calculateMaxPopulation(state, config)) : 0
+  })
   const dread = computed<DreadReading>(() => {
     const forced = settings.dreadOverride
     if (import.meta.env.DEV && forced !== null) {
@@ -177,17 +183,13 @@ export const useGameStore = defineStore('game', () => {
     revision.value++
   }
 
-  function dismissTidings(): void {
-    tidings.value = null
-    if (tidingsTimer !== null) clearTimeout(tidingsTimer)
-    tidingsTimer = null
+  /** Shows a missive; time waits until it is folded. */
+  function openReport(next: BattleReport): void {
+    report.value = next
   }
 
-  function tell(text: string | undefined): void {
-    dismissTidings()
-    if (text === undefined) return
-    tidings.value = text
-    tidingsTimer = setTimeout(dismissTidings, TIDINGS_MS)
+  function closeReport(): void {
+    report.value = null
   }
 
   function clearSave(): void {
@@ -206,7 +208,7 @@ export const useGameStore = defineStore('game', () => {
     lastConclusion.value = null
     lastSavedDeadline.value = savedAt
     settings.doubleSpeed = false
-    dismissTidings()
+    closeReport()
     refresh()
     const resumed = savedAt !== null && chronicle.load(state.runId)
     if (!resumed) chronicle.start(state, dread.value.band)
@@ -280,7 +282,8 @@ export const useGameStore = defineStore('game', () => {
     refresh()
     if (before) chronicle.noteCommand(command, result, before, state)
     if (result.success && FIGHT_COMMANDS.has(command.type) && !isConcludedPhase(state.phase)) {
-      tell(chronicle.entries[0]?.text)
+      const written = chronicle.entries[0]?.report
+      if (written) openReport(written)
     }
     chronicle.observe(state, dread.value.band)
     settleIfOver()
@@ -290,7 +293,7 @@ export const useGameStore = defineStore('game', () => {
   /** Steps the engine by `dt` seconds (doubled when double speed is on and unlocked). */
   function advance(dt: number): void {
     const state = run.value
-    if (!state) return
+    if (!state || report.value) return
     const factor = settings.doubleSpeed && isFastForwardUnlocked(state, config) ? 2 : 1
     const phaseBefore = state.phase
     const result = tick(state, dt * factor, config)
@@ -339,13 +342,15 @@ export const useGameStore = defineStore('game', () => {
     preparing,
     auditAhead,
     quotas,
+    room,
     dread,
     hasSave,
     savedDeadline,
     lastSavedDeadline,
     lastConclusion,
-    tidings,
-    dismissTidings,
+    report,
+    openReport,
+    closeReport,
     begin,
     resume,
     act,

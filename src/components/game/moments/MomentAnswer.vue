@@ -32,13 +32,13 @@ const emit = defineEmits<{ choose: [command: Command] }>()
       </span>
       <span
         v-if="answer.detail"
-        class="block font-body text-[13px] italic leading-[18px] text-ink-faded"
+        class="block font-body text-base italic leading-[22px] text-ink-faded"
       >
         {{ answer.detail }}
       </span>
       <span
         v-if="answer.blocked"
-        class="block font-body text-[13px] italic leading-[18px] text-rubric"
+        class="block font-body text-base italic leading-[22px] text-rubric"
       >
         {{ answer.blocked }}
       </span>

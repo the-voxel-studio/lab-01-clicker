@@ -448,17 +448,17 @@ Factions are nuanced and dynamically adapt their tactical behavior to the player
 ```
 ┌────────────────────────────────────────────────────────┐
 │                   PLAYER REALM STATE                   │
-│   • Huge Military?      • High Treasury (>2k AP)?      │
-│   • Low Armies / High Pop? • High Unrest (>60%)?       │
+│   - Huge Military?      - High Treasury (>2k AP)?      │
+│   - Low Armies / High Pop? , High Unrest (>60%)?       │
 └───────────────────────────┬────────────────────────────┘
                             │ Evaluates State
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │               REACTIVE ENEMY TRAIT ADAPTATION          │
-│   • Armored Veterans (+10% Enemy Combat Power)         │
-│   • Mercenary Greed (+25% Tribute / Plunder)           │
-│   • Heretic Agitators (+Defection / Unrest)            │
-│   • Siege Sappers (Targets Province Defense)           │
+│   - Armored Veterans (+10% Enemy Combat Power)         │
+│   - Mercenary Greed (+25% Tribute / Plunder)           │
+│   - Heretic Agitators (+Defection / Unrest)            │
+│   - Siege Sappers (Targets Province Defense)           │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -768,7 +768,7 @@ To guarantee absolute economic balance, bulletproof state transitions, and high-
 ### V2: Playability & Presentation (UI, Audio & Packaging)
 - **Pinia Integration:** Reactive stores bridging to core engine (`game.ts`, `archives.ts`, `settings.ts`).
 - **Web Audio API Engine:** Master/SFX/Music buses, polyphony limit (3-4 voices), event throttling (40ms), pitch variance $\pm 5\%$, soundtrack cross-fading.
-- **Modular Presentation Components (< 200 lines):** Accessible HUD gauges with explicit textual badges `[✓ SATISFIED]` / `[✗ DEFICIT]`, decree buttons with particle bursts, modals for laws, dilemmas, and combat clashes.
+- **Modular Presentation Components (< 200 lines):** Accessible HUD gauges with explicit textual badges `[yes SATISFIED]` / `[✗ DEFICIT]`, decree buttons with particle bursts, modals for laws, dilemmas, and combat clashes.
 - **Contextual FTUE Tutorial:** Progressive onboarding overlays during the initial run.
 - **Playwright End-to-End Tests:** Cross-browser validation of the complete gameplay loop.
 - **Single-File Distribution:** Standalone `dist/index.html` build via `vite-plugin-singlefile`.

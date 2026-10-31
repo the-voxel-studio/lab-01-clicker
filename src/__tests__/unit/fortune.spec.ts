@@ -277,6 +277,6 @@ describe('Task 6: war during the reign', () => {
     await flushPromises()
     expect(game.phase).toBe('AWAIT_RESUME')
     expect(nav.screen).toBe('fortune')
-    expect(game.tidings).toMatch(/Your host (took a province|came back without a province)\./)
+    expect(game.report).not.toBeNull()
   })
 })

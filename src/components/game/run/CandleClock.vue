@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StableFigure from '@/components/game/ledger/StableFigure.vue'
 import { computed } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
@@ -26,9 +27,9 @@ const guttering = computed(() => game.secondsLeft <= LAST_SECONDS)
         class="font-display text-[26px] leading-[30px]"
         :class="guttering ? 'motion-beat text-rubric' : 'text-ink'"
       >
-        {{ formatClock(game.secondsLeft) }}
+        <StableFigure :value="formatClock(game.secondsLeft)" />
       </p>
-      <p class="font-body text-sm italic text-ink-faded">
+      <p class="font-body text-base italic text-ink-faded">
         {{ auditOrdinal(game.auditAhead) }} audit
       </p>
     </div>

@@ -118,7 +118,7 @@ onUnmounted(() => {
         <p class="font-body italic text-ink-faded">
           {{ capitalized(ordinal) }} audit, {{ timeLeft }}
         </p>
-        <p class="font-body text-sm italic text-rubric">Game paused while this menu is open.</p>
+        <p class="font-body text-base italic text-rubric">Game paused while this menu is open.</p>
 
         <button ref="firstItem" type="button" class="menu-item" @click="close">
           Resume<small>Back to the {{ ordinal }} audit</small>
@@ -136,7 +136,7 @@ onUnmounted(() => {
           Return to the hall<small>The reign is saved and waits for you</small>
         </button>
 
-        <p class="mt-2 font-caps text-sm text-rubric">Settings</p>
+        <p class="mt-2 font-caps text-base text-rubric">Settings</p>
         <label class="setting"><input v-model="settings.music" type="checkbox" />Music</label>
         <label class="setting"><input v-model="settings.sfx" type="checkbox" />Sound effects</label>
         <label class="setting">
@@ -179,7 +179,7 @@ onUnmounted(() => {
   color: var(--color-rubric);
 }
 .menu-item small {
-  font-size: 13px;
+  font-size: 16px;
   font-style: italic;
   color: var(--color-ink-faded);
 }

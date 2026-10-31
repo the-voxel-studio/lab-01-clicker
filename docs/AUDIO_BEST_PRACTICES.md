@@ -46,7 +46,7 @@ Browsers may throttle audio or allow loops to drift out of sync when a tab is mi
 
 | Feature | HTML5 `<audio>` Element | Web Audio API (`AudioContext`) |
 | :--- | :---: | :---: |
-| **Latency** | High (50–150ms delay) | Near-zero (< 10ms hardware buffer) |
+| **Latency** | High (50-150ms delay) | Near-zero (< 10ms hardware buffer) |
 | **Rapid SFX Playback** | Glitchy / Fails on fast clicks | Multiple overlapping instances from one decoded buffer |
 | **Dynamic Routing** | Volume & Pan only | Arbitrary node graphs (Buses, Filters, Reverb) |
 | **Pitch Shifting** | Limited / Broken in older engines | Native `playbackRate.value` and `detune.value` |
@@ -77,8 +77,8 @@ Incremental games present unique audio engineering challenges due to high-freque
 
 ### 4.1 Clicker Spam & Polyphony Limiting (Voice Stealing)
 Triggering dozens of unthrottled audio sources simultaneously causes severe CPU spikes, audio clipping, and acoustic fatigue.
-- **Cooldown Throttling:** Enforce a minimum interval (e.g., 40–60ms) between identical sound events.
-- **Max Concurrency per Sound:** Allow no more than 3–4 concurrent voices for a single SFX key. If a 5th arrives, stop the oldest active voice immediately (voice stealing).
+- **Cooldown Throttling:** Enforce a minimum interval (e.g., 40-60ms) between identical sound events.
+- **Max Concurrency per Sound:** Allow no more than 3-4 concurrent voices for a single SFX key. If a 5th arrives, stop the oldest active voice immediately (voice stealing).
 
 ### 4.2 The Machine-Gun Effect (Acoustic Fatigue)
 Repeatedly playing the exact same sample sounds robotic and quickly annoys the player.
@@ -106,9 +106,9 @@ Repeatedly playing the exact same sample sounds robotic and quickly annoys the p
 To maintain optimal browser startup performance and preserve a lean `index.html`, audio assets are partitioned into two distinct distribution tiers:
 
 ### 6.1 Inlined Sound Effects (SFX)
-- **Source:** Curated sounds from `assets/audio/rpg/` and `assets/audio/ui/` (Kenney OGG Vorbis, 4–15 KB each).
+- **Source:** Curated sounds from `assets/audio/rpg/` and `assets/audio/ui/` (Kenney OGG Vorbis, 4-15 KB each).
 - **Packaging:** Embedded directly into the bundle (or base64-inlined via `vite-plugin-singlefile`).
-- **Total Overhead:** ~100–150 KB for all 15–20 active gameplay sound effects.
+- **Total Overhead:** ~100-150 KB for all 15-20 active gameplay sound effects.
 - **Advantage:** Available synchronously at startup with zero network requests or latency.
 
 ### 6.2 External Streaming Soundtracks (`public/soundtrack/`)

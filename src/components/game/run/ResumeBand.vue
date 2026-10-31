@@ -22,7 +22,7 @@ function resume(): void {
     data-resume-band
     class="flex shrink-0 items-center gap-3 border-t border-gold/60 bg-vellum-shade px-4 py-1.5"
   >
-    <div class="min-w-0 flex-1 font-body text-[13px] italic leading-[17px]">
+    <div class="min-w-0 flex-1 font-body text-base italic leading-[22px]">
       <p v-if="lastDeed" class="resume-deed truncate text-ink">{{ lastDeed }}</p>
       <p class="text-ink-faded">Time stands still until you resume.</p>
       <p v-if="error" class="text-rubric">{{ error }}</p>

@@ -56,7 +56,7 @@ watch(() => props.band, phase)
       >
         <div class="rounded border border-gold bg-vellum px-5 py-2 text-center shadow">
           <p class="font-display text-xl text-ink">Time stands still</p>
-          <p class="font-body text-sm italic text-ink-faded">Tap the pause button to resume</p>
+          <p class="font-body text-base italic text-ink-faded">Tap the pause button to resume</p>
         </div>
       </div>
     </Transition>

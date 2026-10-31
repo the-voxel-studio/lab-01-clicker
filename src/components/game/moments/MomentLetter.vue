@@ -48,19 +48,21 @@ onMounted(() => root.value?.focus())
 
     <div data-letter-scroll class="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 pb-5">
       <header>
-        <p class="font-caps text-sm leading-5 tracking-[0.02em] text-rubric">{{ view.eyebrow }}</p>
+        <p class="font-caps text-base leading-5 tracking-[0.02em] text-rubric">
+          {{ view.eyebrow }}
+        </p>
         <h2 id="moment-title" class="font-display text-[25px] leading-[30px] text-ink">
           {{ view.title }}
         </h2>
       </header>
-      <p v-if="view.body" class="font-body text-[15px] leading-[22px] text-ink">{{ view.body }}</p>
+      <p v-if="view.body" class="font-body text-[18px] leading-[22px] text-ink">{{ view.body }}</p>
 
       <ul v-if="view.quotas.length > 0" class="flex flex-col gap-1">
         <li
           v-for="quota in view.quotas"
           :key="quota.label"
           data-quota
-          class="flex items-baseline justify-between gap-2 font-body text-[15px] leading-[22px]"
+          class="flex items-baseline justify-between gap-2 font-body text-[18px] leading-[22px]"
         >
           <span class="text-ink">{{ quota.label }}</span>
           <span class="text-ink-faded">{{ quota.figure }}</span>
@@ -81,8 +83,10 @@ onMounted(() => root.value?.focus())
         />
       </div>
 
-      <p data-moment-error v-if="error" class="font-body text-sm italic text-rubric">{{ error }}</p>
-      <p v-if="view.note" class="font-body text-sm italic leading-[22px] text-ink-faded">
+      <p data-moment-error v-if="error" class="font-body text-base italic text-rubric">
+        {{ error }}
+      </p>
+      <p v-if="view.note" class="font-body text-base italic leading-[22px] text-ink-faded">
         {{ view.note }}
       </p>
     </div>

@@ -42,7 +42,7 @@ const ledger = computed(() => {
       <p
         v-for="line in ledger.lines"
         :key="line"
-        class="font-body text-[17px] leading-6 text-[#1e120a]"
+        class="font-body text-[18px] leading-6 text-[#1e120a]"
       >
         {{ line }}
       </p>

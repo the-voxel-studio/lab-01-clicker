@@ -26,18 +26,18 @@ function disband(unitId: UnitId): void {
     <button
       type="button"
       data-disband-open
-      class="min-h-6 font-body text-sm italic text-rubric underline"
+      class="min-h-6 font-body text-base italic text-rubric underline"
       :aria-expanded="open"
       @click="open = !open"
     >
       Disband soldiers
     </button>
-    <span class="font-body text-[13px] italic text-ink-faded"> to save upkeep</span>
+    <span class="font-body text-base italic text-ink-faded"> to save upkeep</span>
     <div v-if="open" class="mt-2 flex flex-col gap-1">
-      <p class="font-body text-[13px] italic text-ink-faded">
+      <p class="font-body text-base italic text-ink-faded">
         A tenth of the army sent home at once will mutiny.
       </p>
-      <p v-if="unpaid" class="font-body text-[13px] italic text-rubric">
+      <p v-if="unpaid" class="font-body text-base italic text-rubric">
         The coffer cannot pay them: unpaid men stir unrest.
       </p>
       <button
@@ -45,7 +45,7 @@ function disband(unitId: UnitId): void {
         :key="row.unitId"
         type="button"
         :data-disband="row.unitId"
-        class="flex min-h-11 items-center justify-between rounded border border-ink-faded/60 bg-vellum-shade px-3 font-body text-sm text-ink"
+        class="flex min-h-11 items-center justify-between rounded border border-ink-faded/60 bg-vellum-shade px-3 font-body text-base text-ink"
         @click="disband(row.unitId)"
       >
         <span>{{ row.name }}, {{ formatCompact(row.owned) }} left</span>

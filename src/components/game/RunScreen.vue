@@ -4,7 +4,6 @@ import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
 import { BAND_TEMPO } from '@/ui/motion'
 import { useMotionAllowed } from './run/useAmbientMotion'
-import TidingsBand from './run/TidingsBand.vue'
 import ActionBar from './run/ActionBar.vue'
 import ChroniclePanel from './run/ChroniclePanel.vue'
 import CounselLine from './run/CounselLine.vue'
@@ -37,13 +36,13 @@ const tempo = computed(() => {
     :data-paused="String(frozen)"
     :data-motion="motionOn ? 'on' : 'off'"
     :style="tempo"
+    :data-preparing="String(game.preparing)"
     class="run relative flex h-full min-h-0 flex-1 flex-col overflow-hidden"
   >
     <div :inert="nav.menuOpen || game.inMoment" class="flex min-h-0 flex-1 flex-col">
       <RunHud class="shrink-0" />
       <div class="kingdom-slot relative mt-1 min-h-11">
         <KingdomView :band="game.dread.band" :paused="paused" />
-        <TidingsBand class="absolute inset-x-3 top-1 z-10" />
       </div>
       <div
         class="seal-slot relative z-10 -mt-[76px] shrink-0 transition-opacity duration-300"
@@ -78,11 +77,20 @@ const tempo = computed(() => {
     display: none;
   }
   .run-lower {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     min-height: 0;
+    overflow-y: auto;
   }
   .kingdom-slot {
     flex-grow: 1;
+    min-height: 80px;
+  }
+}
+/* The resume needs its band and the order bar: the idle seal and the counsel give way. */
+@media (max-height: 700px) {
+  .run[data-preparing='true'] .seal-slot,
+  .run[data-preparing='true'] .run-lower {
+    display: none;
   }
 }
 @media (max-height: 520px) {
@@ -90,7 +98,22 @@ const tempo = computed(() => {
     display: none;
   }
   .kingdom-slot {
+    flex: 0 0 0;
     min-height: 0;
+  }
+  .seal-slot {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-top: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  .seal-slot > * {
+    transform: scale(0.72);
+  }
+  .run[data-preparing='true'] .kingdom-slot {
+    flex: 1 1 0;
   }
 }
 /* The vellum fouls at the edges as the realm rots; the text keeps its contrast in every band. */

@@ -10,7 +10,11 @@ const label = (choice: BulkChoice): string =>
 </script>
 
 <template>
-  <div class="flex items-baseline gap-3.5 font-body text-sm italic" role="group" aria-label="Bulk">
+  <div
+    class="flex items-baseline gap-3.5 font-body text-base italic"
+    role="group"
+    aria-label="Bulk"
+  >
     <button
       v-for="option in options"
       :key="option.choice"

@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { isFastForwardUnlocked } from '@/core/engine'
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
+import { auditOrdinal } from '@/ui/realmText'
 
 /** Pause and double speed, under the candle (design 4.2, sixth pass). */
 const game = useGameStore()
@@ -19,6 +20,31 @@ const state = computed(() => {
   }
 })
 const doubleOn = computed(() => settings.doubleSpeed && state.value.unlocked)
+const lockedReason = `Unlocks at the ${auditOrdinal(DEFAULT_ENGINE_CONFIG.balance.FAST_FORWARD_MIN_DEADLINE)} audit`
+const REASON_MS = 4000
+const reasonShown = ref(false)
+let reasonTimer: ReturnType<typeof setTimeout> | null = null
+
+function hideReason(): void {
+  reasonShown.value = false
+  if (reasonTimer !== null) clearTimeout(reasonTimer)
+  reasonTimer = null
+  window.removeEventListener('pointerdown', hideReason)
+}
+
+function toggleDouble(): void {
+  if (state.value.unlocked) {
+    settings.doubleSpeed = !settings.doubleSpeed
+  } else if (reasonShown.value) {
+    hideReason()
+  } else {
+    reasonShown.value = true
+    reasonTimer = setTimeout(hideReason, REASON_MS)
+    window.addEventListener('pointerdown', hideReason)
+  }
+}
+
+onUnmounted(hideReason)
 
 function togglePause(): void {
   game.act({ type: 'SET_PAUSED', paused: !state.value.paused })
@@ -26,7 +52,7 @@ function togglePause(): void {
 </script>
 
 <template>
-  <div class="flex gap-1.5">
+  <div class="relative flex gap-1.5">
     <button
       type="button"
       :aria-label="state.paused ? 'Resume' : 'Pause'"
@@ -47,18 +73,26 @@ function togglePause(): void {
       type="button"
       data-double-speed
       :aria-pressed="doubleOn"
-      :disabled="!state.unlocked"
-      :title="state.unlocked ? 'Double speed' : 'Unlocked at the fifth audit'"
-      class="flex h-[30px] w-11 items-center justify-center gap-1 rounded border font-body disabled:opacity-60"
+      :aria-disabled="!state.unlocked"
+      :title="state.unlocked ? 'Double speed' : lockedReason"
+      class="flex h-[30px] w-11 items-center justify-center gap-1 rounded border font-body"
       :class="
         doubleOn
           ? 'border-gold bg-wax text-cream'
           : 'border-ink-faded/40 bg-vellum-shade text-ink-faded'
       "
-      @click="settings.doubleSpeed = !settings.doubleSpeed"
+      @click="toggleDouble"
     >
       ×2
       <GameIcon v-if="!state.unlocked" name="padlock" class="size-[11px]" label="Locked" />
     </button>
+    <p
+      v-if="reasonShown && !state.unlocked"
+      data-double-reason
+      role="status"
+      class="absolute right-0 top-[34px] z-30 whitespace-nowrap rounded border border-gold bg-vellum-shade px-2 py-0.5 font-body text-base text-ink"
+    >
+      {{ lockedReason }}
+    </p>
   </div>
 </template>

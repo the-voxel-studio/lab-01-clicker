@@ -9,6 +9,7 @@ import CrownPage from '@/components/game/orders/CrownPage.vue'
 import FortunePage from '@/components/game/orders/FortunePage.vue'
 import OrderPage from '@/components/game/orders/OrderPage.vue'
 import RunScreen from '@/components/game/RunScreen.vue'
+import BattleMissive from '@/components/game/moments/BattleMissive.vue'
 import { useGameLoop } from '@/components/game/useGameLoop'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
@@ -41,6 +42,7 @@ watch([() => game.phase, () => nav.screen], ([phase, screen]) => {
       <CrownPage v-else-if="nav.screen === 'crown'" />
       <RunScreen v-else />
       <MomentHost />
+      <BattleMissive />
     </main>
   </div>
 </template>

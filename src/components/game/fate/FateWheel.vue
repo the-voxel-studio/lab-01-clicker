@@ -42,7 +42,7 @@ const SPOKES = [0, 45, 90, 135]
   position: absolute;
   font-family: var(--font-body);
   font-style: italic;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 22px;
   color: var(--wheel-word, #e8ce96);
   white-space: nowrap;

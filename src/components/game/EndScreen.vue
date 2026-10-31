@@ -70,7 +70,7 @@ function restartSameSeed(): void {
       />
       <RegisterEnding :entries="register.entries" />
       <RegisterFeats :earned="register.earned" :closest="register.closest" />
-      <p class="rounded-lg border border-gold bg-gold/15 px-3 py-2 font-body text-[15px] text-ink">
+      <p class="rounded-lg border border-gold bg-gold/15 px-3 py-2 font-body text-[18px] text-ink">
         You hold {{ register.held }} archive {{ register.held === 1 ? 'point' : 'points' }}.
       </p>
     </div>
@@ -85,7 +85,7 @@ function restartSameSeed(): void {
         <span class="block font-display text-[22px] leading-7 text-cream">
           Begin reign {{ register.reign + 1 }}
         </span>
-        <span class="block font-body text-[13px] italic leading-[18px] text-gold-light">
+        <span class="block font-body text-base italic leading-[22px] text-gold-light">
           A new seed, the same Crown
         </span>
       </button>
@@ -99,7 +99,7 @@ function restartSameSeed(): void {
         </button>
         <button
           type="button"
-          class="min-h-8 font-body text-[13px] italic text-ink-faded underline"
+          class="min-h-8 font-body text-base italic text-ink-faded underline"
           @click="restartSameSeed"
         >
           Restart reign {{ register.reign }} with the same seed

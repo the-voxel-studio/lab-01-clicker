@@ -11,7 +11,7 @@ import { createInitialGameState } from '@/core/state'
 import type { GameState } from '@/core/types'
 import type { QuotaView } from '@/stores/game'
 import { adviseCounsel } from '@/ui/counsel'
-import { auditOrdinal, formatClock, formatRate, unrestLine } from '@/ui/realmText'
+import { auditOrdinal, formatClock, formatRate, unrestLine, unrestPhrase } from '@/ui/realmText'
 
 function quotas(
   ap: [number, number],
@@ -66,13 +66,13 @@ describe('Task 4: counsel and realm phrases', () => {
     const state = createInitialGameState({ ap: 100000, deadline: 3 })
     const advice = adviseCounsel(state, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
     expect(advice.title).toBe('The Marshal advises')
-    expect(advice.text).toBe("The army is 21 men short of the Crown's demand.")
+    expect(advice.text).toBe("The army is 21 force short of the Crown's demand.")
     expect(advice.action?.label).toMatch(/^Recruit \d+, [\d,]+ AP$/)
     expect(accepted(state, advice)).toBe(true)
 
     const warning = adviseCounsel(state, quotas([9, 5], [99, 50], [41, 70]), 'uneasy', 20)
     expect(warning.title).toBe('The Marshal warns')
-    expect(warning.text).toBe('The army is 29 men short, and the audit is close.')
+    expect(warning.text).toBe('The army is 29 force short, and the audit is close.')
   })
 
   it('sends the Steward for the People with a purchase of peasants', () => {
@@ -106,10 +106,11 @@ describe('Task 4: counsel and realm phrases', () => {
     expect(formatClock(100)).toBe('1:40')
     expect(formatRate(81.4)).toBe('+81 AP each second')
     expect(formatRate(-5)).toBe('−5 AP each second')
-    expect(unrestLine(28)).toBe('Unrest 28%, the realm is quiet')
-    expect(unrestLine(58)).toBe('Unrest 58%, the villages refuse to pay')
-    expect(unrestLine(81)).toBe('Unrest 81%, strife and desertion')
-    expect(unrestLine(94)).toBe('Unrest 94%, the towns rise against you')
+    expect(unrestLine(35)).toBe('Unrest 35 of 100, overthrown at 100')
+    expect(unrestPhrase(28)).toBe('the realm is quiet')
+    expect(unrestPhrase(58)).toBe('the villages refuse to pay')
+    expect(unrestPhrase(81)).toBe('strife and desertion')
+    expect(unrestPhrase(94)).toBe('the towns rise against you')
     expect(auditOrdinal(3)).toBe('third')
   })
 

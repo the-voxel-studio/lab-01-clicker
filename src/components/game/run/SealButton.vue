@@ -133,7 +133,7 @@ onUnmounted(() => {
       <GameIcon name="crown" class="size-[42px] text-blood/80" label="Royal seal" />
       <span
         v-if="game.preparing"
-        class="absolute inset-x-3 bottom-4 text-center font-caps text-[11px] leading-3 text-cream"
+        class="absolute inset-x-3 bottom-4 text-center font-caps text-base leading-3 text-cream"
       >
         Time stands still
       </span>

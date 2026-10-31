@@ -42,10 +42,10 @@ const verb = computed(() => (props.row.count > 1 ? `Buy ${props.row.count}` : 'B
       <GameIcon :name="icon" class="size-[26px] text-ink" :label="row.name" />
     </span>
     <div class="min-w-0 flex-1">
-      <p class="font-body text-[17px] leading-6 text-ink">{{ row.name }}</p>
+      <p class="font-body text-[18px] leading-6 text-ink">{{ row.name }}</p>
       <p
         :key="row.owned"
-        class="motion-pop font-body text-[13px] italic leading-[18px] text-ink-faded"
+        class="motion-pop font-body text-base italic leading-[22px] text-ink-faded"
       >
         {{ row.line }}
       </p>
@@ -54,12 +54,12 @@ const verb = computed(() => (props.row.count > 1 ? `Buy ${props.row.count}` : 'B
       type="button"
       data-buy
       :disabled="row.command === null"
-      class="wax-tag flex h-11 w-[104px] shrink-0 flex-col items-center justify-center pl-3"
+      class="wax-tag flex min-h-14 w-[112px] shrink-0 flex-col items-center justify-center py-1 pl-3"
       :class="row.command ? 'bg-wax text-cream' : 'bg-vellum-shade text-ink-faded'"
       @click="row.command && $emit('buy', row.command)"
     >
-      <span class="font-caps text-[13px] leading-4">{{ row.blocked ?? verb }}</span>
-      <span class="font-body text-[13px] italic leading-4">{{ cost }}</span>
+      <span class="font-caps text-base leading-[18px]">{{ row.blocked ?? verb }}</span>
+      <span class="font-body text-base italic leading-[18px]">{{ cost }}</span>
     </button>
   </div>
 </template>

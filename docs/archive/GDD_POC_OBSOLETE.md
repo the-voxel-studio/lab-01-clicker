@@ -2,7 +2,7 @@
 > **DOCUMENT ARCHIVÉ ET OBSOLÈTE**  
 > Ce document est l'ébauche initiale de conception du PoC. Les spécifications définitives, les formules équilibrées et le modèle économique de référence sont maintenus dans [`docs/GUIDE.md`](../GUIDE.md), [`docs/GAME_RULES.md`](../GAME_RULES.md) et [`src/data/balance.ts`](../../src/data/balance.ts).
 
-# Le Grand Audit – Document de conception (PoC) [ARCHIVÉ]
+# Le Grand Audit - Document de conception (PoC) [ARCHIVÉ]
 
 *Jeu incrémental roguelike de gestion bureaucratique, 100 % hors-ligne, jouable dans un navigateur.*
 
@@ -192,28 +192,28 @@ Chaque rôle existe en **deux paliers** (I et II), jamais plus. Recruter = payer
 
 | Rôle | Palier I | Palier II |
 | --- | --- | --- |
-| **Producteur : croissance** | **Paysans** – coût 20, +0,02 hab/s | **Fermiers** – coût 120, +0,12 hab/s, entretien 0,1 PA/s |
-| **Multiplicateur : impôts** | **Artisans** – coût 60, +0,5 % d'impôts | **Guildes** – coût 300, +3 % d'impôts, entretien 0,3 PA/s |
-| **Réducteur : mécontentement** | **Clergé** – coût 50, −0,02 mécontentement/s | **Prélats** – coût 250, −0,12 mécontentement/s, entretien 0,5 PA/s |
-| **Spécial : plafonds** | **Notables** – coût 150, +1 % aux plafonds des trois ordres | **Seigneurs** – coût 800, +5 % aux plafonds, entretien 2 PA/s |
+| **Producteur : croissance** | **Paysans** - coût 20, +0,02 hab/s | **Fermiers** - coût 120, +0,12 hab/s, entretien 0,1 PA/s |
+| **Multiplicateur : impôts** | **Artisans** - coût 60, +0,5 % d'impôts | **Guildes** - coût 300, +3 % d'impôts, entretien 0,3 PA/s |
+| **Réducteur : mécontentement** | **Clergé** - coût 50, −0,02 mécontentement/s | **Prélats** - coût 250, −0,12 mécontentement/s, entretien 0,5 PA/s |
+| **Spécial : plafonds** | **Notables** - coût 150, +1 % aux plafonds des trois ordres | **Seigneurs** - coût 800, +5 % aux plafonds, entretien 2 PA/s |
 
 ### 5.3 L'Administration
 
 | Rôle | Palier I | Palier II |
 | --- | --- | --- |
-| **Producteur : PA** | **Scribes** – coût 15, +0,5 PA/s | **Greffiers** – coût 100, +4 PA/s, entretien 0,5 PA/s |
-| **Multiplicateur : production** | **Superviseurs** – coût 80, +2 % de production des producteurs administratifs | **Intendants de province** – coût 400, +8 %, entretien 1 PA/s |
-| **Réducteur : paperasse** | **Archivistes** – coût 70, −1,5 % de paperasse | **Chambre des comptes** – coût 350, −6 % de paperasse, entretien 1 PA/s |
-| **Spécial : conversion** | **Percepteurs** – coût 120, +0,8 PA/s par tranche de 100 habitants libres | **Fermiers généraux** – coût 600, +4 PA/s par tranche de 100 habitants libres, entretien 2 PA/s |
+| **Producteur : PA** | **Scribes** - coût 15, +0,5 PA/s | **Greffiers** - coût 100, +4 PA/s, entretien 0,5 PA/s |
+| **Multiplicateur : production** | **Superviseurs** - coût 80, +2 % de production des producteurs administratifs | **Intendants de province** - coût 400, +8 %, entretien 1 PA/s |
+| **Réducteur : paperasse** | **Archivistes** - coût 70, −1,5 % de paperasse | **Chambre des comptes** - coût 350, −6 % de paperasse, entretien 1 PA/s |
+| **Spécial : conversion** | **Percepteurs** - coût 120, +0,8 PA/s par tranche de 100 habitants libres | **Fermiers généraux** - coût 600, +4 PA/s par tranche de 100 habitants libres, entretien 2 PA/s |
 
 ### 5.4 L'Armée
 
 | Rôle | Palier I | Palier II |
 | --- | --- | --- |
-| **Producteur : puissance** | **Soldats** – coût 25, +1 puissance, entretien 0,3 PA/s | **Hommes d'armes** – coût 150, +6 puissance, entretien 1,5 PA/s |
-| **Multiplicateur : puissance et chance** | **Officiers** – coût 100, +1,5 % de puissance et de chance | **Capitaines** – coût 500, +6 %, entretien 1 PA/s |
-| **Réducteur : entretien** | **Intendants militaires** – coût 90, −1,5 % d'entretien de l'armée | **Quartiers-maîtres** – coût 450, −6 %, entretien 1 PA/s |
-| **Spécial : renseignement** | **Éclaireurs** – coût 110, resserre la fourchette ennemie de 3 points | **Espions** – coût 550, −10 points et révèle les traits de l'ennemi, entretien 2 PA/s |
+| **Producteur : puissance** | **Soldats** - coût 25, +1 puissance, entretien 0,3 PA/s | **Hommes d'armes** - coût 150, +6 puissance, entretien 1,5 PA/s |
+| **Multiplicateur : puissance et chance** | **Officiers** - coût 100, +1,5 % de puissance et de chance | **Capitaines** - coût 500, +6 %, entretien 1 PA/s |
+| **Réducteur : entretien** | **Intendants militaires** - coût 90, −1,5 % d'entretien de l'armée | **Quartiers-maîtres** - coût 450, −6 %, entretien 1 PA/s |
+| **Spécial : renseignement** | **Éclaireurs** - coût 110, resserre la fourchette ennemie de 3 points | **Espions** - coût 550, −10 points et révèle les traits de l'ennemi, entretien 2 PA/s |
 
 La **chance** vient uniquement de l'armée : elle améliore les tirages de bataille. Un joueur sans armée n'en a pas, mais n'en a pas besoin.
 
@@ -324,7 +324,7 @@ Les pertes étant proportionnelles aux soldats engagés, envoyer plus que néces
 
 **Équilibrage visé :** avec un rapport puissance/force proche de 1, l'espérance est légèrement négative (c'est un vrai pari). À partir de 1,5, elle devient positive. Les officiers réduisent la variance, les éclaireurs affichent des probabilités plus précises.
 
-**Exemple.** Force réelle de l'ennemi : 130 (fourchette affichée 100–160). Manche 1 : 60 soldats, puissance ≈ 62, ennemi ébranlé à 48 %, 15 soldats perdus. Manche 2 : l'ennemi monte à 143, 40 renforts, puissance cumulée ≈ 147 ≥ 143, victoire. Bilan : 36 soldats morts sur 100 engagés, victoire normale. Un envoi massif de 120 soldats dès la manche 1 donne aussi la victoire, mais pour 52 morts : la mise juste est la plus rentable.
+**Exemple.** Force réelle de l'ennemi : 130 (fourchette affichée 100-160). Manche 1 : 60 soldats, puissance ≈ 62, ennemi ébranlé à 48 %, 15 soldats perdus. Manche 2 : l'ennemi monte à 143, 40 renforts, puissance cumulée ≈ 147 ≥ 143, victoire. Bilan : 36 soldats morts sur 100 engagés, victoire normale. Un envoi massif de 120 soldats dès la manche 1 donne aussi la victoire, mais pour 52 morts : la mise juste est la plus rentable.
 
 ---
 
@@ -395,11 +395,11 @@ Plusieurs variantes de texte existent pour le même événement, selon la **marg
 
 | Événement | Condition | Choix |
 | --- | --- | --- |
-| **Les fenêtres imposables** | Revenu supérieur à la moyenne | A) +10 % de PA, +10 mécontentement · B) refus, +5 Archives |
-| **Le scribe qui compte trop** | Marge de victoire faible | A) licencier des scribes (−5 % paperasse) · B) le promouvoir (+1 superviseur, +entretien) |
-| **Le Prince cousin** | Armée > 40 % de l'entretien | A) lui verser une pension (−PA, +apaisement) · B) le renvoyer (risque de menace supplémentaire) |
-| **Le grand incendie des registres** | Paperasse élevée | A) tout recopier (−PA, −paperasse) · B) tout oublier (+paperasse, +mécontentement) |
-| **La pénurie d'armoires** | Marge de victoire > 200 % | A) créer un ministère des armoires (+entretien, −paperasse) · B) brûler les archives (+PA, −Archives) |
+| **Les fenêtres imposables** | Revenu supérieur à la moyenne | A) +10 % de PA, +10 mécontentement , B) refus, +5 Archives |
+| **Le scribe qui compte trop** | Marge de victoire faible | A) licencier des scribes (−5 % paperasse) , B) le promouvoir (+1 superviseur, +entretien) |
+| **Le Prince cousin** | Armée > 40 % de l'entretien | A) lui verser une pension (−PA, +apaisement) , B) le renvoyer (risque de menace supplémentaire) |
+| **Le grand incendie des registres** | Paperasse élevée | A) tout recopier (−PA, −paperasse) , B) tout oublier (+paperasse, +mécontentement) |
+| **La pénurie d'armoires** | Marge de victoire > 200 % | A) créer un ministère des armoires (+entretien, −paperasse) , B) brûler les archives (+PA, −Archives) |
 
 ### 10.3 Garde-fous
 
@@ -524,7 +524,7 @@ Chaque achat affiche son **coût, son entretien et son impact sur la paperasse**
 
 ## 17. Questions ouvertes
 
-- **Traits d'ennemi** : ajouter des ennemis spéciaux (forteresse, cavalerie…) ou garder des ennemis identiques pour le PoC ?
+- **Traits d'ennemi** : ajouter des ennemis spéciaux (forteresse, cavalerie...) ou garder des ennemis identiques pour le PoC ?
 - **Population obligatoire ?** Le document suppose que oui. Faut-il autoriser un royaume presque sans habitants (mercenaires et bureaucrates) ?
 - **Courbe des exigences :** les valeurs de la section 2.2 sont des estimations à valider par simulation.
 - **Ton de l'Intendant :** serviteur lâche et hypocrite, haut fonctionnaire méprisant ou conseiller paniqué ?

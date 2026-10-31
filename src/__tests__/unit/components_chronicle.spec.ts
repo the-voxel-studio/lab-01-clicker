@@ -60,15 +60,9 @@ describe('Task 8: counsel line, chronicle, action bar', () => {
     expect(nav.screen).toBe('run')
   })
 
-  it('shows the army shortfall on the Host and the order screens', async () => {
-    const { pinia, game, nav } = stores()
+  it('reaches the order screens from the bar', async () => {
+    const { pinia, nav } = stores()
     const bar = mount(ActionBar, { global: { plugins: [pinia] } })
-    const military = game.quotas.find((quota) => quota.axis === 'military')
-    const host = bar.get('[data-order="order_military"]')
-    expect(military?.met).toBe(false)
-    expect(host.find('[data-badge]').text()).toBe(
-      String(Math.ceil((military?.required ?? 0) - (military?.current ?? 0))),
-    )
     for (const [label, screen] of [
       ['Commons', 'order_people'],
       ['Chancery', 'order_admin'],
@@ -86,11 +80,10 @@ describe('Task 8: counsel line, chronicle, action bar', () => {
     expect(nav.screen).toBe('run')
   })
 
-  it('hides the Host badge when the army meets the demand', () => {
+  it('puts no figure on the Host, and alarms only on the Crown', () => {
     const { pinia, game } = stores()
-    game.run!.units.soldier = 500
-    game.advance(0.05)
     const bar = mount(ActionBar, { global: { plugins: [pinia] } })
-    expect(bar.get('[data-order="order_military"]').find('[data-badge]').exists()).toBe(false)
+    expect(game.quotas.find((quota) => quota.axis === 'military')?.met).toBe(false)
+    expect(bar.find('[data-badge]').exists()).toBe(false)
   })
 })

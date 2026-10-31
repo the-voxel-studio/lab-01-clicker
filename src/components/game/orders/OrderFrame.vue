@@ -4,7 +4,6 @@ import ActionBar from '@/components/game/run/ActionBar.vue'
 import GameMenu from '@/components/game/run/GameMenu.vue'
 import ResumeBand from '@/components/game/run/ResumeBand.vue'
 import RunHud from '@/components/game/run/RunHud.vue'
-import TidingsBand from '@/components/game/run/TidingsBand.vue'
 import { useMotionAllowed } from '@/components/game/run/useAmbientMotion'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
@@ -40,10 +39,9 @@ const tempo = computed(() => {
   >
     <div :inert="nav.menuOpen" class="flex min-h-0 flex-1 flex-col">
       <RunHud compact class="shrink-0" />
-      <TidingsBand class="mx-3 mt-1 shrink-0" />
       <div class="shrink-0 px-4 pt-2">
         <slot name="aside" />
-        <h1 class="font-display text-[26px] leading-[30px] text-ink">{{ title }}</h1>
+        <h1 class="order-title font-display text-[26px] leading-[30px] text-ink">{{ title }}</h1>
         <p class="order-intro font-body text-base italic leading-[22px] text-ink-faded">
           {{ intro }}
         </p>
@@ -65,6 +63,12 @@ const tempo = computed(() => {
 /* Lists keep the room on short screens: the intro repeats what the player already knows. */
 @media (max-height: 700px) {
   .order-intro {
+    display: none;
+  }
+}
+/* The order bar names the page, so landscape gives its title to the list. */
+@media (max-height: 520px) {
+  .order-title {
     display: none;
   }
 }
