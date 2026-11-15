@@ -98,6 +98,7 @@ describe('Task 4: Crown', () => {
   it('proclaims once when the slider settles, never during the drag', async () => {
     const { pinia, game, state } = begin()
     state.taxRate = 25
+    useNavStore().crownTab = 'coffer'
     const page = mount(CrownPage, { global: { plugins: [pinia] } })
     const slider = page.get('[data-tax]')
     ;(slider.element as HTMLInputElement).value = '30'
@@ -114,6 +115,7 @@ describe('Task 4: Crown', () => {
     const { pinia, game, state } = begin()
     state.taxRate = 25
     state.unrest = 10
+    useNavStore().crownTab = 'coffer'
     const page = mount(CrownPage, { global: { plugins: [pinia] } })
     const slider = page.get('[data-tax]')
     for (let rate = 26; rate <= 45; rate++) {
@@ -130,6 +132,7 @@ describe('Task 4: Crown', () => {
   it('proclaims a settling rate when the page is left', async () => {
     const { pinia, game, state } = begin()
     state.taxRate = 25
+    useNavStore().crownTab = 'coffer'
     const page = mount(CrownPage, { global: { plugins: [pinia] } })
     const slider = page.get('[data-tax]')
     ;(slider.element as HTMLInputElement).value = '30'
@@ -142,6 +145,7 @@ describe('Task 4: Crown', () => {
   it('enacts an edict and colonises from the page', async () => {
     const { pinia, game, state } = begin()
     state.ap = 100000
+    useNavStore().crownTab = 'decrees'
     const page = mount(CrownPage, { global: { plugins: [pinia] } })
     await page.get('[data-edict="grand_festival"]').trigger('click')
     await flushPromises()
@@ -149,6 +153,7 @@ describe('Task 4: Crown', () => {
     expect(page.get('[data-edict="forced_tithe"]').text()).toContain('One edict each audit')
     expect(page.get('[data-edict="grand_festival"]').classes()).toContain('motion-stamp')
     const before = game.run!.provinces
+    await page.get('[data-crown-tab="realm"]').trigger('click')
     await page.get('[data-colonise]').trigger('click')
     expect(game.run!.provinces).toBe(before + 1)
     await flushPromises()
@@ -165,9 +170,12 @@ describe('Task 4: Crown', () => {
     game.advance(0)
     const counsel = adviseCounsel(state, game.quotas, 'enchanted', 60)
     expect(counsel.go).toBe('crown')
+    expect(counsel.tab).toBe('realm')
     nav.go('run')
+    nav.crownTab = 'army'
     const line = mount(CounselLine, { global: { plugins: [pinia] } })
     await line.get('[data-counsel-go]').trigger('click')
     expect(nav.screen).toBe('crown')
+    expect(nav.crownTab).toBe('realm')
   })
 })

@@ -6,6 +6,7 @@ import { BIOME_MARK } from '@/ui/gauges'
 import { formatCompact } from '@/ui/realmText'
 import type { WarForecast } from '@/ui/war'
 import OddsSwords from '../ledger/OddsSwords.vue'
+import RegisterTabs from '../ledger/RegisterTabs.vue'
 import WarBanners from '../ledger/WarBanners.vue'
 
 /** What a campaign means before it is launched (`WAR.png`). */
@@ -14,6 +15,10 @@ const props = defineProps<{ forecast: WarForecast; biome: BiomeId }>()
 const surcharged = computed(() => props.forecast.quotasAfter.pop > props.forecast.quotasBefore.pop)
 /** The fight stays large; the land and the Crown's terms wait behind their tab. */
 const tab = ref<'fight' | 'land'>('fight')
+const WAR_TABS = [
+  { id: 'fight', label: 'The fight' },
+  { id: 'land', label: 'The land' },
+] as const
 /** Both reports of the spies, on one line of the fight. */
 const warningLine = computed(() => props.forecast.warnings.join(' '))
 const mark = computed(() => BIOME_MARK[props.biome])
@@ -31,30 +36,13 @@ const asks = computed(() => {
 
 <template>
   <section data-war-panel class="flex flex-col gap-2">
-    <div class="flex gap-5 font-caps text-[18px] leading-6" role="tablist">
-      <button
-        type="button"
-        role="tab"
-        data-war-tab="fight"
-        :aria-selected="tab === 'fight'"
-        class="min-h-7"
-        :class="tab === 'fight' ? 'text-rubric underline underline-offset-4' : 'text-ink-faded'"
-        @click="tab = 'fight'"
-      >
-        The fight
-      </button>
-      <button
-        type="button"
-        role="tab"
-        data-war-tab="land"
-        :aria-selected="tab === 'land'"
-        class="min-h-7"
-        :class="tab === 'land' ? 'text-rubric underline underline-offset-4' : 'text-ink-faded'"
-        @click="tab = 'land'"
-      >
-        The land
-      </button>
-    </div>
+    <RegisterTabs
+      :tabs="WAR_TABS"
+      :selected="tab"
+      label="The campaign"
+      attr="data-war-tab"
+      @select="tab = $event"
+    />
 
     <template v-if="tab === 'fight'">
       <p v-if="forecast.warnings.length" class="font-body text-[18px] leading-[22px] text-rubric">

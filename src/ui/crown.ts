@@ -155,6 +155,23 @@ export function taxEffect(state: GameState, rate: number): string {
 }
 
 /**
+ * The tax rate still to come that the edict rows must count: a rate on the slider, or one held
+ * while time stands still. A rate already proclaimed has charged its shock and is left out.
+ *
+ * @param draft - The rate on the slider, null when it was not moved.
+ * @param held - The rate held until time runs, null when none.
+ */
+export function upcomingTaxRate(
+  state: GameState,
+  draft: number | null,
+  held: number | null,
+): number | null {
+  const proclaimed = state.pendingTaxRate ?? state.taxRate
+  const rate = draft ?? held
+  return rate === null || (held === null && rate === proclaimed) ? null : rate
+}
+
+/**
  * The three edicts, with their escalated effects and what blocks them.
  *
  * @param draftRate - A tax rate chosen on the slider and not yet proclaimed.

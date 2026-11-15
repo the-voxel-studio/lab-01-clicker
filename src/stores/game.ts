@@ -216,6 +216,7 @@ export const useGameStore = defineStore('game', () => {
     settings.doubleSpeed = false
     closeReport()
     heldTax.value = null
+    useNavStore().crownTab = 'realm'
     refresh()
     const resumed = savedAt !== null && chronicle.load(state.runId)
     if (!resumed) chronicle.start(state, dread.value.band)

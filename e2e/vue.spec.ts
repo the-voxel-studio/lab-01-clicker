@@ -25,8 +25,42 @@ test('buys on the Commons and proclaims a tax on the Crown', async ({ page }) =>
   await expect(page.locator('[data-unit="peasant"]')).toContainText('1 working')
   await page.locator('[data-order="crown"]').click()
   await expect(page.locator('h1')).toHaveText('The Crown')
+  await page.getByRole('tab', { name: 'Coffer' }).click()
   await page.locator('[data-tax]').fill('30')
   await expect(page.locator('[data-proclaim]')).toContainText('30% proclaimed')
+})
+
+/** Turns the leaves of the open tab to the last one. */
+async function turnToTheLastLeaf(page: Page) {
+  const next = page.locator('[data-leaf-next]:not([disabled])')
+  for (let turn = 0; turn < 12 && (await next.count()) > 0; turn++) await next.click()
+}
+
+test('walks the four tabs of the Crown and turns the leaves of Decrees', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Begin a reign' }).click()
+  await page.locator('[data-order="crown"]').click()
+  await expect(page.locator('[data-tab-realm] [data-colonise]')).toBeVisible()
+  await page.getByRole('tab', { name: 'Coffer' }).click()
+  await expect(page.locator('[data-tax]')).toBeVisible()
+  await page.getByRole('tab', { name: 'Army' }).click()
+  await expect(page.locator('[data-tab-army]')).toContainText('Force in the field')
+
+  await page.getByRole('tab', { name: 'Decrees' }).click()
+  await expect(page.locator('[data-leaf-count]')).toContainText('Leaf 1 of')
+  await expect(page.locator('[data-edict="forced_tithe"]')).toBeInViewport()
+  const body = page.locator('[data-crown-body]')
+  await expect
+    .poll(() => body.evaluate((node) => node.scrollHeight - node.clientHeight))
+    .toBeLessThanOrEqual(1)
+  await turnToTheLastLeaf(page)
+  await expect(page.locator('[data-laws]')).toBeInViewport()
+  await expect(page.locator('[data-edict="forced_tithe"]')).not.toBeInViewport()
+
+  await page.locator('[data-order="run"]').click()
+  await page.locator('[data-order="crown"]').click()
+  await expect(page.getByRole('tab', { name: 'Decrees' })).toHaveAttribute('aria-selected', 'true')
 })
 
 /** Steps the reign through its store: a frozen page clock would have to paint every frame. */

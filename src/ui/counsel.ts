@@ -13,7 +13,7 @@ import { calculateMaxAffordableUnits, getMaxBulkSize } from '@/core/formulas'
 import type { Command, GameState, UnitId } from '@/core/types'
 import { UNITS_DATA } from '@/data/balance'
 import type { QuotaView } from '@/stores/game'
-import type { Screen } from '@/stores/nav'
+import type { CrownTab, Screen } from '@/stores/nav'
 import type { DreadBand } from '@/ui/dread'
 import { patentRow } from '@/ui/orderRows'
 import { formatCompact } from '@/ui/realmText'
@@ -25,6 +25,8 @@ export interface Counsel {
   action: { label: string; command: Command } | null
   /** The page that answers this counsel when no single command does. */
   go?: Screen
+  /** The tab of the Crown that answers it, when `go` is the Crown. */
+  tab?: CrownTab
 }
 
 const WARNING_SECONDS = 30
@@ -108,7 +110,7 @@ function acceptedPurchase(
 function birthBrake(
   state: GameState,
   shortfall: string,
-): Pick<Counsel, 'text' | 'action' | 'go'> | null {
+): Pick<Counsel, 'text' | 'action' | 'go' | 'tab'> | null {
   const opening = shortfall.replace(/\.$/, '')
   if (state.taxRate > FAIR_TAX) {
     const command: Command = { type: 'SET_TAX_RATE', rate: FAIR_TAX }
@@ -124,6 +126,7 @@ function birthBrake(
       text: `${opening}, and the villages are full. Colonise a province to house more souls.`,
       action: null,
       go: 'crown',
+      tab: 'realm',
     }
   }
   return null
@@ -137,7 +140,7 @@ function hostCounsel(
   state: GameState,
   shortfall: string,
   missing: number,
-): Pick<Counsel, 'text' | 'action' | 'go'> | null {
+): Pick<Counsel, 'text' | 'action' | 'go' | 'tab'> | null {
   const { man_at_arms: veteran } = UNITS_DATA
   if (state.unlockedPatents.military) {
     const purchase = acceptedPurchase(state, 'man_at_arms', Math.ceil(missing / veteran.baseValue))

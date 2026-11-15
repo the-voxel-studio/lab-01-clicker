@@ -77,6 +77,7 @@ describe('Task 3: edicts, tax, patents and plain rules', () => {
   it('needs a second press for a fatal edict', async () => {
     const { pinia, game } = begin()
     game.run!.unrest = 82
+    useNavStore().crownTab = 'decrees'
     const page = mount(CrownPage, { global: { plugins: [pinia] } })
     await flushPromises()
     const button = page.get('[data-edict="forced_tithe"]')
@@ -92,9 +93,10 @@ describe('Task 3: edicts, tax, patents and plain rules', () => {
   it('tells the one edict rule before the first, and the price of the festival', async () => {
     const { pinia, game } = begin()
     game.run!.ap = 0
+    useNavStore().crownTab = 'decrees'
     const page = mount(CrownPage, { global: { plugins: [pinia] } })
     await flushPromises()
-    expect(page.text()).toContain('One edict each audit')
+    expect(page.text()).toContain('Emergency edicts, one each audit')
     expect(page.get('[data-edict-row="grand_festival"]').text()).toMatch(/Costs \d/)
     page.unmount()
   })

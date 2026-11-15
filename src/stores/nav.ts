@@ -23,10 +23,17 @@ export type Screen =
   | 'fate'
   | 'end'
 
+/** The tabs of the Crown, in order. */
+export const CROWN_TABS = ['realm', 'coffer', 'army', 'decrees'] as const
+
+/** One tab of the Crown. */
+export type CrownTab = (typeof CROWN_TABS)[number]
+
 /** The current screen and the game menu toggle. */
 export const useNavStore = defineStore('nav', () => {
   const screen = ref<Screen>('hall')
   const menuOpen = ref(false)
+  const crownTab = ref<CrownTab>('realm')
 
   /** Shows a screen and closes the game menu. */
   function go(next: Screen): void {
@@ -34,5 +41,5 @@ export const useNavStore = defineStore('nav', () => {
     menuOpen.value = false
   }
 
-  return { screen, menuOpen, go }
+  return { screen, menuOpen, crownTab, go }
 })

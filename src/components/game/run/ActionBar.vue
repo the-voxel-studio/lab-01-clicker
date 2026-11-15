@@ -4,6 +4,7 @@ import GameIcon from '@/components/common/GameIcon.vue'
 import type { GameIconKey } from '@/data/icons'
 import { useGameStore } from '@/stores/game'
 import { useNavStore, type Screen } from '@/stores/nav'
+import { UNREST_ALARM } from '@/ui/crownRecap'
 
 /** The bar kept at the bottom of every screen of a reign: the main screen and the five orders. */
 const game = useGameStore()
@@ -17,7 +18,6 @@ const ORDERS: { screen: Screen; label: string; icon: GameIconKey }[] = [
   { screen: 'fortune', label: 'Fortune', icon: 'fortuneWheel' },
   { screen: 'crown', label: 'Crown', icon: 'crown' },
 ]
-const UNREST_ALARM = 75
 
 const badges = computed<Partial<Record<Screen, string>>>(() => {
   void game.revision

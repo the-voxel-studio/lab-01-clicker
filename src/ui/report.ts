@@ -5,6 +5,7 @@
  * @module ui/report
  */
 
+import { calculateEnemyPower } from '@/core/battle'
 import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { calculateMilitaryPower } from '@/core/engine'
 import type { Command, GameState } from '@/core/types'
@@ -83,9 +84,10 @@ function forceLines(before: GameState, theirs: number): ReportLine[] {
 function campaignReport(before: GameState, after: GameState): BattleReport {
   const gained = after.provinces > before.provinces
   const won = after.victoriesCount > before.victoriesCount
-  const theirs = before.currentTarget?.power ?? 0
+  const target = before.currentTarget
+  const theirs = target ? calculateEnemyPower(target, config) : 0
   return {
-    eyebrow: 'A missive from the field',
+    eyebrow: target?.isAmbush ? 'A missive from the field: an ambush' : 'A missive from the field',
     title: campaignTitle(gained, won),
     won,
     lines: [

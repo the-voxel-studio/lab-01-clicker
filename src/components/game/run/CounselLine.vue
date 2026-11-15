@@ -29,6 +29,14 @@ function follow(): void {
   const result = game.act(action.command)
   error.value = result.success ? null : (result.error ?? 'The Crown refuses.')
 }
+
+/** Opens the page that answers the counsel, on the tab that holds the answer. */
+function open(): void {
+  const target = counsel.value
+  if (!target?.go) return
+  if (target.tab) nav.crownTab = target.tab
+  nav.go(target.go)
+}
 </script>
 
 <template>
@@ -56,7 +64,7 @@ function follow(): void {
       type="button"
       data-counsel-go
       class="w-[132px] shrink-0 rounded border border-gold bg-wax px-2 py-1.5 font-body italic leading-tight text-cream"
-      @click="nav.go(counsel!.go!)"
+      @click="open"
     >
       Open the Crown
     </button>

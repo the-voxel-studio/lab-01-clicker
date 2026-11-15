@@ -170,6 +170,26 @@ describe('Task 5: Fortune', () => {
   })
 })
 
+describe('War panel tabs', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('turns from the fight to the land on framed tabs and the arrow keys', async () => {
+    const { pinia, state } = begin()
+    expedition(state)
+    const page = mount(FortunePage, { global: { plugins: [pinia] } })
+    const tabs = page.findAll('[data-war-panel] [role="tab"]')
+    expect(tabs.map((tab) => tab.text())).toEqual(['The fight', 'The land'])
+    expect(tabs[0]!.classes()).toContain('bg-wax')
+    await page.get('[data-war-panel] [role="tablist"]').trigger('keydown', { key: 'ArrowRight' })
+    expect(page.find('[data-war-land]').exists()).toBe(true)
+    expect(page.get('[data-war-tab="land"]').attributes('aria-selected')).toBe('true')
+    await page.get('[data-war-tab="fight"]').trigger('click')
+    expect(page.find('[data-war-land]').exists()).toBe(false)
+  })
+})
+
 describe('Task 6: war during the reign', () => {
   beforeEach(() => {
     localStorage.clear()

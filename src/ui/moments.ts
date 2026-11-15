@@ -230,7 +230,7 @@ function lawsMoment(state: GameState): MomentView {
 }
 
 /** Defensive force as `resolveDefensiveClash` counts it, with a roll of 1. */
-function defensiveForce(state: GameState): number {
+export function defensiveForce(state: GameState): number {
   const strongholds = state.provinceBiomes.filter((biome) => biome === 'stronghold').length
   const factor = hasRule(state, 'law:guerrilla_border_watch')
     ? balance.GUERRILLA_STRONGHOLD_FACTOR

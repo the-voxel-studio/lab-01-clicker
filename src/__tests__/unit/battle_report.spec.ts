@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import App from '@/App.vue'
 import ChroniclePage from '@/components/game/ChroniclePage.vue'
 import StableFigure from '@/components/game/ledger/StableFigure.vue'
+import { calculateEnemyPower } from '@/core/battle'
 import { dispatch } from '@/core/commands'
 import { createInitialGameState } from '@/core/state'
 import type { CampaignTarget, GameState } from '@/core/types'
@@ -138,5 +139,22 @@ describe('Stable figures', () => {
     const figure = mount(StableFigure, { props: { value: '1,234.5k' } })
     expect(figure.text()).toBe('1,234.5k')
     expect(figure.findAll('.digit-cell')).toHaveLength(5)
+  })
+})
+
+describe('The missive of an ambush', () => {
+  it('gives the force the engine fought and names the ambush', () => {
+    const state = atWar(40)
+    state.currentTarget = { ...TARGET, power: 15, isAmbush: true }
+    const real = calculateEnemyPower(state.currentTarget)
+    expect(real).not.toBe(15)
+    const { report } = fought(state)
+    expect(line(report, 'Their force')).toBe(String(real))
+    expect(report.eyebrow).toContain('ambush')
+  })
+
+  it('keeps the plain eyebrow for a fair fight', () => {
+    const { report } = fought(atWar(40))
+    expect(report.eyebrow).toBe('A missive from the field')
   })
 })

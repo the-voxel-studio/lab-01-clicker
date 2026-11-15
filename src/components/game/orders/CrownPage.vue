@@ -1,18 +1,27 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
-import GameIcon from '@/components/common/GameIcon.vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import type { Command, GameState } from '@/core/types'
 import type { EdictId } from '@/data/edicts'
 import { useGameStore } from '@/stores/game'
-import { coloniseView, edictRows, type EdictRow as EdictView } from '@/ui/crown'
-import { formatCompact } from '@/ui/realmText'
-import EdictRow from './EdictRow.vue'
+import { useNavStore } from '@/stores/nav'
+import { coloniseView, edictRows, upcomingTaxRate, type EdictRow as EdictView } from '@/ui/crown'
+import { realmRates, type RealmRates } from '@/ui/effects'
+import ArmyTab from '../crown/ArmyTab.vue'
+import CofferTab from '../crown/CofferTab.vue'
+import CrownTabs from '../crown/CrownTabs.vue'
+import DecreesTab from '../crown/DecreesTab.vue'
+import RealmTab from '../crown/RealmTab.vue'
 import OrderFrame from './OrderFrame.vue'
 import TaxSlider from './TaxSlider.vue'
 
-/** The Crown: the tax, the emergency edicts and new land (Figma `53:1942`). */
+/**
+ * The Crown: the recap of the reign in four tabs, with the tax on Coffer, new land on Realm and
+ * the emergency edicts on Decrees, whose leaves replace the inner scroll.
+ */
 const REFRESH_MS = 250
 const game = useGameStore()
+const nav = useNavStore()
+const rates = ref<RealmRates | null>(null)
 const refused = ref(false)
 const stamped = ref<EdictId | null>(null)
 const raised = ref(0)
@@ -27,7 +36,10 @@ function current(): GameState | null {
 const edicts = ref<EdictView[]>([])
 const draftRate = ref<number | null>(null)
 function readEdicts(): void {
-  edicts.value = game.run ? edictRows(game.run, draftRate.value) : []
+  edicts.value = game.run
+    ? edictRows(game.run, upcomingTaxRate(game.run, draftRate.value, game.heldTax))
+    : []
+  rates.value = game.run ? realmRates(game.run) : null
 }
 readEdicts()
 const edictTimer = setInterval(readEdicts, REFRESH_MS)
@@ -36,6 +48,12 @@ const colonise = computed(() => {
   const run = current()
   return run ? coloniseView(run) : null
 })
+
+/** A refusal speaks of the order just given: it does not follow the player to another tab. */
+watch(
+  () => nav.crownTab,
+  () => (refused.value = false),
+)
 
 function readDraft(rate: number): void {
   draftRate.value = rate
@@ -52,59 +70,48 @@ function act(command: Command): void {
 </script>
 
 <template>
-  <OrderFrame title="The Crown" intro="Your own hand: the tax, the emergency edicts, and new land.">
-    <TaxSlider
-      v-if="game.run"
-      :run="game.run"
-      :revision="game.revision"
-      :held="game.heldTax"
-      @proclaim="act({ type: 'SET_TAX_RATE', rate: $event })"
-      @draft="readDraft"
-    />
-    <p v-if="refused" data-refusal class="font-body text-base italic text-rubric">
-      The Crown refuses this order.
-    </p>
-    <h2 class="mt-3 font-caps text-base text-rubric">Emergency edicts</h2>
-    <p class="font-body text-base italic leading-[22px] text-ink-faded">One edict each audit.</p>
-    <EdictRow
-      v-for="row in edicts"
-      :key="row.id"
-      :row="row"
-      :stamped="stamped === row.id"
-      @enact="act"
-    />
-    <section v-if="colonise" class="mt-3 flex items-center gap-3">
-      <div class="relative min-w-0 flex-1">
-        <GameIcon
-          v-if="raised"
-          :key="raised"
-          name="stoneTower"
-          data-raised
-          class="motion-raise absolute right-1 top-0 size-7 text-ink"
-          label=""
-        />
-        <h2 class="font-caps text-base text-rubric">New land</h2>
-        <p class="font-body text-base italic leading-[22px] text-ink-faded">
-          Colonise an empty province: {{ colonise.gain }} for your people.
-        </p>
-      </div>
-      <button
-        type="button"
-        data-colonise
-        :disabled="colonise.command === null"
-        class="flex min-h-12 w-[112px] shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px] py-1"
-        :class="
-          colonise.command
-            ? 'border-gold bg-wax text-cream'
-            : 'border-ink-faded bg-vellum-shade text-ink-faded'
-        "
-        @click="colonise?.command && act(colonise.command)"
+  <OrderFrame title="The Crown" intro="" tabbed>
+    <template #header>
+      <CrownTabs class="mt-1" />
+    </template>
+    <div v-if="game.run" class="flex h-full min-h-0 flex-col">
+      <p v-if="refused" data-refusal class="shrink-0 font-body text-base italic text-rubric">
+        The Crown refuses this order.
+      </p>
+      <div
+        data-crown-body
+        class="min-h-0 flex-1"
+        :class="nav.crownTab === 'decrees' ? 'overflow-hidden' : 'overflow-y-auto'"
       >
-        <span class="font-caps text-[18px] leading-5">{{ colonise.blocked ?? 'Colonise' }}</span>
-        <span class="font-body text-base italic leading-[22px]">
-          {{ formatCompact(colonise.cost) }} AP
-        </span>
-      </button>
-    </section>
+        <RealmTab
+          v-if="nav.crownTab === 'realm' && rates"
+          :run="game.run"
+          :rates="rates"
+          :colonise="colonise"
+          :raised="raised"
+          @act="act"
+        />
+        <template v-else-if="nav.crownTab === 'coffer'">
+          <CofferTab :run="game.run" :revision="game.revision" />
+          <TaxSlider
+            class="mt-3"
+            :run="game.run"
+            :revision="game.revision"
+            :held="game.heldTax"
+            @proclaim="act({ type: 'SET_TAX_RATE', rate: $event })"
+            @draft="readDraft"
+          />
+        </template>
+        <ArmyTab v-else-if="nav.crownTab === 'army'" :run="game.run" :revision="game.revision" />
+        <DecreesTab
+          v-else-if="nav.crownTab === 'decrees'"
+          :run="game.run"
+          :revision="game.revision"
+          :edicts="edicts"
+          :stamped="stamped"
+          @enact="act"
+        />
+      </div>
+    </div>
   </OrderFrame>
 </template>

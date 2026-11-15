@@ -11,9 +11,16 @@ import { BAND_TEMPO } from '@/ui/motion'
 
 /**
  * The frame of the five order pages: fixed HUD, title and bar, with the body scrolling inside.
- * `closed` shuts the order bar while a moment must be answered here.
+ * `closed` shuts the order bar while a moment must be answered here. `tabbed` marks a page
+ * whose tabs name it, so a short screen gives the height of its title to the tab.
  */
-defineProps<{ title: string; intro: string; closed?: boolean; tight?: boolean }>()
+defineProps<{
+  title: string
+  intro: string
+  closed?: boolean
+  tight?: boolean
+  tabbed?: boolean
+}>()
 
 const game = useGameStore()
 const nav = useNavStore()
@@ -39,7 +46,10 @@ const tempo = computed(() => {
   >
     <div :inert="nav.menuOpen" class="flex min-h-0 flex-1 flex-col">
       <RunHud compact :tight="tight" class="shrink-0" />
-      <div class="shrink-0 px-4" :class="tight ? 'order-tight pt-0' : 'pt-2'">
+      <div
+        class="shrink-0 px-4"
+        :class="[tight ? 'order-tight pt-0' : 'pt-2', tabbed ? 'order-tabbed' : '']"
+      >
         <slot name="aside" />
         <h1 class="order-title font-display text-[26px] leading-[30px] text-ink">{{ title }}</h1>
         <p
@@ -78,7 +88,8 @@ const tempo = computed(() => {
 }
 /* A page that must fit gives up its title on short screens. */
 @media (max-height: 700px) {
-  .order-tight .order-title {
+  .order-tight .order-title,
+  .order-tabbed .order-title {
     display: none;
   }
 }
