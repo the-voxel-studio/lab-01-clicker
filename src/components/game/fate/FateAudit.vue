@@ -18,7 +18,7 @@ const ledger = computed(() => {
   const outcome = state?.lastAuditOutcome
   const lines =
     state && outcome
-      ? quotaLines(state, outcome).map(
+      ? quotaLines(state, game.config, outcome).map(
           (line) => `${line.label}, ${line.figure}, ${line.met ? 'met' : 'short'}`,
         )
       : []

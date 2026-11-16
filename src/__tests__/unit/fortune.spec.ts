@@ -4,6 +4,7 @@
  * @vitest-environment jsdom
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -66,7 +67,7 @@ describe('Task 5: Fortune', () => {
     const { pinia, state } = begin()
     state.currentTarget = { ...TARGET }
     state.phase = 'THREAT_HERALD'
-    expect(fortuneView(state).live).toBe(false)
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).live).toBe(false)
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
     expect(page.find('[data-attack]').exists()).toBe(false)
   })
@@ -74,7 +75,7 @@ describe('Task 5: Fortune', () => {
   it('opens the war during the cycle, even before a migrated save has a target', () => {
     const { pinia, state } = begin()
     state.currentTarget = null
-    expect(fortuneView(state)).toMatchObject({ live: true, forecast: null })
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG)).toMatchObject({ live: true, forecast: null })
     const page = mount(FortunePage, { global: { plugins: [pinia] } })
     expect(page.find('[data-attack]').exists()).toBe(true)
   })
@@ -82,8 +83,11 @@ describe('Task 5: Fortune', () => {
   it('shows the guess of the scouts', () => {
     const { state } = begin()
     expedition(state)
-    expect(fortuneView(state).forecast).toMatchObject({ theirsMin: 60, theirsMax: 85 })
-    expect(fortuneView(state).forecast?.land).toContain('Marshes & Forests')
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast).toMatchObject({
+      theirsMin: 60,
+      theirsMax: 85,
+    })
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast?.land).toContain('Marshes & Forests')
   })
 
   it('keeps the secrets of a target out of the page', () => {
@@ -103,7 +107,7 @@ describe('Task 5: Fortune', () => {
     state.currentTarget!.isAmbush = true
     state.currentTarget!.isFalseLedger = true
     state.units.spymaster = 1
-    expect(fortuneView(state).forecast!.warnings).toEqual([
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast!.warnings).toEqual([
       'An ambush waits.',
       'The loot is a lie.',
     ])
@@ -113,9 +117,9 @@ describe('Task 5: Fortune', () => {
     const { state } = begin()
     expedition(state)
     state.units.soldier = 40
-    expect(fortuneView(state).forecast!.outOfTen).toBe(0)
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast!.outOfTen).toBe(0)
     state.units.soldier = 200
-    expect(fortuneView(state).forecast!.outOfTen).toBe(10)
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast!.outOfTen).toBe(10)
   })
 
   it('says the scout dies and the target changes', () => {
@@ -153,8 +157,14 @@ describe('Task 5: Fortune', () => {
     const { state } = begin()
     expedition(state)
     state.units.soldier = 0
-    expect(fortuneView(state).attack).toMatchObject({ blocked: 'You have no army', command: null })
-    expect(fortuneView(state).scout).toMatchObject({ blocked: 'No scouts to send', command: null })
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).attack).toMatchObject({
+      blocked: 'You have no army',
+      command: null,
+    })
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).scout).toMatchObject({
+      blocked: 'No scouts to send',
+      command: null,
+    })
   })
 
   it('draws a new target after every campaign, on the same page', async () => {

@@ -54,20 +54,20 @@ function current(): GameState | null {
 const panel = computed(() => {
   const run = current()
   if (!run) return null
-  if (props.order === 'admin') return paperworkLine(run)
-  return props.order === 'military' ? hostLine(run) : null
+  if (props.order === 'admin') return paperworkLine(run, game.config)
+  return props.order === 'military' ? hostLine(run, game.config) : null
 })
 const options = computed(() => {
   const run = current()
-  return run ? bulkOptions(run, props.order) : []
+  return run ? bulkOptions(run, game.config, props.order) : []
 })
 const rows = computed(() => {
   const run = current()
-  return run ? unitRows(run, props.order, bulk.value) : []
+  return run ? unitRows(run, game.config, props.order, bulk.value) : []
 })
 const patent = computed(() => {
   const run = current()
-  return run ? patentRow(run, props.order) : null
+  return run ? patentRow(run, game.config, props.order) : null
 })
 
 const { lines, rates, refresh } = useUnitEffects(

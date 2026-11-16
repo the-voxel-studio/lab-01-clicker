@@ -1,6 +1,6 @@
 /**
  * Fixed words of the decision moments. Figures, names and costs come from the engine and its
- * catalogs through `ui/moments`.
+ * catalogs through `ui/moments`; the lines that change voice with the level are in `levelCopy`.
  *
  * @module data/momentCopy
  */
@@ -8,9 +8,6 @@
 /** Fixed copy of the moment letters. */
 export const MOMENT_COPY = {
   audit: {
-    clean: 'The Crown is satisfied.',
-    narrow: 'The Crown lets it pass, this once.',
-    pardon: 'The Crown grants its pardon, once.',
     pardonBody: (share: number) =>
       `It takes a province, if you can spare one, and ${share}% of your coffer. The next failure is the last.`,
     answer: 'Seal the verdict',
@@ -23,7 +20,6 @@ export const MOMENT_COPY = {
     rejectDetail: '+1 archive point. No law is passed.',
   },
   herald: {
-    body: 'Open your coffers, or we open your walls.',
     note: 'The council will not rise until you answer.',
     fight: 'Stand and fight',
     tribute: 'Pay the tribute',

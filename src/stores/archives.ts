@@ -15,6 +15,7 @@ import {
   type RunConclusion,
 } from '@/core/archives'
 import type { DispatchResult, GameState } from '@/core/types'
+import type { DifficultyLevel } from '@/data/levels'
 import { validateArchiveData } from '@/core/validation'
 import { createRunRecord, parseHistory, serializeHistory, type RunRecord } from '@/ui/runRecord'
 import { ARCHIVE_KEY, HISTORY_KEY, readKey, writeKey } from '@/ui/storage'
@@ -50,14 +51,16 @@ export const useArchivesStore = defineStore('archives', () => {
    *
    * @param state - The run state; its `archiveConcluded` flag is set.
    * @param abandoned - True when the player laid down the crown.
+   * @param level - Level the reign was played at.
    */
   function conclude(
     state: GameState,
     abandoned = false,
+    level: DifficultyLevel = 'ordinary',
   ): { conclusion: RunConclusion; record: RunRecord } {
     const alreadyConcluded = state.archiveConcluded
     const conclusion = concludeRun(archive.value, state)
-    const record = createRunRecord(state, conclusion, new Date(), abandoned)
+    const record = createRunRecord(state, conclusion, new Date(), abandoned, level)
     if (!alreadyConcluded) {
       history.value.push(record)
       persist()

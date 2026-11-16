@@ -5,7 +5,7 @@
  * @module ui/crownRecap
  */
 
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import type { EngineConfig } from '@/core/config'
 import {
   calculateGrossApRate,
   calculateMilitaryPower,
@@ -26,8 +26,6 @@ import { UNIT_COPY } from '@/data/orderCopy'
 import { FACTIONS_DATA, SCHEDULED_THREATS_DATA } from '@/data/threats'
 import type { RealmRates } from '@/ui/effects'
 import { defensiveForce } from '@/ui/moments'
-
-const config = DEFAULT_ENGINE_CONFIG
 
 /** Unrest from which the order bar and the tabs of the Crown raise their mark. */
 export const UNREST_ALARM = 75
@@ -95,7 +93,7 @@ function pardonLine(state: GameState): string {
 }
 
 /** Reads the Realm tab. */
-export function realmRecap(state: GameState, rates: RealmRates): RealmRecap {
+export function realmRecap(state: GameState, config: EngineConfig, rates: RealmRates): RealmRecap {
   return {
     surcharge: Math.round((crownSurchargeFactor(state, config) - 1) * 100),
     births: rates.births,
@@ -114,7 +112,7 @@ export function realmRecap(state: GameState, rates: RealmRates): RealmRecap {
  * What a plain press of the seal pays, with the laws on the seal and the paperwork a decree
  * does not bypass. Mirrors `STAMP_DOCUMENT` without its critical roll.
  */
-function sealValue(state: GameState, gross: number): number {
+function sealValue(state: GameState, config: EngineConfig, gross: number): number {
   const power = composeStat(
     'click_power',
     1,
@@ -129,7 +127,7 @@ function sealValue(state: GameState, gross: number): number {
  * Reads the Coffer tab: the lines sum to the net rate of the engine. Taxes is what the income
  * loses with a tax of 0, so the laws on the whole income fall on both lines.
  */
-export function cofferRecap(state: GameState): CofferRecap {
+export function cofferRecap(state: GameState, config: EngineConfig): CofferRecap {
   const { total } = calculateGrossApRate(state, config)
   const work = calculateGrossApRate({ ...state, taxRate: 0 }, config).total
   const paperwork = total * calculateNetPaperwork(state, config)
@@ -142,7 +140,7 @@ export function cofferRecap(state: GameState): CofferRecap {
       { label: 'Wages', value: -wages },
     ],
     net: calculateNetApRate(state, config),
-    clickValue: sealValue(state, total),
+    clickValue: sealValue(state, config, total),
   }
 }
 
@@ -153,13 +151,13 @@ function nextThreat(state: GameState): string | null {
 }
 
 /** Reads the Army tab. */
-export function armyRecap(state: GameState): ArmyRecap {
+export function armyRecap(state: GameState, config: EngineConfig): ArmyRecap {
   const units = Object.values(UNITS_DATA)
     .filter((def) => def.order === 'military' && (state.units[def.id] ?? 0) > 0)
     .map((def) => ({ id: def.id, name: UNIT_COPY[def.id].name, count: state.units[def.id] ?? 0 }))
   return {
     field: calculateMilitaryPower(state, config),
-    home: defensiveForce(state),
+    home: defensiveForce(state, config),
     units,
     threat: nextThreat(state),
     conquests: state.conquestsThisAudit,
@@ -168,7 +166,7 @@ export function armyRecap(state: GameState): ArmyRecap {
 }
 
 /** Reads the laws in force and the seats of the council. */
-export function decreesRecap(state: GameState): DecreesRecap {
+export function decreesRecap(state: GameState, config: EngineConfig): DecreesRecap {
   const seats = Math.floor(
     composeStat(
       'law_slots',
@@ -196,7 +194,10 @@ export function decreesRecap(state: GameState): DecreesRecap {
  * Marks the tabs that answer an alarm of unrest: Decrees holds the festival, and Coffer a tax
  * above the rate the villages bear.
  */
-export function crownMarks(state: GameState): Partial<Record<CrownTab, string>> {
+export function crownMarks(
+  state: GameState,
+  config: EngineConfig,
+): Partial<Record<CrownTab, string>> {
   if (state.unrest < UNREST_ALARM) return {}
   const marks: Partial<Record<CrownTab, string>> = { decrees: '!' }
   if (state.taxRate > config.balance.TAX_REFERENCE_RATE) marks.coffer = '!'

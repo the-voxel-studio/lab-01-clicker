@@ -4,6 +4,7 @@
  * @module __tests__/unit/ui_counsel.spec
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { describe, expect, it } from 'vitest'
 import { dispatch } from '@/core/commands'
 import { calculateMaxPopulation } from '@/core/engine'
@@ -37,6 +38,7 @@ describe('Task 4: counsel and realm phrases', () => {
   it('has no counsel left at death throes', () => {
     const counsel = adviseCounsel(
       createInitialGameState(),
+      DEFAULT_ENGINE_CONFIG,
       quotas([0, 5], [0, 50], [0, 9]),
       'death_throes',
       60,
@@ -51,6 +53,7 @@ describe('Task 4: counsel and realm phrases', () => {
   it('praises a realm where every quota is met', () => {
     const counsel = adviseCounsel(
       createInitialGameState(),
+      DEFAULT_ENGINE_CONFIG,
       quotas([9, 5], [99, 50], [9, 9]),
       'enchanted',
       60,
@@ -64,13 +67,25 @@ describe('Task 4: counsel and realm phrases', () => {
 
   it('sends the Marshal for the army, warning when the audit is close', () => {
     const state = createInitialGameState({ ap: 100000, deadline: 3 })
-    const advice = adviseCounsel(state, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [99, 50], [49, 70]),
+      'uneasy',
+      60,
+    )
     expect(advice.title).toBe('The Marshal advises')
     expect(advice.text).toBe("The army is 21 force short of the Crown's demand.")
     expect(advice.action?.label).toMatch(/^Recruit \d+, [\d,]+ AP$/)
     expect(accepted(state, advice)).toBe(true)
 
-    const warning = adviseCounsel(state, quotas([9, 5], [99, 50], [41, 70]), 'uneasy', 20)
+    const warning = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [99, 50], [41, 70]),
+      'uneasy',
+      20,
+    )
     expect(warning.title).toBe('The Marshal warns')
     expect(warning.text).toBe('The army is 29 force short, and the audit is close.')
   })
@@ -79,14 +94,26 @@ describe('Task 4: counsel and realm phrases', () => {
     const state = createInitialGameState({ ap: 100000, deadline: 3 })
     state.units.soldier = 15
     state.totalPopulation += 15
-    const advice = adviseCounsel(state, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [99, 50], [49, 70]),
+      'uneasy',
+      60,
+    )
     expect(advice.text).toContain('men-at-arms are worth 7 force each')
     expect(advice.action?.command).toEqual({ type: 'UNLOCK_PATENT', order: 'military' })
 
     const early = createInitialGameState({ ap: 100000, deadline: 2 })
     early.units.soldier = 15
     early.totalPopulation += 15
-    const waiting = adviseCounsel(early, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    const waiting = adviseCounsel(
+      early,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [99, 50], [49, 70]),
+      'uneasy',
+      60,
+    )
     expect(waiting.action).toBeNull()
     expect(waiting.go).toBe('order_military')
   })
@@ -96,14 +123,26 @@ describe('Task 4: counsel and realm phrases', () => {
     state.unlockedPatents.military = true
     state.freeSerfs += 100
     state.totalPopulation += 100
-    const advice = adviseCounsel(state, quotas([9, 5], [99, 50], [49, 70]), 'uneasy', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [99, 50], [49, 70]),
+      'uneasy',
+      60,
+    )
     expect(advice.action?.label).toMatch(/^Hire 3 men-at-arms, /)
     expect(advice.action?.command).toEqual({ type: 'BUY_UNIT', unitId: 'man_at_arms', count: 3 })
   })
 
   it('sends the Steward for the People with a purchase of peasants', () => {
     const state = createInitialGameState({ ap: 100000, deadline: 3 })
-    const advice = adviseCounsel(state, quotas([9, 5], [500, 550], [70, 70]), 'rotting', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [500, 550], [70, 70]),
+      'rotting',
+      60,
+    )
     expect(advice.title).toBe('The Steward warns')
     expect(advice.text).toBe("The People are 50 souls short of the Crown's demand.")
     expect(advice.action?.label).toMatch(/^Buy 10 peasants, [\d,]+ AP$/)
@@ -112,7 +151,13 @@ describe('Task 4: counsel and realm phrases', () => {
 
   it('sends the Chancellor for the AP rate with a purchase of scribes', () => {
     const state = createInitialGameState({ ap: 100000 })
-    const advice = adviseCounsel(state, quotas([2.5, 6], [99, 50], [9, 9]), 'enchanted', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([2.5, 6], [99, 50], [9, 9]),
+      'enchanted',
+      60,
+    )
     expect(advice.title).toBe('The Chancellor advises')
     expect(advice.text).toBe("The Chancery is 3.5 AP each second short of the Crown's demand.")
     expect(advice.action?.label).toMatch(/^Hire 1 scribe, [\d,.]+ AP$/)
@@ -121,7 +166,13 @@ describe('Task 4: counsel and realm phrases', () => {
 
   it('offers nothing the treasury cannot pay', () => {
     const state = createInitialGameState({ ap: 0 })
-    const advice = adviseCounsel(state, quotas([0, 6], [99, 50], [9, 9]), 'enchanted', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([0, 6], [99, 50], [9, 9]),
+      'enchanted',
+      60,
+    )
     expect(advice.text).toBe("The Chancery is 6 AP each second short of the Crown's demand.")
     expect(advice.action).toBeNull()
   })
@@ -142,7 +193,13 @@ describe('Task 4: counsel and realm phrases', () => {
 
   it('has the Steward lower a tax above 25% before anything else', () => {
     const state = createInitialGameState({ ap: 100000, taxRate: 40 })
-    const advice = adviseCounsel(state, quotas([9, 5], [500, 550], [70, 70]), 'enchanted', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [500, 550], [70, 70]),
+      'enchanted',
+      60,
+    )
     expect(advice.title).toBe('The Steward advises')
     expect(advice.text).toBe(
       "The People are 50 souls short of the Crown's demand, and a tax above 25% slows the births.",
@@ -155,7 +212,13 @@ describe('Task 4: counsel and realm phrases', () => {
   it('has the Steward point to the Crown when the villages are full', () => {
     const state = createInitialGameState({ ap: 100000 })
     state.totalPopulation = Math.floor(calculateMaxPopulation(state) * 0.95)
-    const advice = adviseCounsel(state, quotas([9, 5], [500, 550], [70, 70]), 'enchanted', 60)
+    const advice = adviseCounsel(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      quotas([9, 5], [500, 550], [70, 70]),
+      'enchanted',
+      60,
+    )
     expect(advice.text).toBe(
       "The People are 50 souls short of the Crown's demand, and the villages are full. Colonise a province to house more souls.",
     )

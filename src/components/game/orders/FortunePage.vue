@@ -20,7 +20,7 @@ let hold: ReturnType<typeof setTimeout> | null = null
 
 const view = computed(() => {
   void game.revision
-  return game.run ? fortuneView(game.run) : null
+  return game.run ? fortuneView(game.run, game.config) : null
 })
 
 const chanceLine = computed(() => {

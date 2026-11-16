@@ -5,8 +5,7 @@
  */
 
 import type { Effect, GameState } from '@/core/types'
-import type { EngineConfig } from '@/core/config'
-import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
+import { quotaForDeadline, type EngineConfig } from '@/core/config'
 import { calculateGrossApRate, calculateMilitaryUpkeep, calculateNetPaperwork } from '@/core/engine'
 
 export interface DilemmaChoice {
@@ -18,7 +17,7 @@ export interface DilemmaDef {
   id: string
   name: string
   description: string
-  trigger: (state: GameState, config?: EngineConfig) => boolean
+  trigger: (state: GameState, config: EngineConfig) => boolean
   choices: [DilemmaChoice, DilemmaChoice]
 }
 
@@ -71,7 +70,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     id: 'dilemma:scribe_counted_too_much',
     name: 'The Scribe Who Counted Too Much',
     description: 'A zealous clerk has audited our own archives and discovered discrepancies.',
-    trigger: (state, config = DEFAULT_ENGINE_CONFIG) => {
+    trigger: (state, config) => {
       const quota = quotaForDeadline(config, state.deadline)
       const gross = state.lastAuditOutcome?.grossApRate ?? calculateGrossApRate(state, config).total
       return quota.apRate > 0 && gross / quota.apRate < 1.15
@@ -115,7 +114,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     name: 'The Princely Cousin',
     description:
       'A highborn relative demands an exorbitant sovereign pension for nominal military command.',
-    trigger: (state, config = DEFAULT_ENGINE_CONFIG) =>
+    trigger: (state, config) =>
       calculateMilitaryUpkeep(state, config) >
       config.balance.PRINCELY_COUSIN_UPKEEP_SHARE * calculateGrossApRate(state, config).total,
     choices: [
@@ -212,7 +211,7 @@ export const DILEMMAS_DATA: Record<string, DilemmaDef> = {
     id: 'dilemma:cabinet_scarcity',
     name: 'The Cabinet Scarcity',
     description: 'We have produced so much wealth that our storage vaults are overflowing.',
-    trigger: (state, config = DEFAULT_ENGINE_CONFIG) => {
+    trigger: (state, config) => {
       const quota = quotaForDeadline(config, state.deadline)
       const gross = state.lastAuditOutcome?.grossApRate ?? calculateGrossApRate(state, config).total
       return quota.apRate > 0 && gross / quota.apRate > 3.0

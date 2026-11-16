@@ -25,7 +25,7 @@ const INTROS: Record<CrownTab, string> = {
 }
 const tabs = computed(() => {
   void game.revision
-  const marks = game.run ? crownMarks(game.run) : {}
+  const marks = game.run ? crownMarks(game.run, game.config) : {}
   return CROWN_TABS.map((id) => ({ id, label: NAMES[id], mark: marks[id] }))
 })
 </script>

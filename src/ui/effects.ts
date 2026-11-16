@@ -6,7 +6,7 @@
  * @module ui/effects
  */
 
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import type { EngineConfig } from '@/core/config'
 import {
   calculateGrossApRate,
   calculateMaxPopulation,
@@ -17,7 +17,6 @@ import {
 import type { GameState, UnitId } from '@/core/types'
 import { formatFigure } from '@/ui/realmText'
 
-const config = DEFAULT_ENGINE_CONFIG
 const SAMPLE_SECONDS = 1
 const SHOWN_LINES = 3
 /** Effects under this read as nothing. */
@@ -34,7 +33,10 @@ export interface RealmRates {
 }
 
 /** Steps a copy in a quiet cycle and reads what the tick did. */
-function measuredRates(state: GameState): Pick<RealmRates, 'births' | 'unrestPerSecond'> {
+function measuredRates(
+  state: GameState,
+  config: EngineConfig,
+): Pick<RealmRates, 'births' | 'unrestPerSecond'> {
   const copy = structuredClone(state)
   copy.phase = 'ACTIVE_CYCLE'
   copy.isPaused = false
@@ -49,13 +51,13 @@ function measuredRates(state: GameState): Pick<RealmRates, 'births' | 'unrestPer
 }
 
 /** Reads the rates of the realm. */
-export function realmRates(state: GameState): RealmRates {
+export function realmRates(state: GameState, config: EngineConfig): RealmRates {
   return {
     netAp: calculateNetApRate(state, config),
     grossAp: calculateGrossApRate(state, config).total,
     room: calculateMaxPopulation(state, config),
     force: calculateMilitaryPower(state, config),
-    ...measuredRates(state),
+    ...measuredRates(state, config),
   }
 }
 
@@ -73,12 +75,18 @@ function withMore(state: GameState, unitId: UnitId, count: number): GameState {
  * What a purchase changes, holding only the rates that move.
  *
  * @param state - The run, read only.
+ * @param config - Engine configuration of the reign.
  * @param unitId - The unit bought.
  * @param count - How many, the chosen bulk.
  */
-export function unitEffect(state: GameState, unitId: UnitId, count = 1): Partial<RealmRates> {
-  const before = realmRates(state)
-  const after = realmRates(withMore(state, unitId, count))
+export function unitEffect(
+  state: GameState,
+  config: EngineConfig,
+  unitId: UnitId,
+  count = 1,
+): Partial<RealmRates> {
+  const before = realmRates(state, config)
+  const after = realmRates(withMore(state, unitId, count), config)
   const effect: Partial<RealmRates> = {}
   for (const key of Object.keys(before) as (keyof RealmRates)[]) {
     const delta = after[key] - before[key]

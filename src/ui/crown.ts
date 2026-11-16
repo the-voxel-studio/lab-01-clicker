@@ -5,7 +5,7 @@
  * @module ui/crown
  */
 
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import type { EngineConfig } from '@/core/config'
 import { dispatch } from '@/core/commands'
 import { calculateGrossApRate, calculateMaxPopulation } from '@/core/engine'
 import { calculateColonisationCost } from '@/core/formulas'
@@ -13,8 +13,6 @@ import type { Command, GameState } from '@/core/types'
 import { EDICT_ESCALATION_PER_USE, EDICTS_DATA, type EdictId } from '@/data/edicts'
 import { realmRates } from '@/ui/effects'
 import { formatCompact, formatFigure } from '@/ui/realmText'
-
-const config = DEFAULT_ENGINE_CONFIG
 
 /**
  * Quiet time before a new rate is proclaimed. Arrow keys fire `change` at each press and the
@@ -54,7 +52,7 @@ export interface ColoniseView {
 }
 
 /** Reads the tax of the reign. */
-export function taxView(state: GameState): TaxView {
+export function taxView(state: GameState, config: EngineConfig): TaxView {
   return {
     rate: state.taxRate,
     pending: state.pendingTaxRate,
@@ -65,7 +63,7 @@ export function taxView(state: GameState): TaxView {
 }
 
 /** What a new rate would stir, or null when it is harmless. */
-export function taxWarning(state: GameState, target: number): string | null {
+export function taxWarning(state: GameState, config: EngineConfig, target: number): string | null {
   const { TAX_SHOCK_THRESHOLD, TAX_SHOCK_UNREST_SPIKE, TAX_REFERENCE_RATE } = config.balance
   const rise = target - state.taxRate
   if (rise > TAX_SHOCK_THRESHOLD) {
@@ -76,7 +74,7 @@ export function taxWarning(state: GameState, target: number): string | null {
     : null
 }
 
-function festivalCost(state: GameState): number {
+function festivalCost(state: GameState, config: EngineConfig): number {
   const { minCost, treasuryShare, grossRateSeconds } = EDICTS_DATA.grand_festival.values
   const gross = calculateGrossApRate(state, config).total
   return Math.max(minCost, treasuryShare * Math.max(0, state.ap), grossRateSeconds * gross)
@@ -123,6 +121,7 @@ function edictBlock(state: GameState, id: EdictId, cost: number): string | null 
 /** Plays an edict on a copy, whatever blocks it now, and reads what it does. */
 function edictOutcome(
   state: GameState,
+  config: EngineConfig,
   id: EdictId,
   cost: number,
   draftRate: number | null,
@@ -146,8 +145,8 @@ function edictOutcome(
 }
 
 /** What a tax rate does to the realm, from the rates of a copy. */
-export function taxEffect(state: GameState, rate: number): string {
-  const rates = realmRates({ ...state, taxRate: rate, pendingTaxRate: null })
+export function taxEffect(state: GameState, config: EngineConfig, rate: number): string {
+  const rates = realmRates({ ...state, taxRate: rate, pendingTaxRate: null }, config)
   const income = rates.netAp
   const unrest = rates.unrestPerSecond
   const sign = (value: number): string => (value >= 0 ? '+' : '')
@@ -176,17 +175,21 @@ export function upcomingTaxRate(
  *
  * @param draftRate - A tax rate chosen on the slider and not yet proclaimed.
  */
-export function edictRows(state: GameState, draftRate: number | null = null): EdictRow[] {
+export function edictRows(
+  state: GameState,
+  config: EngineConfig,
+  draftRate: number | null = null,
+): EdictRow[] {
   const ids: EdictId[] = ['forced_tithe', 'church_seizure', 'grand_festival']
   return ids.map((id) => {
-    const cost = id === 'grand_festival' ? festivalCost(state) : 0
+    const cost = id === 'grand_festival' ? festivalCost(state, config) : 0
     const blocked = edictBlock(state, id, cost)
     return {
       id,
       name: EDICT_NAMES[id],
       text: edictText(state, id),
       priceLabel: cost > 0 ? `Pay ${formatCompact(Math.ceil(cost))} AP` : 'Proclaim',
-      ...edictOutcome(state, id, cost, draftRate),
+      ...edictOutcome(state, config, id, cost, draftRate),
       command: blocked ? null : { type: 'ENACT_EDICT', edictId: id },
       blocked,
     }
@@ -194,7 +197,7 @@ export function edictRows(state: GameState, draftRate: number | null = null): Ed
 }
 
 /** The price of the next colonised province. */
-export function coloniseView(state: GameState): ColoniseView {
+export function coloniseView(state: GameState, config: EngineConfig): ColoniseView {
   const cost = calculateColonisationCost(state.colonisedProvincesCount, config)
   const blocked = state.ap < cost ? 'Not enough AP' : null
   const copy = structuredClone(state)

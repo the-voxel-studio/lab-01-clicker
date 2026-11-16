@@ -36,7 +36,7 @@ const FOOT: Record<FateView['outcome'], string> = {
 const SCENE_MS = 2400
 const DEATH_VIBRATION_MS = 180
 
-const view = computed(() => (game.run ? fateView(game.run) : null))
+const view = computed(() => (game.run ? fateView(game.run, game.config) : null))
 const canLeave = ref(!motionOn.value)
 let timer: ReturnType<typeof setTimeout> | null = null
 

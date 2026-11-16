@@ -12,7 +12,7 @@ const game = useGameStore()
 const open = ref(false)
 const rows = computed(() => {
   void game.revision
-  return game.run ? disbandRows(game.run) : []
+  return game.run ? disbandRows(game.run, game.config) : []
 })
 const unpaid = computed(() => rows.value.some((row) => row.unpaid))
 

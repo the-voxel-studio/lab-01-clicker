@@ -4,6 +4,7 @@
  * @module __tests__/unit/ui_crown_figures.spec
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -28,7 +29,7 @@ function realm(): GameState {
 }
 
 function row(state: GameState, id: string) {
-  const found = edictRows(state).find((item) => item.id === id)
+  const found = edictRows(state, DEFAULT_ENGINE_CONFIG).find((item) => item.id === id)
   if (!found) throw new Error('no edict')
   return found
 }
@@ -70,7 +71,7 @@ describe('Task 3: edicts, tax, patents and plain rules', () => {
     state.unrest = 50
     state.taxRate = 10
     expect(row(state, 'forced_tithe').fatal).toBe(false)
-    const rows = edictRows(state, 60)
+    const rows = edictRows(state, DEFAULT_ENGINE_CONFIG, 60)
     expect(rows.find((item) => item.id === 'forced_tithe')?.fatal).toBe(true)
   })
 
@@ -102,14 +103,14 @@ describe('Task 3: edicts, tax, patents and plain rules', () => {
   })
 
   it('states income and unrest at a chosen tax', () => {
-    const line = taxEffect(realm(), 60)
+    const line = taxEffect(realm(), DEFAULT_ENGINE_CONFIG, 60)
     expect(line).toMatch(/[+−][\d.]+ AP\/s/)
     expect(line).toMatch(/unrest\/s/)
   })
 
   it('states what a patent unlocks and what colonising adds', () => {
-    expect(patentRow(realm(), 'military')?.unlocks).toContain('Men-at-arms')
-    expect(coloniseView(realm()).gain).toMatch(/^\+\d+ room$/)
+    expect(patentRow(realm(), DEFAULT_ENGINE_CONFIG, 'military')?.unlocks).toContain('Men-at-arms')
+    expect(coloniseView(realm(), DEFAULT_ENGINE_CONFIG).gain).toMatch(/^\+\d+ room$/)
   })
 
   it('holds a tax chosen while time stands still until it runs again', () => {

@@ -37,16 +37,16 @@ const edicts = ref<EdictView[]>([])
 const draftRate = ref<number | null>(null)
 function readEdicts(): void {
   edicts.value = game.run
-    ? edictRows(game.run, upcomingTaxRate(game.run, draftRate.value, game.heldTax))
+    ? edictRows(game.run, game.config, upcomingTaxRate(game.run, draftRate.value, game.heldTax))
     : []
-  rates.value = game.run ? realmRates(game.run) : null
+  rates.value = game.run ? realmRates(game.run, game.config) : null
 }
 readEdicts()
 const edictTimer = setInterval(readEdicts, REFRESH_MS)
 onUnmounted(() => clearInterval(edictTimer))
 const colonise = computed(() => {
   const run = current()
-  return run ? coloniseView(run) : null
+  return run ? coloniseView(run, game.config) : null
 })
 
 /** A refusal speaks of the order just given: it does not follow the player to another tab. */

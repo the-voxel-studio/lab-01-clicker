@@ -6,7 +6,7 @@
  * @module ui/moments
  */
 
-import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
+import { quotaForDeadline, type EngineConfig } from '@/core/config'
 import { calculateMilitaryPower, calculateNetApRate, scopedQuota } from '@/core/engine'
 import { canAffordEffects, composeStat, extractRawEvaluationState } from '@/core/modifiers'
 import { hasRule } from '@/core/rules'
@@ -22,9 +22,8 @@ import {
   type ScheduledThreatDef,
 } from '@/data/threats'
 import { auditOrdinal, formatCompact } from '@/ui/realmText'
-
-const config = DEFAULT_ENGINE_CONFIG
-const { balance } = config
+import { toneFor } from '@/data/levelCopy'
+import { levelOfConfig } from '@/ui/levelConfig'
 
 const MOMENT_PHASES: readonly RunPhase[] = [
   'AUDIT_ASSESSMENT',
@@ -108,16 +107,21 @@ function letter(
   }
 }
 
-function auditTitle(outcome: AuditOutcome): string {
-  if (!outcome.success) return MOMENT_COPY.audit.pardon
-  return outcome.passedCount >= 3 ? MOMENT_COPY.audit.clean : MOMENT_COPY.audit.narrow
+function auditTitle(config: EngineConfig, outcome: AuditOutcome): string {
+  const level = levelOfConfig(config)
+  if (!outcome.success) return toneFor(level, 'auditPardon')
+  return toneFor(level, outcome.passedCount >= 3 ? 'auditClean' : 'auditNarrow')
 }
 
 /**
  * What an audit counted against what it asked. The targets come from the outcome: its scoped
  * modifiers are gone from the state, and a save from before the field shows the held figure alone.
  */
-export function quotaLines(state: GameState, outcome: AuditOutcome): QuotaLine[] {
+export function quotaLines(
+  state: GameState,
+  config: EngineConfig,
+  outcome: AuditOutcome,
+): QuotaLine[] {
   const figure = (held: number, target: number | undefined): string =>
     target === undefined
       ? formatCompact(held)
@@ -142,18 +146,18 @@ export function quotaLines(state: GameState, outcome: AuditOutcome): QuotaLine[]
   ]
 }
 
-function auditMoment(state: GameState): MomentView | null {
+function auditMoment(state: GameState, config: EngineConfig): MomentView | null {
   const outcome = state.lastAuditOutcome
   if (!outcome) return null
-  const share = Math.round(balance.ROYAL_CENSURE_AP_CONFISCATION * 100)
+  const share = Math.round(config.balance.ROYAL_CENSURE_AP_CONFISCATION * 100)
   return letter(
     'audit',
     `The ${auditOrdinal(outcome.deadline)} audit`,
-    auditTitle(outcome),
+    auditTitle(config, outcome),
     [answer(MOMENT_COPY.audit.answer, null, { type: 'SUBMIT_AUDIT' }, 'crown')],
     {
       body: outcome.royalPardonIssued ? MOMENT_COPY.audit.pardonBody(share) : null,
-      quotas: quotaLines(state, outcome),
+      quotas: quotaLines(state, config, outcome),
     },
   )
 }
@@ -166,7 +170,7 @@ function splitChoice(text: string): { label: string; detail: string | null } {
     : { label: text.replace(/[()]/g, ''), detail: null }
 }
 
-function dilemmaMoment(state: GameState): MomentView | null {
+function dilemmaMoment(state: GameState, config: EngineConfig): MomentView | null {
   const id = state.currentDilemmaId
   const dilemma = id === null ? undefined : DILEMMAS_DATA[id]
   if (!dilemma || id === null) return null
@@ -184,11 +188,11 @@ function dilemmaMoment(state: GameState): MomentView | null {
 }
 
 /** Seats of the council for a law, as `ENACT_LAW` counts them. */
-function lawSeats(state: GameState, law: LawDef): number {
+function lawSeats(state: GameState, config: EngineConfig, law: LawDef): number {
   const seats = Math.floor(
     composeStat(
       'law_slots',
-      balance.LAW_SLOTS_BASE,
+      config.balance.LAW_SLOTS_BASE,
       state.activeModifiers,
       extractRawEvaluationState(state),
     ),
@@ -197,15 +201,20 @@ function lawSeats(state: GameState, law: LawDef): number {
   return concordat ? seats - 1 : seats
 }
 
-function lawBlock(state: GameState, law: LawDef, netApRate: number): string | null {
+function lawBlock(
+  state: GameState,
+  config: EngineConfig,
+  law: LawDef,
+  netApRate: number,
+): string | null {
   if (law.order === 'chancellor' && hasRule(state, 'law:marshals_carte_blanche')) {
     return MOMENT_COPY.blocked.marshal
   }
-  if (state.activeLaws.length >= lawSeats(state, law)) return MOMENT_COPY.blocked.full
+  if (state.activeLaws.length >= lawSeats(state, config, law)) return MOMENT_COPY.blocked.full
   return canAffordEffects(state, law.effects, netApRate) ? null : MOMENT_COPY.blocked.bear
 }
 
-function lawsMoment(state: GameState): MomentView {
+function lawsMoment(state: GameState, config: EngineConfig): MomentView {
   const netApRate = calculateNetApRate(state, config)
   const laws = state.currentLawDraft.flatMap((id) => {
     const law = LAWS_DATA[id]
@@ -214,7 +223,7 @@ function lawsMoment(state: GameState): MomentView {
     return [
       blockedWhen(
         answer(law.name, detail, { type: 'ENACT_LAW', lawId: id }, 'lawDecree'),
-        lawBlock(state, law, netApRate),
+        lawBlock(state, config, law, netApRate),
       ),
     ]
   })
@@ -230,26 +239,27 @@ function lawsMoment(state: GameState): MomentView {
 }
 
 /** Defensive force as `resolveDefensiveClash` counts it, with a roll of 1. */
-export function defensiveForce(state: GameState): number {
+export function defensiveForce(state: GameState, config: EngineConfig): number {
   const strongholds = state.provinceBiomes.filter((biome) => biome === 'stronghold').length
   const factor = hasRule(state, 'law:guerrilla_border_watch')
-    ? balance.GUERRILLA_STRONGHOLD_FACTOR
+    ? config.balance.GUERRILLA_STRONGHOLD_FACTOR
     : 1
   return Math.floor(
-    calculateMilitaryPower(state, config) * (1 + balance.DEFENDER_FORTIFICATION_BONUS) +
-      strongholds * balance.BORDER_STRONGHOLD_DEFENSE_FLAT * factor +
-      (state.units.man_at_arms ?? 0) * balance.MAN_AT_ARMS_DEFENSE_FLAT,
+    calculateMilitaryPower(state, config) * (1 + config.balance.DEFENDER_FORTIFICATION_BONUS) +
+      strongholds * config.balance.BORDER_STRONGHOLD_DEFENSE_FLAT * factor +
+      (state.units.man_at_arms ?? 0) * config.balance.MAN_AT_ARMS_DEFENSE_FLAT,
   )
 }
 
 function fightDetail(
   state: GameState,
+  config: EngineConfig,
   provincesAtStake: number,
   yours: number,
   theirs: number,
 ): string {
   const lost = provincesAtStake > 1 ? 'two provinces' : 'one province'
-  const stakes = `Your force ${formatCompact(yours)} against their ${formatCompact(theirs)}. Losing costs ${lost}, the whole army, part of your people and coffer, and ${balance.COLLAPSE_UNREST} unrest.`
+  const stakes = `Your force ${formatCompact(yours)} against their ${formatCompact(theirs)}. Losing costs ${lost}, the whole army, part of your people and coffer, and ${config.balance.COLLAPSE_UNREST} unrest.`
   return state.provinces <= provincesAtStake
     ? `${stakes} ${MOMENT_COPY.herald.lastProvince}`
     : stakes
@@ -258,6 +268,7 @@ function fightDetail(
 /** What facing a threat costs before the first blow, as `forecastThreatTrait` reads it. */
 function threatToll(
   state: GameState,
+  config: EngineConfig,
   deadline: number,
   factionId: ScheduledThreatDef['factionId'],
 ): Pick<FactionTraitResult, 'unrestDelta' | 'soldierDesertions'> {
@@ -286,7 +297,7 @@ function fatalUnrestWords(state: GameState, added: number): string {
   return state.unrest + added >= 100 ? ` ${MOMENT_COPY.herald.fatalUnrest}` : ''
 }
 
-function heraldMoment(state: GameState): MomentView {
+function heraldMoment(state: GameState, config: EngineConfig): MomentView {
   const threat = SCHEDULED_THREATS_DATA.find(
     (item) => item.deadline === (state.currentThreatId ?? state.deadline + 1),
   )
@@ -294,13 +305,13 @@ function heraldMoment(state: GameState): MomentView {
   const theirs = state.currentThreatPower
   const tribute = state.currentThreatTributeAp
   const provincesAtStake = threat?.factionId === 'imperial_legions' ? 2 : 1
-  const levyOdds = Math.round(1 / balance.LEVY_CASUALTY_SHARE)
+  const levyOdds = Math.round(1 / config.balance.LEVY_CASUALTY_SHARE)
   const toll = threat
-    ? threatToll(state, threat.deadline, threat.factionId)
+    ? threatToll(state, config, threat.deadline, threat.factionId)
     : { unrestDelta: 0, soldierDesertions: 0 }
-  const yours = defensiveForce(withoutDeserters(state, toll.soldierDesertions))
+  const yours = defensiveForce(withoutDeserters(state, toll.soldierDesertions), config)
   const desert = deserterWords(toll.soldierDesertions)
-  const levyUnrest = balance.LEVY_UNREST + toll.unrestDelta
+  const levyUnrest = config.balance.LEVY_UNREST + toll.unrestDelta
   const defection = toll.unrestDelta > 0 ? ` Unrest +${toll.unrestDelta}.${desert}` : desert
   return letter(
     'herald',
@@ -309,7 +320,7 @@ function heraldMoment(state: GameState): MomentView {
     [
       answer(
         MOMENT_COPY.herald.fight,
-        `${fightDetail(state, provincesAtStake, yours, theirs)}${defection}${fatalUnrestWords(state, toll.unrestDelta)}`,
+        `${fightDetail(state, config, provincesAtStake, yours, theirs)}${defection}${fatalUnrestWords(state, toll.unrestDelta)}`,
         {
           type: 'SELECT_THREAT_RESPONSE',
           response: 'defense',
@@ -336,7 +347,7 @@ function heraldMoment(state: GameState): MomentView {
       },
     ],
     {
-      body: MOMENT_COPY.herald.body,
+      body: toneFor(levelOfConfig(config), 'heraldBody'),
       clash: { yours, theirs },
       note: MOMENT_COPY.herald.note,
     },
@@ -344,9 +355,9 @@ function heraldMoment(state: GameState): MomentView {
 }
 
 /** Power of the raid, as `RESOLVE_RAID_DEFENSE` composes it. */
-export function raidPower(state: GameState): number {
+export function raidPower(state: GameState, config: EngineConfig): number {
   const base = Math.round(
-    balance.RAID_POWER_QUOTA_SHARE * quotaForDeadline(config, state.deadline).military,
+    config.balance.RAID_POWER_QUOTA_SHARE * quotaForDeadline(config, state.deadline).military,
   )
   const factor = composeStat(
     'threat_power',
@@ -357,8 +368,8 @@ export function raidPower(state: GameState): number {
   return Math.max(0, Math.round(base * factor))
 }
 
-function raidMoment(state: GameState): MomentView {
-  const theirs = raidPower(state)
+function raidMoment(state: GameState, config: EngineConfig): MomentView {
+  const theirs = raidPower(state, config)
   return letter(
     'raid',
     MOMENT_COPY.raid.eyebrow,
@@ -366,20 +377,20 @@ function raidMoment(state: GameState): MomentView {
     [
       answer(
         MOMENT_COPY.raid.answer,
-        fightDetail(state, 1, defensiveForce(state), theirs),
+        fightDetail(state, config, 1, defensiveForce(state, config), theirs),
         {
           type: 'RESOLVE_RAID_DEFENSE',
         },
         'threatRepel',
       ),
     ],
-    { body: MOMENT_COPY.raid.body, clash: { yours: defensiveForce(state), theirs } },
+    { body: MOMENT_COPY.raid.body, clash: { yours: defensiveForce(state, config), theirs } },
   )
 }
 
-function lombardMoment(state: GameState): MomentView {
+function lombardMoment(state: GameState, config: EngineConfig): MomentView {
   const seconds = Math.ceil(state.bankruptcyGraceTimer)
-  const loan = formatCompact(balance.LOMBARD_BAILOUT_AP)
+  const loan = formatCompact(config.balance.LOMBARD_BAILOUT_AP)
   return letter(
     'lombard',
     MOMENT_COPY.lombard.eyebrow,
@@ -405,20 +416,20 @@ function lombardMoment(state: GameState): MomentView {
 }
 
 /** The letter of the current phase, or null when the reign is not waiting on one. */
-export function momentView(state: GameState): MomentView | null {
+export function momentView(state: GameState, config: EngineConfig): MomentView | null {
   switch (state.phase) {
     case 'AUDIT_ASSESSMENT':
-      return auditMoment(state)
+      return auditMoment(state, config)
     case 'COUNCIL_DILEMMA':
-      return dilemmaMoment(state)
+      return dilemmaMoment(state, config)
     case 'COUNCIL_LAWS':
-      return lawsMoment(state)
+      return lawsMoment(state, config)
     case 'THREAT_HERALD':
-      return heraldMoment(state)
+      return heraldMoment(state, config)
     case 'SURPRISE_RAID':
-      return raidMoment(state)
+      return raidMoment(state, config)
     case 'LOMBARD_OFFER':
-      return lombardMoment(state)
+      return lombardMoment(state, config)
     default:
       return null
   }

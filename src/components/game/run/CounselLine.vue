@@ -12,7 +12,9 @@ const error = ref<string | null>(null)
 const counsel = computed(() => {
   const run = game.run
   void game.revision
-  return run ? adviseCounsel(run, game.quotas, game.dread.band, game.secondsLeft) : null
+  return run
+    ? adviseCounsel(run, game.config, game.quotas, game.dread.band, game.secondsLeft)
+    : null
 })
 
 /** The advice without its figures: a shortfall counting down must not fade on every change. */

@@ -7,6 +7,7 @@
 
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import type { EngineConfig } from '@/core/config'
 import type { Command, DispatchResult, GameState } from '@/core/types'
 import {
   entryFromCommand,
@@ -75,16 +76,16 @@ export const useChronicleStore = defineStore('chronicle', () => {
   }
 
   /** Opens a new chronicle with the coronation of `state`. */
-  function start(state: GameState, band: DreadBand): void {
+  function start(state: GameState, config: EngineConfig, band: DreadBand): void {
     entries.value = []
     snapshot = null
-    observe(state, band)
+    observe(state, config, band)
   }
 
   /** Writes what changed in the run since the last observation. */
-  function observe(state: GameState, band: DreadBand): void {
+  function observe(state: GameState, config: EngineConfig, band: DreadBand): void {
     currentDeadline.value = state.deadline
-    const change = observeChange(snapshot, state, band, nextId())
+    const change = observeChange(snapshot, config, state, band, nextId())
     snapshot = change.snapshot
     prepend(change.entries)
   }
@@ -92,11 +93,12 @@ export const useChronicleStore = defineStore('chronicle', () => {
   /** Writes the line of a dispatched command, if it has one. */
   function noteCommand(
     command: Command,
+    config: EngineConfig,
     result: DispatchResult,
     before: GameState,
     after: GameState,
   ): void {
-    const entry = entryFromCommand(command, result, before, after, nextId())
+    const entry = entryFromCommand(command, config, result, before, after, nextId())
     if (!entry) return
     const newest = entries.value[0]
     const merged = newest ? mergeEntries(newest, entry) : null

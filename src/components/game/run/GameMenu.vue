@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { LEVEL_DATA } from '@/data/levels'
 import { useArchivesStore } from '@/stores/archives'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
@@ -120,6 +121,7 @@ onUnmounted(() => {
         class="flex w-[300px] flex-col gap-2 overflow-y-auto bg-vellum px-4 py-5 shadow-xl"
       >
         <h2 class="font-display text-[26px] text-ink">Reign {{ archives.history.length + 1 }}</h2>
+        <p data-reign-level class="font-body text-ink">{{ LEVEL_DATA[game.level].name }} level</p>
         <p class="font-body italic text-ink-faded">
           {{ capitalized(ordinal) }} audit, {{ timeLeft }}
         </p>

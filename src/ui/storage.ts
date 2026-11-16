@@ -13,6 +13,8 @@ export const ARCHIVE_KEY = 'grand_audit_archive'
 export const HISTORY_KEY = 'grand_audit_history'
 /** Chronicle of the saved reign, written with the save. */
 export const CHRONICLE_KEY = 'grand_audit_chronicle'
+/** Level of the saved reign, `{ runId, level }`, written and cleared with the save. */
+export const LEVEL_KEY = 'grand_audit_level'
 /** Player settings. */
 export const SETTINGS_KEY = 'grand_audit_settings'
 

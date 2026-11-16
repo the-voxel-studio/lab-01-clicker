@@ -6,7 +6,7 @@
  * @module ui/chronicle
  */
 
-import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
+import { quotaForDeadline, type EngineConfig } from '@/core/config'
 import { calculateMilitaryPower, calculateNetApRate, effectiveQuota } from '@/core/engine'
 import type {
   AuditOutcome,
@@ -23,6 +23,8 @@ import { LAWS_DATA } from '@/data/laws'
 import type { DreadBand } from '@/ui/dread'
 import { battleReport, type BattleReport } from '@/ui/report'
 import { formatCompact } from '@/ui/realmText'
+import { toneFor } from '@/data/levelCopy'
+import { levelOfConfig } from '@/ui/levelConfig'
 
 /** What an entry tells: the player's decisions, audits, folklore, deaths or money. */
 export type ChronicleKind = 'decision' | 'audit' | 'folklore' | 'death' | 'money'
@@ -106,8 +108,8 @@ export function formatReignClock(seconds: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
-function isBankrupt(state: GameState): boolean {
-  return state.ap <= 0 && calculateNetApRate(state, DEFAULT_ENGINE_CONFIG) < 0
+function isBankrupt(state: GameState, config: EngineConfig): boolean {
+  return state.ap <= 0 && calculateNetApRate(state, config) < 0
 }
 
 function auditKeyOf(outcome: AuditOutcome | null): string | null {
@@ -120,21 +122,27 @@ function verdictOf(outcome: AuditOutcome): AuditVerdict {
   return outcome.royalPardonIssued ? 'pardoned' : 'passed'
 }
 
-function auditText(state: GameState, outcome: AuditOutcome): string {
-  const required = effectiveQuota(state, quotaForDeadline(DEFAULT_ENGINE_CONFIG, outcome.deadline))
+function auditText(state: GameState, config: EngineConfig, outcome: AuditOutcome): string {
+  const required = effectiveQuota(
+    state,
+    quotaForDeadline(config, outcome.deadline),
+    state.activeModifiers,
+    config,
+  )
   const figures =
     `AP ${decimal(outcome.grossApRate)} of ${decimal(required.apRate)}, ` +
     `People ${figure(state.totalPopulation)} of ${figure(required.pop)}, ` +
-    `Army ${decimal(calculateMilitaryPower(state))} of ${decimal(required.military)}.`
+    `Army ${decimal(calculateMilitaryPower(state, config))} of ${decimal(required.military)}.`
   const margin = outcome.grossApRate - required.apRate
+  const level = levelOfConfig(config)
   let verdict: string
-  if (!outcome.success) verdict = 'Audit failed. The Crown marks a strike against you.'
+  if (!outcome.success) verdict = toneFor(level, 'chronicleFailed')
   else if (outcome.royalPardonIssued)
     verdict = 'Audit passed with the Royal Pardon. You will not get another.'
   else if (!outcome.apMet) verdict = 'Audit passed, though the Chancery fell short.'
   else if (margin < NARROW_MARGIN)
-    verdict = `Audit passed by ${decimal(margin)} AP. The Crown is satisfied.`
-  else verdict = 'Audit passed. The Crown sends a cask of wine and a warning.'
+    verdict = `Audit passed by ${decimal(margin)} AP. ${toneFor(level, 'chronicleSatisfied')}`
+  else verdict = toneFor(level, 'chronicleWine')
   return `${verdict} ${figures}`
 }
 
@@ -159,6 +167,7 @@ function pickFolklore(band: DreadBand, seed: number, nextId: number, last: strin
  */
 export function observeChange(
   before: RunSnapshot | null,
+  config: EngineConfig,
   state: GameState,
   band: DreadBand,
   nextId: number,
@@ -186,7 +195,7 @@ export function observeChange(
     auditKey: auditKeyOf(state.lastAuditOutcome),
     starvationLosses: state.starvationLosses,
     populationHundreds: Math.floor(state.peakPopulation / 100),
-    bankrupt: isBankrupt(state),
+    bankrupt: isBankrupt(state, config),
     bankruptcyTold: before?.bankruptcyTold ?? false,
     solventSince: before?.solventSince ?? null,
     band,
@@ -209,7 +218,7 @@ export function observeChange(
 
   const outcome = state.lastAuditOutcome
   if (outcome && snapshot.auditKey !== before.auditKey) {
-    write('audit', auditText(state, outcome), outcome.deadline, verdictOf(outcome))
+    write('audit', auditText(state, config, outcome), outcome.deadline, verdictOf(outcome))
   }
   const lost = Math.floor(state.starvationLosses - snapshot.lossesTold)
   if (lost >= DEATH_THRESHOLD && now - snapshot.lastDeathSeconds >= DEATH_INTERVAL_SECONDS) {
@@ -376,6 +385,7 @@ function commandText(command: Command, before: GameState, after: GameState): str
  */
 export function entryFromCommand(
   command: Command,
+  config: EngineConfig,
   result: DispatchResult,
   before: GameState,
   after: GameState,
@@ -397,7 +407,7 @@ export function entryFromCommand(
   }
   const merge = mergeOf(command, before, after)
   if (merge) entry.merge = merge
-  const report = battleReport(command, before, after)
+  const report = battleReport(command, config, before, after)
   if (report) entry.report = report
   return entry
 }

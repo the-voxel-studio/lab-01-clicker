@@ -75,4 +75,38 @@ describe('Task 3: run records', () => {
     const raw = JSON.stringify({ version: 1, records: [{ ...valid, seed: 'x' }, valid] })
     expect(parseHistory(raw)).toEqual([valid])
   })
+
+  it('records the level of the reign, ordinary when none is given', () => {
+    expect(createRunRecord(defeatedState(), CONCLUSION, ENDED_AT).level).toBe('ordinary')
+    expect(createRunRecord(defeatedState(), CONCLUSION, ENDED_AT, false, 'stern').level).toBe(
+      'stern',
+    )
+  })
+
+  it('writes version 2 and round trips every level', () => {
+    const records = (['ordinary', 'stern', 'tyrannical'] as const).map((level) =>
+      createRunRecord(defeatedState(), CONCLUSION, ENDED_AT, false, level),
+    )
+    const raw = serializeHistory(records)
+    expect(JSON.parse(raw).version).toBe(2)
+    expect(parseHistory(raw)).toEqual(records)
+  })
+
+  it('keeps a history of version 1 and reads its records as ordinary', () => {
+    const { level: _level, ...old } = createRunRecord(defeatedState(), CONCLUSION, ENDED_AT)
+    const raw = JSON.stringify({ version: 1, records: [old, { ...old, level: 'tyrannical' }] })
+    const parsed = parseHistory(raw)
+    expect(parsed).toHaveLength(2)
+    expect(parsed.map((record) => record.level)).toEqual(['ordinary', 'ordinary'])
+  })
+
+  it('drops a record of version 2 without a known level', () => {
+    const valid = createRunRecord(defeatedState(), CONCLUSION, ENDED_AT, false, 'stern')
+    const { level: _level, ...missing } = valid
+    const raw = JSON.stringify({
+      version: 2,
+      records: [missing, { ...valid, level: 'easy' }, valid],
+    })
+    expect(parseHistory(raw)).toEqual([valid])
+  })
 })

@@ -7,7 +7,7 @@
  */
 
 import { dispatch } from '@/core/commands'
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import type { EngineConfig } from '@/core/config'
 import { calculateMaxPopulation } from '@/core/engine'
 import { calculateMaxAffordableUnits, getMaxBulkSize } from '@/core/formulas'
 import type { Command, GameState, UnitId } from '@/core/types'
@@ -17,6 +17,8 @@ import type { CrownTab, Screen } from '@/stores/nav'
 import type { DreadBand } from '@/ui/dread'
 import { patentRow } from '@/ui/orderRows'
 import { formatCompact } from '@/ui/realmText'
+import { toneFor } from '@/data/levelCopy'
+import { levelOfConfig } from '@/ui/levelConfig'
 
 /** What the counsel line shows: who speaks, what they say, and the purchase they offer. */
 export interface Counsel {
@@ -78,11 +80,12 @@ function shortfallText(quota: QuotaView, warn: boolean): string {
 /** Largest count up to `wanted` the engine accepts now, with its cost; null when none. */
 function acceptedPurchase(
   state: GameState,
+  config: EngineConfig,
   unit: UnitId,
   wanted: number,
 ): { count: number; cost: number } | null {
   const owned = state.units[unit] ?? 0
-  const bulk = getMaxBulkSize(state.deadline, state.totalPopulation, UNITS_DATA[unit])
+  const bulk = getMaxBulkSize(state.deadline, state.totalPopulation, UNITS_DATA[unit], config)
   const affordable = calculateMaxAffordableUnits(
     unit,
     owned,
@@ -90,13 +93,13 @@ function acceptedPurchase(
     state.freeSerfs,
     Infinity,
     bulk,
-    DEFAULT_ENGINE_CONFIG,
+    config,
     state.activeModifiers,
   )
   const candidates = [...new Set([Math.min(wanted, affordable), 1])].filter((count) => count >= 1)
   for (const count of candidates) {
     const trial = structuredClone(state)
-    if (dispatch(trial, { type: 'BUY_UNIT', unitId: unit, count }).success) {
+    if (dispatch(trial, { type: 'BUY_UNIT', unitId: unit, count }, config).success) {
       return { count, cost: state.ap - trial.ap }
     }
   }
@@ -109,19 +112,20 @@ function acceptedPurchase(
  */
 function birthBrake(
   state: GameState,
+  config: EngineConfig,
   shortfall: string,
 ): Pick<Counsel, 'text' | 'action' | 'go' | 'tab'> | null {
   const opening = shortfall.replace(/\.$/, '')
   if (state.taxRate > FAIR_TAX) {
     const command: Command = { type: 'SET_TAX_RATE', rate: FAIR_TAX }
-    if (dispatch(structuredClone(state), command).success) {
+    if (dispatch(structuredClone(state), command, config).success) {
       return {
         text: `${opening}, and a tax above ${FAIR_TAX}% slows the births.`,
         action: { label: `Lower the tax to ${FAIR_TAX}%`, command },
       }
     }
   }
-  if (state.totalPopulation >= FULL_VILLAGES * calculateMaxPopulation(state)) {
+  if (state.totalPopulation >= FULL_VILLAGES * calculateMaxPopulation(state, config)) {
     return {
       text: `${opening}, and the villages are full. Colonise a province to house more souls.`,
       action: null,
@@ -138,12 +142,18 @@ function birthBrake(
  */
 function hostCounsel(
   state: GameState,
+  config: EngineConfig,
   shortfall: string,
   missing: number,
 ): Pick<Counsel, 'text' | 'action' | 'go' | 'tab'> | null {
   const { man_at_arms: veteran } = UNITS_DATA
   if (state.unlockedPatents.military) {
-    const purchase = acceptedPurchase(state, 'man_at_arms', Math.ceil(missing / veteran.baseValue))
+    const purchase = acceptedPurchase(
+      state,
+      config,
+      'man_at_arms',
+      Math.ceil(missing / veteran.baseValue),
+    )
     if (!purchase) return null
     return {
       text: shortfall,
@@ -154,7 +164,7 @@ function hostCounsel(
     }
   }
   if ((state.units.soldier ?? 0) < DEAR_SOLDIERS) return null
-  const patent = patentRow(state, 'military')
+  const patent = patentRow(state, config, 'military')
   return {
     text: `Soldiers grow dear. Seal the Host's patent: men-at-arms are worth ${veteran.baseValue} force each.`,
     action: patent?.command
@@ -174,6 +184,7 @@ function hostCounsel(
  */
 export function adviseCounsel(
   state: GameState,
+  config: EngineConfig,
   quotas: QuotaView[],
   band: DreadBand,
   secondsLeft: number,
@@ -181,7 +192,7 @@ export function adviseCounsel(
   if (band === 'death_throes') {
     return {
       title: 'No one advises you',
-      text: 'Your counsellors have fled the castle.',
+      text: toneFor(levelOfConfig(config), 'counselFled'),
       action: null,
     }
   }
@@ -192,7 +203,7 @@ export function adviseCounsel(
   if (!worst) {
     return {
       title: 'The Steward advises',
-      text: 'Every quota is met. Keep the realm quiet.',
+      text: toneFor(levelOfConfig(config), 'counselAllMet'),
       action: null,
     }
   }
@@ -201,15 +212,20 @@ export function adviseCounsel(
   const title = `${adviser.name} ${warn ? 'warns' : 'advises'}`
   const men = Math.ceil((worst.required - worst.current) / UNITS_DATA.soldier.baseValue)
   if (worst.axis === 'pop') {
-    const brake = birthBrake(state, shortfallText(worst, warn))
+    const brake = birthBrake(state, config, shortfallText(worst, warn))
     if (brake) return { title, ...brake }
   }
   if (worst.axis === 'military') {
-    const host = hostCounsel(state, shortfallText(worst, warn), worst.required - worst.current)
+    const host = hostCounsel(
+      state,
+      config,
+      shortfallText(worst, warn),
+      worst.required - worst.current,
+    )
     if (host) return { title, ...host }
   }
   const wanted = worst.axis === 'military' ? men : ROUND_PURCHASE
-  const purchase = acceptedPurchase(state, adviser.unit, wanted)
+  const purchase = acceptedPurchase(state, config, adviser.unit, wanted)
   return {
     title,
     text: shortfallText(worst, warn),

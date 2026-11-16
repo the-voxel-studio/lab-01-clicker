@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGameStore } from '@/stores/game'
 import { computed } from 'vue'
 import ProvinceShield from '@/components/game/ledger/ProvinceShield.vue'
 import type { Command, GameState } from '@/core/types'
@@ -7,6 +8,8 @@ import { realmRecap } from '@/ui/crownRecap'
 import type { RealmRates } from '@/ui/effects'
 import { formatCompact, formatFigure } from '@/ui/realmText'
 import NewLand from './NewLand.vue'
+
+const game = useGameStore()
 
 /**
  * What the HUD does not say about the realm: its growth, its standing and its land, with the
@@ -19,7 +22,7 @@ const props = defineProps<{
   raised: number
 }>()
 const emit = defineEmits<{ act: [command: Command] }>()
-const recap = computed(() => realmRecap(props.run, props.rates))
+const recap = computed(() => realmRecap(props.run, game.config, props.rates))
 const signed = (value: number): string => `${value > 0 ? '+' : ''}${formatFigure(value, 2)}/s`
 </script>
 

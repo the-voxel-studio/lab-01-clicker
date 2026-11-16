@@ -6,7 +6,7 @@
  * @module ui/orderRows
  */
 
-import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
+import { quotaForDeadline, type EngineConfig } from '@/core/config'
 import {
   calculateMaxPopulation,
   calculateMilitaryPower,
@@ -26,8 +26,6 @@ import type { Command, GameState, UnitId, UnitOrder } from '@/core/types'
 import { UNITS_DATA } from '@/data/balance'
 import { UNIT_COPY } from '@/data/orderCopy'
 import { auditOrdinal, formatCompact } from '@/ui/realmText'
-
-const config = DEFAULT_ENGINE_CONFIG
 
 /** A bulk size of the selector; `max` buys as many as the coffer and the order allow. */
 export type BulkChoice = 1 | 10 | 50 | 100 | 'max'
@@ -68,7 +66,7 @@ function unitsOf(order: UnitOrder): UnitId[] {
     .map((def) => def.id)
 }
 
-function headroom(state: GameState, order: UnitOrder): number {
+function headroom(state: GameState, config: EngineConfig, order: UnitOrder): number {
   const caps = calculateOrderCaps(
     calculateMaxPopulation(state, config),
     state.activeModifiers,
@@ -86,6 +84,7 @@ function freeSerfsFor(state: GameState, unitId: UnitId): number {
 
 function resolveCount(
   state: GameState,
+  config: EngineConfig,
   unitId: UnitId,
   bulk: BulkChoice,
   room: number,
@@ -119,15 +118,20 @@ function blockReason(
 }
 
 /** Builds the rows of an order: Tier I always, Tier II once its patent is sealed. */
-export function unitRows(state: GameState, order: UnitOrder, bulk: BulkChoice): UnitRow[] {
-  const room = headroom(state, order)
+export function unitRows(
+  state: GameState,
+  config: EngineConfig,
+  order: UnitOrder,
+  bulk: BulkChoice,
+): UnitRow[] {
+  const room = headroom(state, config, order)
   return unitsOf(order)
     .filter((id) => UNITS_DATA[id].tier === 1 || state.unlockedPatents[order])
     .map((unitId) => {
       const def = UNITS_DATA[unitId]
       const owned = state.units[unitId] ?? 0
       const limit = getMaxBulkSize(state.deadline, state.totalPopulation, def, config)
-      const count = resolveCount(state, unitId, bulk, room, limit)
+      const count = resolveCount(state, config, unitId, bulk, room, limit)
       const price = calculateUnitCost(unitId, owned, count, config, state.activeModifiers)
       const blocked = blockReason(state, unitId, count, price, room)
       const copy = UNIT_COPY[unitId]
@@ -145,7 +149,11 @@ export function unitRows(state: GameState, order: UnitOrder, bulk: BulkChoice): 
 }
 
 /** The patent of an order and what it still needs; null once it is sealed. */
-export function patentRow(state: GameState, order: UnitOrder): PatentRow | null {
+export function patentRow(
+  state: GameState,
+  config: EngineConfig,
+  order: UnitOrder,
+): PatentRow | null {
   if (state.unlockedPatents[order]) return null
   const { PATENT_COSTS, PATENT_MIN_DEADLINE, PATENT_MIN_TIER_I_UNITS } = config.balance
   const cost = PATENT_COSTS[order]
@@ -170,7 +178,11 @@ export function patentRow(state: GameState, order: UnitOrder): PatentRow | null 
 }
 
 /** The bulk selector of an order: a size is open when one unit of the order allows it. */
-export function bulkOptions(state: GameState, order: UnitOrder): BulkOption[] {
+export function bulkOptions(
+  state: GameState,
+  config: EngineConfig,
+  order: UnitOrder,
+): BulkOption[] {
   const limit = Math.max(
     ...unitsOf(order).map((id) =>
       getMaxBulkSize(state.deadline, state.totalPopulation, UNITS_DATA[id], config),
@@ -183,7 +195,10 @@ export function bulkOptions(state: GameState, order: UnitOrder): BulkOption[] {
 }
 
 /** The panel of the Chancery: how much of the AP the paperwork eats, and what cuts it. */
-export function paperworkLine(state: GameState): { title: string; note: string } {
+export function paperworkLine(
+  state: GameState,
+  config: EngineConfig,
+): { title: string; note: string } {
   const share = Math.round(calculateNetPaperwork(state, config) * 100)
   return {
     title: `Paperwork eats ${share}% of your AP.`,
@@ -194,9 +209,14 @@ export function paperworkLine(state: GameState): { title: string; note: string }
 }
 
 /** The panel of the Host: force against the Crown's demand, and what the army costs. */
-export function hostLine(state: GameState): { title: string; note: string } {
+export function hostLine(state: GameState, config: EngineConfig): { title: string; note: string } {
   const force = calculateMilitaryPower(state, config)
-  const wanted = effectiveQuota(state, quotaForDeadline(config, state.deadline)).military
+  const wanted = effectiveQuota(
+    state,
+    quotaForDeadline(config, state.deadline),
+    state.activeModifiers,
+    config,
+  ).military
   const upkeep = calculateMilitaryUpkeep(state, config)
   const short = Math.ceil(wanted - force)
   const upkeepText = `Upkeep ${formatCompact(Math.ceil(upkeep * 10) / 10, 1)} AP each second.`
@@ -216,7 +236,7 @@ export interface DisbandRow {
 }
 
 /** The soldiers that can be disbanded, with the severance of one man. */
-export function disbandRows(state: GameState): DisbandRow[] {
+export function disbandRows(state: GameState, config: EngineConfig): DisbandRow[] {
   return unitsOf('military')
     .filter((id) => (state.units[id] ?? 0) > 0)
     .map((unitId) => {

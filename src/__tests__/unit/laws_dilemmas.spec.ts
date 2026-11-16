@@ -282,7 +282,7 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
         })
         state.phase = 'AUDIT_ASSESSMENT'
         const silos = DILEMMAS_DATA['dilemma:rotting_grain_silos']!
-        expect(silos.trigger(state)).toBe(true)
+        expect(silos.trigger(state, DEFAULT_ENGINE_CONFIG)).toBe(true)
         expect(hasAffordableChoice(state, silos)).toBe(false)
 
         dispatch(state, { type: 'SUBMIT_AUDIT' })
@@ -312,7 +312,9 @@ describe('Task 2.3: Imperial Laws (30) & Steward Dilemmas (20)', () => {
         },
       })
       state.phase = 'AUDIT_ASSESSMENT'
-      expect(Object.values(DILEMMAS_DATA).filter((d) => d.trigger(state))).toEqual([])
+      expect(
+        Object.values(DILEMMAS_DATA).filter((d) => d.trigger(state, DEFAULT_ENGINE_CONFIG)),
+      ).toEqual([])
 
       const res = dispatch(state, { type: 'SUBMIT_AUDIT' })
       expect(res.success).toBe(true)
@@ -493,8 +495,8 @@ describe('GAME_RULES §9: dilemma trigger thresholds', () => {
   ]
 
   it.each(cases)('$id needs $why', ({ id, holds, fails }) => {
-    expect(dilemmaOf(id).trigger(holds)).toBe(true)
-    expect(dilemmaOf(id).trigger(fails)).toBe(false)
+    expect(dilemmaOf(id).trigger(holds, DEFAULT_ENGINE_CONFIG)).toBe(true)
+    expect(dilemmaOf(id).trigger(fails, DEFAULT_ENGINE_CONFIG)).toBe(false)
   })
 
   it('brackets the taxable windows threshold within 1 AP/s on both sides', () => {
@@ -508,10 +510,18 @@ describe('GAME_RULES §9: dilemma trigger thresholds', () => {
   })
 
   it('opens the comet at deadline 8 and not at deadline 7', () => {
-    expect(dilemmaOf('dilemma:astrologer_comet').trigger(realm((s) => (s.deadline = 8)))).toBe(true)
-    expect(dilemmaOf('dilemma:astrologer_comet').trigger(realm((s) => (s.deadline = 7)))).toBe(
-      false,
-    )
+    expect(
+      dilemmaOf('dilemma:astrologer_comet').trigger(
+        realm((s) => (s.deadline = 8)),
+        DEFAULT_ENGINE_CONFIG,
+      ),
+    ).toBe(true)
+    expect(
+      dilemmaOf('dilemma:astrologer_comet').trigger(
+        realm((s) => (s.deadline = 7)),
+        DEFAULT_ENGINE_CONFIG,
+      ),
+    ).toBe(false)
   })
 })
 

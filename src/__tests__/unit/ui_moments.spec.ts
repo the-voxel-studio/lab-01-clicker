@@ -25,7 +25,7 @@ function stateIn(phase: RunPhase): GameState {
 }
 
 function view(state: GameState): MomentView {
-  const moment = momentView(state)
+  const moment = momentView(state, DEFAULT_ENGINE_CONFIG)
   if (!moment) throw new Error('expected a moment')
   return moment
 }
@@ -78,7 +78,7 @@ describe('Task 1: moments model', () => {
     ] as const) {
       state.phase = phase
       expect(isMomentPhase(phase)).toBe(false)
-      expect(momentView(state)).toBeNull()
+      expect(momentView(state, DEFAULT_ENGINE_CONFIG)).toBeNull()
     }
     expect(isMomentPhase(null)).toBe(false)
     expect(isMomentPhase('LOMBARD_OFFER')).toBe(true)

@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { useGameStore } from '@/stores/game'
 import { computed } from 'vue'
 import type { GameState } from '@/core/types'
 import { cofferRecap } from '@/ui/crownRecap'
 import { formatFigure } from '@/ui/realmText'
 
+const game = useGameStore()
+
 /** Where the AP comes from and where it goes, in the gilt bars of the Crown's demands. */
 const props = defineProps<{ run: GameState; revision: number }>()
 const recap = computed(() => {
   void props.revision
-  return cofferRecap(props.run)
+  return cofferRecap(props.run, game.config)
 })
 const top = computed(() => Math.max(1, ...recap.value.lines.map((line) => Math.abs(line.value))))
 const signed = (value: number): string => `${value > 0 ? '+' : ''}${formatFigure(value, 1)} AP/s`

@@ -75,6 +75,7 @@ function record(overrides: Partial<RunRecord>): RunRecord {
     strikes: 0,
     lombardBailoutAccepted: false,
     newFeats: [],
+    level: 'ordinary',
     ...overrides,
   }
 }

@@ -23,9 +23,9 @@ import { formatFigure } from '@/ui/realmText'
 /** Snapshot taken at the coronation of `state` in `band`. */
 function crowned(
   state: GameState,
-  band: Parameters<typeof observeChange>[2] = 'enchanted',
+  band: Parameters<typeof observeChange>[3] = 'enchanted',
 ): RunSnapshot {
-  return observeChange(null, state, band, 0).snapshot
+  return observeChange(null, DEFAULT_ENGINE_CONFIG, state, band, 0).snapshot
 }
 
 function outcome(overrides: Partial<AuditOutcome>): AuditOutcome {
@@ -47,13 +47,13 @@ function outcome(overrides: Partial<AuditOutcome>): AuditOutcome {
 function buy(state: GameState, command: Command) {
   const before = structuredClone(state)
   const result = dispatch(state, command)
-  return entryFromCommand(command, result, before, state, 1)
+  return entryFromCommand(command, DEFAULT_ENGINE_CONFIG, result, before, state, 1)
 }
 
 describe('Task 2: chronicle model', () => {
   it('writes the coronation when there is no earlier snapshot', () => {
     const state = createInitialGameState()
-    const [entry] = observeChange(null, state, 'enchanted', 0).entries
+    const [entry] = observeChange(null, DEFAULT_ENGINE_CONFIG, state, 'enchanted', 0).entries
     expect(entry?.deadline).toBe(0)
     expect(entry?.kind).toBe('audit')
     expect(entry?.text).toBe(
@@ -66,9 +66,13 @@ describe('Task 2: chronicle model', () => {
     const before = crowned(state)
     const required = effectiveQuota(state, quotaForDeadline(DEFAULT_ENGINE_CONFIG, 1)).apRate
     state.lastAuditOutcome = outcome({ grossApRate: required + 2 })
-    const audits = observeChange(before, state, 'enchanted', 5).entries.filter(
-      (e) => e.kind === 'audit',
-    )
+    const audits = observeChange(
+      before,
+      DEFAULT_ENGINE_CONFIG,
+      state,
+      'enchanted',
+      5,
+    ).entries.filter((e) => e.kind === 'audit')
     expect(audits[0]?.text).toMatch(/^Audit passed by 2 AP\. The Crown is satisfied\. AP /)
     expect(audits[0]?.text).toMatch(/People [\d,]+ of [\d,]+, Army [\d,.]+ of [\d,.]+\.$/)
   })
@@ -77,7 +81,7 @@ describe('Task 2: chronicle model', () => {
     const state = createInitialGameState()
     const before = crowned(state)
     state.lastAuditOutcome = outcome({ success: true, royalPardonIssued: true })
-    const [audit] = observeChange(before, state, 'uneasy', 5).entries.filter(
+    const [audit] = observeChange(before, DEFAULT_ENGINE_CONFIG, state, 'uneasy', 5).entries.filter(
       (e) => e.kind === 'audit',
     )
     expect(
@@ -89,9 +93,13 @@ describe('Task 2: chronicle model', () => {
     const state = createInitialGameState()
     const before = crowned(state)
     state.lastAuditOutcome = outcome({ success: false, apMet: false, passedCount: 2 })
-    const [audit] = observeChange(before, state, 'rotting', 5).entries.filter(
-      (e) => e.kind === 'audit',
-    )
+    const [audit] = observeChange(
+      before,
+      DEFAULT_ENGINE_CONFIG,
+      state,
+      'rotting',
+      5,
+    ).entries.filter((e) => e.kind === 'audit')
     expect(audit?.text.startsWith('Audit failed. The Crown marks a strike against you.')).toBe(true)
   })
 
@@ -118,7 +126,7 @@ describe('Task 2: chronicle model', () => {
     const folklore = []
     for (let i = 1; i <= 2000; i++) {
       state.totalElapsedSeconds = i * 0.05
-      const change = observeChange(snapshot, state, 'enchanted', i)
+      const change = observeChange(snapshot, DEFAULT_ENGINE_CONFIG, state, 'enchanted', i)
       folklore.push(...change.entries.filter((e) => e.kind === 'folklore'))
       snapshot = change.snapshot
     }
@@ -134,7 +142,7 @@ describe('Task 2: chronicle model', () => {
   it('writes a line of the new band at once when the realm worsens', () => {
     const state = createInitialGameState({ seed: 9, totalElapsedSeconds: 3 })
     const before = crowned(state)
-    const { entries } = observeChange(before, state, 'rotting', 4)
+    const { entries } = observeChange(before, DEFAULT_ENGINE_CONFIG, state, 'rotting', 4)
     const folklore = entries.filter((e) => e.kind === 'folklore')
     expect(folklore).toHaveLength(1)
     expect(FOLKLORE.rotting).toContain(folklore[0]?.text)
@@ -143,8 +151,8 @@ describe('Task 2: chronicle model', () => {
   it('chooses the same line for the same seed and id', () => {
     const a = createInitialGameState({ seed: 77, totalElapsedSeconds: 3 })
     const b = createInitialGameState({ seed: 77, totalElapsedSeconds: 3 })
-    const first = observeChange(crowned(a), a, 'uneasy', 12).entries
-    const second = observeChange(crowned(b), b, 'uneasy', 12).entries
+    const first = observeChange(crowned(a), DEFAULT_ENGINE_CONFIG, a, 'uneasy', 12).entries
+    const second = observeChange(crowned(b), DEFAULT_ENGINE_CONFIG, b, 'uneasy', 12).entries
     expect(first).toEqual(second)
   })
 
@@ -160,10 +168,10 @@ describe('Task 2 review fixes: chronicle model', () => {
     snapshot: RunSnapshot,
     state: GameState,
     seconds: number,
-    band: Parameters<typeof observeChange>[2] = 'enchanted',
+    band: Parameters<typeof observeChange>[3] = 'enchanted',
   ) {
     state.totalElapsedSeconds += seconds
-    const change = observeChange(snapshot, state, band, 100)
+    const change = observeChange(snapshot, DEFAULT_ENGINE_CONFIG, state, band, 100)
     return change
   }
 
@@ -225,9 +233,13 @@ describe('Task 2 review fixes: chronicle model', () => {
       passedCount: 2,
       grossApRate: 1,
     })
-    const [audit] = observeChange(before, state, 'enchanted', 5).entries.filter(
-      (e) => e.kind === 'audit',
-    )
+    const [audit] = observeChange(
+      before,
+      DEFAULT_ENGINE_CONFIG,
+      state,
+      'enchanted',
+      5,
+    ).entries.filter((e) => e.kind === 'audit')
     expect(audit?.text.startsWith('Audit passed, though the Chancery fell short.')).toBe(true)
   })
 
@@ -290,9 +302,23 @@ describe('Plan 03 Task 7: the orders in the chronicle', () => {
     const after = structuredClone(state)
     after.provinces = state.provinces + 1
     const result = { success: true }
-    const won = entryFromCommand({ type: 'LAUNCH_ATTACK' }, result, state, after, 1)
+    const won = entryFromCommand(
+      { type: 'LAUNCH_ATTACK' },
+      DEFAULT_ENGINE_CONFIG,
+      result,
+      state,
+      after,
+      1,
+    )
     expect(won?.text).toBe('Your host took a province.')
-    const lost = entryFromCommand({ type: 'LAUNCH_ATTACK' }, result, state, state, 1)
+    const lost = entryFromCommand(
+      { type: 'LAUNCH_ATTACK' },
+      DEFAULT_ENGINE_CONFIG,
+      result,
+      state,
+      state,
+      1,
+    )
     expect(lost?.text).toBe('Your host came back without a province.')
   })
 

@@ -65,36 +65,36 @@ describe('Task 4: the war panel', () => {
 
   it('says a defeat is not expected rather than a false range', () => {
     const state = atWar(2000)
-    expect(warForecast(state)?.lossOnLoss).toBe('Not expected')
+    expect(warForecast(state, config)?.lossOnLoss).toBe('Not expected')
   })
 
   it('never reads the truth of the target', () => {
-    const honest = warForecast(atWar(150))
+    const honest = warForecast(atWar(150), config)
     const state = atWar(150)
     state.currentTarget = { ...TARGET, power: 1, isAmbush: true, isFalseLedger: true }
-    expect(warForecast(state)?.chance).toBe(honest?.chance)
+    expect(warForecast(state, config)?.chance).toBe(honest?.chance)
   })
 
   it('shows the quotas a conquest would raise', () => {
-    const free = warForecast(atWar(150))!
+    const free = warForecast(atWar(150), config)!
     expect(free.quotasAfter).toEqual(free.quotasBefore)
     const state = atWar(150)
     state.conquestsThisAudit = 1
-    const paid = warForecast(state)!
+    const paid = warForecast(state, config)!
     expect(paid.quotasAfter.pop).toBeCloseTo(
       paid.quotasBefore.pop * (1 + config.balance.CONQUEST_SURCHARGE_STEP),
     )
   })
 
   it('shows the real effect of the land and its losses as a range', () => {
-    const forecast = warForecast(atWar(150))!
+    const forecast = warForecast(atWar(150), config)!
     expect(forecast.land).toContain('Arable Plains')
     expect(forecast.land).toMatch(/\+50% room/)
     expect(forecast.lossOnWin).toMatch(/^−\d+ to −\d+ soldiers$/)
   })
 
   it('refuses an army of nobody in words', () => {
-    const forecast = warForecast(atWar(0))!
+    const forecast = warForecast(atWar(0), config)!
     expect(forecast.blocked).toBe('You have no army')
     expect(forecast.chance).toBe(0)
   })
@@ -102,6 +102,6 @@ describe('Task 4: the war panel', () => {
   it('has nothing to show without a target', () => {
     const state = atWar(50)
     state.currentTarget = null
-    expect(warForecast(state)).toBeNull()
+    expect(warForecast(state, config)).toBeNull()
   })
 })

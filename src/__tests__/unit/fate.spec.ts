@@ -4,6 +4,7 @@
  * @vitest-environment jsdom
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { readFileSync, readdirSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -148,7 +149,7 @@ describe('Task 5: the fate of a reign', () => {
     state.isGameOver = true
     state.isVictory = true
     state.phase = 'RUN_VICTORY'
-    expect(fateView(state).foot).toBe('reigned 2 min 5 s')
+    expect(fateView(state, DEFAULT_ENGINE_CONFIG).foot).toBe('reigned 2 min 5 s')
   })
 
   it('renders the victory at dawn', async () => {
@@ -169,22 +170,26 @@ describe('Task 5: the fate of a reign', () => {
       required: { apRate: 413, pop: 1, military: 1 },
     }
     triggerDefeat(state, 'quota_failure')
-    expect(fateView(state).line).toMatch(/^The Crown counted 412 AP\/s short at the third audit/)
+    expect(fateView(state, DEFAULT_ENGINE_CONFIG).line).toMatch(
+      /^The Crown counted 412 AP\/s short at the third audit/,
+    )
   })
 
   it('names the first unmet quota alone for an audit saved without its target', () => {
     const { state } = begin()
     failed(state)
     triggerDefeat(state, 'quota_failure')
-    expect(fateView(state).line).toMatch(/^The Crown found your AP short at the third audit/)
+    expect(fateView(state, DEFAULT_ENGINE_CONFIG).line).toMatch(
+      /^The Crown found your AP short at the third audit/,
+    )
     state.lastAuditOutcome = { ...state.lastAuditOutcome!, apMet: true, popMet: false }
-    expect(fateView(state).line).toContain('your people short')
+    expect(fateView(state, DEFAULT_ENGINE_CONFIG).line).toContain('your people short')
     state.lastAuditOutcome = {
       ...state.lastAuditOutcome!,
       popMet: true,
       militaryMet: false,
     }
-    expect(fateView(state).line).toContain('your force short')
+    expect(fateView(state, DEFAULT_ENGINE_CONFIG).line).toContain('your force short')
   })
 
   it.each(['conquest', 'revolution', 'bankruptcy'] as const)(
@@ -193,7 +198,7 @@ describe('Task 5: the fate of a reign', () => {
       const { state } = begin()
       state.deadline = 5
       triggerDefeat(state, reason)
-      expect(fateView(state).line).toContain('fifth audit')
+      expect(fateView(state, DEFAULT_ENGINE_CONFIG).line).toContain('fifth audit')
     },
   )
 

@@ -16,7 +16,7 @@ const state = computed(() => {
   const run = game.run
   return {
     paused: run?.isPaused ?? false,
-    unlocked: run ? isFastForwardUnlocked(run, DEFAULT_ENGINE_CONFIG) : false,
+    unlocked: run ? isFastForwardUnlocked(run, game.config) : false,
   }
 })
 const doubleOn = computed(() => settings.doubleSpeed && state.value.unlocked)

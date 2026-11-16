@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useGameStore } from '@/stores/game'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { GameState } from '@/core/types'
 import { TAX_SETTLE_MS, taxEffect, taxView, taxWarning } from '@/ui/crown'
+
+const game = useGameStore()
 
 /** The tax rate: moving it only previews; the settled rate is proclaimed, once. */
 const props = defineProps<{ run: GameState; revision: number; held: number | null }>()
@@ -9,19 +12,19 @@ const emit = defineEmits<{ proclaim: [rate: number]; draft: [rate: number] }>()
 
 const view = computed(() => {
   void props.revision
-  return taxView(props.run)
+  return taxView(props.run, game.config)
 })
 const decided = computed(() => props.held ?? view.value.pending ?? view.value.rate)
 const draft = ref(decided.value)
 const warning = computed(() => {
   void props.revision
-  return taxWarning(props.run, draft.value)
+  return taxWarning(props.run, game.config, draft.value)
 })
 
 /** Steps a copy of the realm, so it follows the draft and not every frame. */
-const effect = ref(taxEffect(props.run, draft.value))
+const effect = ref(taxEffect(props.run, game.config, draft.value))
 watch(draft, (rate) => {
-  effect.value = taxEffect(props.run, rate)
+  effect.value = taxEffect(props.run, game.config, rate)
   emit('draft', rate)
 })
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGameStore } from '@/stores/game'
 import { computed } from 'vue'
 import GameIcon from '@/components/common/GameIcon.vue'
 import type { GameState } from '@/core/types'
@@ -6,11 +7,13 @@ import { UNIT_COPY } from '@/data/orderCopy'
 import { armyRecap } from '@/ui/crownRecap'
 import { formatCompact } from '@/ui/realmText'
 
+const game = useGameStore()
+
 /** The force of the realm, who carries it, and what comes next. */
 const props = defineProps<{ run: GameState; revision: number }>()
 const recap = computed(() => {
   void props.revision
-  return armyRecap(props.run)
+  return armyRecap(props.run, game.config)
 })
 </script>
 

@@ -4,6 +4,7 @@
  * @module __tests__/unit/ui_effects.spec
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { describe, expect, it } from 'vitest'
 import { dispatch } from '@/core/commands'
 import { calculateMaxPopulation, calculateMilitaryPower, calculateNetApRate } from '@/core/engine'
@@ -31,7 +32,7 @@ function realm(units: Partial<Record<UnitId, number>> = {}, serfs = 500): GameSt
 describe('Task 1: the effect of one more', () => {
   it('reads the rates of the engine', () => {
     const state = realm({ soldier: 10 })
-    const rates = realmRates(state)
+    const rates = realmRates(state, DEFAULT_ENGINE_CONFIG)
     expect(rates.netAp).toBeCloseTo(calculateNetApRate(state))
     expect(rates.room).toBeCloseTo(calculateMaxPopulation(state))
     expect(rates.force).toBeCloseTo(calculateMilitaryPower(state))
@@ -39,57 +40,63 @@ describe('Task 1: the effect of one more', () => {
 
   it('gives a scribe the move of a real purchase', () => {
     const state = realm()
-    const effect = unitEffect(state, 'scribe')
+    const effect = unitEffect(state, DEFAULT_ENGINE_CONFIG, 'scribe')
     const before = calculateNetApRate(state)
     dispatch(state, { type: 'BUY_UNIT', unitId: 'scribe', count: 1 })
     expect(effect.netAp).toBeCloseTo(calculateNetApRate(state) - before, 6)
   })
 
   it('tells what notables and soldiers do', () => {
-    expect(unitEffect(realm(), 'notable').room).toBeGreaterThan(0)
-    const soldier = unitEffect(realm(), 'soldier')
+    expect(unitEffect(realm(), DEFAULT_ENGINE_CONFIG, 'notable').room).toBeGreaterThan(0)
+    const soldier = unitEffect(realm(), DEFAULT_ENGINE_CONFIG, 'soldier')
     expect(soldier.force).toBeCloseTo(1)
     expect(soldier.netAp).toBeLessThan(0)
   })
 
   it('shows the loss of a grand marshal on a small army', () => {
-    const lines = effectLines(unitEffect(realm({ soldier: 28 }), 'grand_marshal'))
+    const lines = effectLines(
+      unitEffect(realm({ soldier: 28 }), DEFAULT_ENGINE_CONFIG, 'grand_marshal'),
+    )
     expect(lines.join(' ')).toMatch(/−0\.\d+ AP\/s/)
   })
 
   it('leaves the state and its generators untouched', () => {
     const state = realm({ soldier: 10 })
     const before = structuredClone(state)
-    unitEffect(state, 'peasant')
+    unitEffect(state, DEFAULT_ENGINE_CONFIG, 'peasant')
     expect(state).toEqual(before)
   })
 
   it('keeps the effect of a unit at its order cap, beside its block', () => {
     const state = realm({ soldier: 200 })
-    const row = unitRows(state, 'military', 1).find((item) => item.unitId === 'man_at_arms')
+    const row = unitRows(state, DEFAULT_ENGINE_CONFIG, 'military', 1).find(
+      (item) => item.unitId === 'man_at_arms',
+    )
     expect(row?.blocked).toBe('The order is full')
-    expect(unitEffect(state, 'man_at_arms').force).toBeCloseTo(7)
+    expect(unitEffect(state, DEFAULT_ENGINE_CONFIG, 'man_at_arms').force).toBeCloseTo(7)
   })
 
   it('scales the effect with the chosen bulk', () => {
-    expect(unitEffect(realm(), 'soldier', 10).force).toBeCloseTo(10)
+    expect(unitEffect(realm(), DEFAULT_ENGINE_CONFIG, 'soldier', 10).force).toBeCloseTo(10)
   })
 
   it('reads births through a tithe freeze', () => {
     const state = realm()
     state.forcedTitheFreezeTimer = 20
-    expect(realmRates(state).births).toBeCloseTo(realmRates(realm()).births)
+    expect(realmRates(state, DEFAULT_ENGINE_CONFIG).births).toBeCloseTo(
+      realmRates(realm(), DEFAULT_ENGINE_CONFIG).births,
+    )
   })
 
   it('keeps the running cost beside a large effect', () => {
-    const lines = effectLines(unitEffect(realm(), 'baron')).join(' ')
+    const lines = effectLines(unitEffect(realm(), DEFAULT_ENGINE_CONFIG, 'baron')).join(' ')
     expect(lines).toContain('room')
     expect(lines).toContain('AP/s')
   })
 
   it('gives every unit a line with a figure', () => {
     for (const id of Object.keys(UNIT_COPY) as UnitId[]) {
-      expect(effectLines(unitEffect(realm(), id)).join(' ')).toMatch(/\d/)
+      expect(effectLines(unitEffect(realm(), DEFAULT_ENGINE_CONFIG, id)).join(' ')).toMatch(/\d/)
     }
   })
 })

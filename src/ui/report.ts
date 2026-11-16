@@ -6,13 +6,11 @@
  */
 
 import { calculateEnemyPower } from '@/core/battle'
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import type { EngineConfig } from '@/core/config'
 import { calculateMilitaryPower } from '@/core/engine'
 import type { Command, GameState } from '@/core/types'
 import { raidPower } from '@/ui/moments'
 import { formatCompact } from '@/ui/realmText'
-
-const config = DEFAULT_ENGINE_CONFIG
 
 /** One line of a missive. */
 export interface ReportLine {
@@ -49,7 +47,7 @@ function provincesLine(before: GameState, after: GameState): ReportLine {
   }
 }
 
-function costLines(before: GameState, after: GameState): ReportLine[] {
+function costLines(before: GameState, config: EngineConfig, after: GameState): ReportLine[] {
   const lost = soldiers(before) - soldiers(after)
   const unrest = Math.round(after.unrest - before.unrest)
   const lines: ReportLine[] = [
@@ -74,14 +72,14 @@ function gainLines(before: GameState, after: GameState): ReportLine[] {
   return lines
 }
 
-function forceLines(before: GameState, theirs: number): ReportLine[] {
+function forceLines(before: GameState, config: EngineConfig, theirs: number): ReportLine[] {
   return [
     { label: 'Your force', figure: formatCompact(calculateMilitaryPower(before, config)) },
     { label: 'Their force', figure: formatCompact(theirs) },
   ]
 }
 
-function campaignReport(before: GameState, after: GameState): BattleReport {
+function campaignReport(before: GameState, config: EngineConfig, after: GameState): BattleReport {
   const gained = after.provinces > before.provinces
   const won = after.victoriesCount > before.victoriesCount
   const target = before.currentTarget
@@ -91,22 +89,27 @@ function campaignReport(before: GameState, after: GameState): BattleReport {
     title: campaignTitle(gained, won),
     won,
     lines: [
-      ...forceLines(before, theirs),
-      ...costLines(before, after),
+      ...forceLines(before, config, theirs),
+      ...costLines(before, config, after),
       ...gainLines(before, after),
     ],
   }
 }
 
-function defenceReport(before: GameState, after: GameState, theirs: number): BattleReport {
+function defenceReport(
+  before: GameState,
+  config: EngineConfig,
+  after: GameState,
+  theirs: number,
+): BattleReport {
   const held = after.provinces >= before.provinces
   return {
     eyebrow: 'A missive from the border',
     title: held ? 'Your host held the border.' : 'The line broke.',
     won: held,
     lines: [
-      ...forceLines(before, theirs),
-      ...costLines(before, after),
+      ...forceLines(before, config, theirs),
+      ...costLines(before, config, after),
       ...gainLines(before, after),
     ],
   }
@@ -121,23 +124,24 @@ function defenceReport(before: GameState, after: GameState, theirs: number): Bat
  */
 export function battleReport(
   command: Command,
+  config: EngineConfig,
   before: GameState,
   after: GameState,
 ): BattleReport | null {
   switch (command.type) {
     case 'LAUNCH_ATTACK':
-      return campaignReport(before, after)
+      return campaignReport(before, config, after)
     case 'RESOLVE_RAID_DEFENSE':
-      return defenceReport(before, after, raidPower(before))
+      return defenceReport(before, config, after, raidPower(before, config))
     case 'SELECT_THREAT_RESPONSE': {
       const theirs = before.currentThreatPower
-      if (command.response === 'defense') return defenceReport(before, after, theirs)
+      if (command.response === 'defense') return defenceReport(before, config, after, theirs)
       const paid = command.response === 'tribute'
       return {
         eyebrow: 'A missive from the border',
         title: paid ? 'They took the gold and turned back.' : 'The levy drove them off.',
         won: true,
-        lines: [...costLines(before, after), ...gainLines(before, after)].filter(
+        lines: [...costLines(before, config, after), ...gainLines(before, after)].filter(
           (line) => line.label !== 'Force left' || !paid,
         ),
       }

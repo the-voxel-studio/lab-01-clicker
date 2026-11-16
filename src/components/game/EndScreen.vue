@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useMotionAllowed } from '@/components/game/run/useAmbientMotion'
 import { FATE } from '@/data/fateCopy'
+import { LEVEL_DATA } from '@/data/levels'
 import { useArchivesStore } from '@/stores/archives'
 import { useGameStore } from '@/stores/game'
 import { useNavStore } from '@/stores/nav'
@@ -23,6 +24,7 @@ const register = computed(() => {
   return {
     reign: archives.history.length,
     won: outcome === 'victory',
+    level: LEVEL_DATA[last?.record.level ?? 'ordinary'].name,
     epitaph: FATE[outcome].epitaph,
     audits: state ? auditsPassed(state) : 0,
     apSealed: last?.record.totalCumulativeAp ?? 0,
@@ -59,6 +61,9 @@ function restartSameSeed(): void {
         <h2 class="font-display text-[34px] leading-[42px] text-ink">
           Reign {{ register.reign }} is {{ register.won ? 'won' : 'over' }}
         </h2>
+        <p data-reign-level class="font-body text-base leading-[22px] text-ink">
+          Played at the {{ register.level }} level
+        </p>
         <p v-if="register.epitaph" class="font-body text-base italic leading-[22px] text-ink-faded">
           {{ register.epitaph }}
         </p>

@@ -8,10 +8,11 @@
 
 import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
-import { startRun, type RunConclusion } from '@/core/archives'
+import type { ArchiveData, RunConclusion } from '@/core/archives'
+import { generateCampaignTarget } from '@/core/battle'
 import type { BattleReport } from '@/ui/report'
 import { dispatch } from '@/core/commands'
-import { DEFAULT_ENGINE_CONFIG, quotaForDeadline } from '@/core/config'
+import { quotaForDeadline, type EngineConfig } from '@/core/config'
 import {
   calculateGrossApRate,
   calculateMaxPopulation,
@@ -21,7 +22,10 @@ import {
   tick,
 } from '@/core/engine'
 import { exportSaveToBase64, importSaveFromBase64 } from '@/core/migrations'
+import { createInitialGameState } from '@/core/state'
 import type { Command, DispatchResult, GameState, RunPhase } from '@/core/types'
+import { applyArchivePerks } from '@/data/archives'
+import { isDifficultyLevel, type DifficultyLevel } from '@/data/levels'
 import { useArchivesStore } from '@/stores/archives'
 import { useChronicleStore } from '@/stores/chronicle'
 import { useNavStore } from '@/stores/nav'
@@ -30,7 +34,8 @@ import type { ChronicleEntry } from '@/ui/chronicle'
 import { bandForScore, computeDread, type DreadBand, type DreadReading } from '@/ui/dread'
 import { isMomentPhase } from '@/ui/moments'
 import type { RunRecord } from '@/ui/runRecord'
-import { readKey, SAVE_KEY, writeKey } from '@/ui/storage'
+import { configForLevel } from '@/ui/levelConfig'
+import { LEVEL_KEY, readKey, SAVE_KEY, writeKey } from '@/ui/storage'
 
 /** What the register keeps of a concluded reign, once the chronicle is cleared. */
 export interface ConcludedReign {
@@ -48,7 +53,6 @@ export interface QuotaView {
   met: boolean
 }
 
-const config = DEFAULT_ENGINE_CONFIG
 const SEED_MODULUS = 2147483647
 
 /** Lower bound of each band, used as the score of a forced band. */
@@ -59,16 +63,46 @@ const BAND_FLOOR: Record<DreadBand, number> = {
   death_throes: 0.75,
 }
 
-/** Deadline of the stored save; an unreadable save is removed and reads as none. */
-function readSavedDeadline(): number | null {
+/** Deadline and run of the stored save; an unreadable save is removed and reads as none. */
+function readSavedReign(): { deadline: number; runId: string } | null {
   const raw = readKey(SAVE_KEY)
   if (raw === null) return null
   try {
-    return importSaveFromBase64(raw).state.deadline
+    const { deadline, runId } = importSaveFromBase64(raw).state
+    return { deadline, runId }
   } catch {
     writeKey(SAVE_KEY, null)
     return null
   }
+}
+
+/**
+ * Level stored beside the save of the reign `runId`; a missing or unreadable key, or one written for
+ * another reign, reads as `ordinary` (a save from before the levels).
+ */
+function readSavedLevel(runId: string): DifficultyLevel {
+  const raw = readKey(LEVEL_KEY)
+  if (raw === null) return 'ordinary'
+  try {
+    const stored: unknown = JSON.parse(raw)
+    if (typeof stored !== 'object' || stored === null) return 'ordinary'
+    const level: unknown = Reflect.get(stored, 'level')
+    return Reflect.get(stored, 'runId') === runId && isDifficultyLevel(level) ? level : 'ordinary'
+  } catch {
+    return 'ordinary'
+  }
+}
+
+/**
+ * The first state of a reign, built as `startRun` builds it (same order, same draws) but with the
+ * campaign target drawn from the level's config, since `startRun` takes none and the engine stays
+ * frozen.
+ */
+function firstState(archive: ArchiveData, seed: number, config: EngineConfig): GameState {
+  const state = createInitialGameState({ seed })
+  applyArchivePerks(state, archive.investedPerks)
+  generateCampaignTarget(state, config)
+  return state
 }
 
 /** Commands the chronicle tells; the others are not worth copying the run before dispatch. */
@@ -112,9 +146,19 @@ export const useGameStore = defineStore('game', () => {
   const nav = useNavStore()
 
   const run = shallowRef<GameState | null>(null)
+  const reignLevel = ref<DifficultyLevel>('ordinary')
+  /** Level of the reign in progress, fixed when it begins or resumes. */
+  const level = computed(() => reignLevel.value)
+  /** Engine configuration of the reign: every dispatch, tick and view reads it. */
+  const config = computed(() => configForLevel(reignLevel.value))
   const revision = ref(0)
   const lastNetApPerSecond = ref(0)
-  const savedDeadline = ref<number | null>(readSavedDeadline())
+  const savedReign = readSavedReign()
+  const savedDeadline = ref<number | null>(savedReign?.deadline ?? null)
+  /** Level of the saved reign, so the hall can say what Continue resumes. */
+  const savedLevel = ref<DifficultyLevel | null>(
+    savedReign ? readSavedLevel(savedReign.runId) : null,
+  )
   const hasSave = computed(() => savedDeadline.value !== null)
   const lastSavedDeadline = ref<number | null>(null)
   const lastConclusion = ref<ConcludedReign | null>(null)
@@ -149,7 +193,7 @@ export const useGameStore = defineStore('game', () => {
   const secondsLeft = computed(() => {
     const state = current()
     if (!state) return 0
-    const { DEADLINE_DURATION_SECONDS } = config.balance
+    const { DEADLINE_DURATION_SECONDS } = config.value.balance
     return preparing.value
       ? DEADLINE_DURATION_SECONDS
       : DEADLINE_DURATION_SECONDS - state.deadlineTimeSeconds
@@ -157,7 +201,12 @@ export const useGameStore = defineStore('game', () => {
   const quotas = computed<QuotaView[]>(() => {
     const state = current()
     if (!state) return []
-    const required = effectiveQuota(state, quotaForDeadline(config, auditAhead.value))
+    const required = effectiveQuota(
+      state,
+      quotaForDeadline(config.value, auditAhead.value),
+      state.activeModifiers,
+      config.value,
+    )
     const view = (axis: QuotaView['axis'], value: number, target: number): QuotaView => ({
       axis,
       current: value,
@@ -165,16 +214,16 @@ export const useGameStore = defineStore('game', () => {
       met: value >= target,
     })
     return [
-      view('ap', calculateGrossApRate(state, config).total, required.apRate),
+      view('ap', calculateGrossApRate(state, config.value).total, required.apRate),
       view('pop', state.totalPopulation, required.pop),
-      view('military', calculateMilitaryPower(state, config), required.military),
+      view('military', calculateMilitaryPower(state, config.value), required.military),
     ]
   })
   /** People the realm can house, unlike the Crown's demand on the same stick. */
   const room = computed(() => {
     void revision.value
     const state = current()
-    return state ? Math.floor(calculateMaxPopulation(state, config)) : 0
+    return state ? Math.floor(calculateMaxPopulation(state, config.value)) : 0
   })
   const dread = computed<DreadReading>(() => {
     const forced = settings.dreadOverride
@@ -182,7 +231,9 @@ export const useGameStore = defineStore('game', () => {
       return { score: BAND_FLOOR[forced], band: bandForScore(BAND_FLOOR[forced]) }
     }
     const state = current()
-    return state ? computeDread(state, config) : { score: 0, band: 'enchanted' }
+    return state
+      ? computeDread(state, config.value, reignLevel.value)
+      : { score: 0, band: 'enchanted' }
   })
 
   function refresh(): void {
@@ -200,7 +251,9 @@ export const useGameStore = defineStore('game', () => {
 
   function clearSave(): void {
     writeKey(SAVE_KEY, null)
+    writeKey(LEVEL_KEY, null)
     savedDeadline.value = null
+    savedLevel.value = null
     chronicle.clear()
   }
 
@@ -208,7 +261,8 @@ export const useGameStore = defineStore('game', () => {
    * Installs a reign. Every reign starts at normal speed (double speed is a choice made within one
    * reign) and with its chronicle: the stored one when resuming, else a new one from the coronation.
    */
-  function setRun(state: GameState, savedAt: number | null = null): void {
+  function setRun(state: GameState, level: DifficultyLevel, savedAt: number | null = null): void {
+    reignLevel.value = level
     run.value = state
     lastNetApPerSecond.value = 0
     lastConclusion.value = null
@@ -219,14 +273,17 @@ export const useGameStore = defineStore('game', () => {
     useNavStore().crownTab = 'realm'
     refresh()
     const resumed = savedAt !== null && chronicle.load(state.runId)
-    if (!resumed) chronicle.start(state, dread.value.band)
+    if (!resumed) chronicle.start(state, config.value, dread.value.band)
   }
 
   /** Banks the run into the archive once; returns false when it was already concluded. */
   function concludeOnce(state: GameState, abandoned: boolean): boolean {
     if (state.archiveConcluded) return false
     const finalEntries = chronicle.entries.slice(0, FINAL_ENTRIES).reverse()
-    lastConclusion.value = { ...archives.conclude(state, abandoned), finalEntries }
+    lastConclusion.value = {
+      ...archives.conclude(state, abandoned, reignLevel.value),
+      finalEntries,
+    }
     clearSave()
     refresh()
     return true
@@ -247,7 +304,7 @@ export const useGameStore = defineStore('game', () => {
     if (raw === null) return
     try {
       const saved = importSaveFromBase64(raw).state
-      if (!saved.archiveConcluded) archives.conclude(saved, true)
+      if (!saved.archiveConcluded) archives.conclude(saved, true, readSavedLevel(saved.runId))
     } catch {
       // An unreadable save holds nothing to bank.
     }
@@ -255,12 +312,17 @@ export const useGameStore = defineStore('game', () => {
   }
 
   /**
-   * Begins a new reign from the archive (invested perks applied); seed defaults to the clock. A
-   * saved reign still waiting to be continued is first laid down.
+   * Begins a new reign from the archive (invested perks applied); seed defaults to the clock and
+   * level to the last one chosen, which it becomes. A saved reign still waiting to be continued is
+   * first laid down, with its own level.
    */
-  function begin(seed: number = Date.now() % SEED_MODULUS): void {
+  function begin(
+    seed: number = Date.now() % SEED_MODULUS,
+    level: DifficultyLevel = settings.lastLevel,
+  ): void {
     layDownSavedReign()
-    setRun(startRun(archives.archive, seed))
+    settings.lastLevel = level
+    setRun(firstState(archives.archive, seed, configForLevel(level)), level)
   }
 
   /**
@@ -274,7 +336,7 @@ export const useGameStore = defineStore('game', () => {
     if (raw === null) return false
     try {
       const state = importSaveFromBase64(raw).state
-      setRun(state, state.deadline)
+      setRun(state, readSavedLevel(state.runId), state.deadline)
       return true
     } catch {
       return false
@@ -290,14 +352,14 @@ export const useGameStore = defineStore('game', () => {
       return { success: true }
     }
     const before = TOLD_COMMANDS.has(command.type) ? structuredClone(state) : null
-    const result = dispatch(state, command, config)
+    const result = dispatch(state, command, config.value)
     refresh()
-    if (before) chronicle.noteCommand(command, result, before, state)
+    if (before) chronicle.noteCommand(command, config.value, result, before, state)
     if (result.success && FIGHT_COMMANDS.has(command.type) && !isConcludedPhase(state.phase)) {
       const written = chronicle.entries[0]?.report
       if (written) openReport(written)
     }
-    chronicle.observe(state, dread.value.band)
+    chronicle.observe(state, config.value, dread.value.band)
     settleIfOver()
     return result
   }
@@ -312,13 +374,13 @@ export const useGameStore = defineStore('game', () => {
       heldTax.value = null
       act({ type: 'SET_TAX_RATE', rate })
     }
-    const factor = settings.doubleSpeed && isFastForwardUnlocked(state, config) ? 2 : 1
+    const factor = settings.doubleSpeed && isFastForwardUnlocked(state, config.value) ? 2 : 1
     const phaseBefore = state.phase
-    const result = tick(state, dt * factor, config)
+    const result = tick(state, dt * factor, config.value)
     if (result.dt > 0) lastNetApPerSecond.value = result.netApPerSecond
     if (result.dt > 0 || state.phase !== phaseBefore) {
       refresh()
-      chronicle.observe(state, dread.value.band)
+      chronicle.observe(state, config.value, dread.value.band)
     }
     if (result.deadlineCompleted) save()
     settleIfOver()
@@ -329,7 +391,9 @@ export const useGameStore = defineStore('game', () => {
     const state = run.value
     if (!state || state.archiveConcluded || isConcludedPhase(state.phase)) return
     writeKey(SAVE_KEY, exportSaveToBase64(state, archives.archive))
+    writeKey(LEVEL_KEY, JSON.stringify({ runId: state.runId, level: reignLevel.value }))
     savedDeadline.value = state.deadline
+    savedLevel.value = reignLevel.value
     lastSavedDeadline.value = state.deadline
     chronicle.persist(state.runId)
   }
@@ -340,16 +404,21 @@ export const useGameStore = defineStore('game', () => {
     if (state && concludeOnce(state, true)) nav.go('end')
   }
 
-  /** Begins a new reign on the same seed; a reign in progress is first concluded as abandoned. */
+  /**
+   * Begins a new reign on the same seed and level; a reign in progress is first concluded as
+   * abandoned.
+   */
   function restart(): void {
     const state = run.value
     if (!state) return
     concludeOnce(state, true)
-    begin(state.seed)
+    begin(state.seed, reignLevel.value)
   }
 
   return {
     run,
+    level,
+    config,
     revision,
     phase,
     isOver,
@@ -364,6 +433,7 @@ export const useGameStore = defineStore('game', () => {
     dread,
     hasSave,
     savedDeadline,
+    savedLevel,
     lastSavedDeadline,
     lastConclusion,
     report,

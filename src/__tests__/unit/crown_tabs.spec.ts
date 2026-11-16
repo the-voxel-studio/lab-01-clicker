@@ -4,6 +4,7 @@
  * @module __tests__/unit/crown_tabs.spec
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -74,7 +75,7 @@ describe('Crown tabs', () => {
 
   it('sums the coffer to the net rate of the engine', () => {
     const state = createInitialGameState({ seed: 2 })
-    const recap = cofferRecap(state)
+    const recap = cofferRecap(state, DEFAULT_ENGINE_CONFIG)
     const sum = recap.lines.reduce((total, line) => total + line.value, 0)
     expect(sum).toBeCloseTo(calculateNetApRate(state), 6)
   })
@@ -82,13 +83,15 @@ describe('Crown tabs', () => {
   it('reads the force, the pardon, the shields and the seats', () => {
     const state = createInitialGameState({ seed: 2 })
     state.units.soldier = 10
-    expect(armyRecap(state).field).toBe(calculateMilitaryPower(state))
-    const realm = realmRecap(state, realmRates(state))
+    expect(armyRecap(state, DEFAULT_ENGINE_CONFIG).field).toBe(calculateMilitaryPower(state))
+    const realm = realmRecap(state, DEFAULT_ENGINE_CONFIG, realmRates(state, DEFAULT_ENGINE_CONFIG))
     expect(realm.shields).toHaveLength(state.provinceBiomes.length)
     expect(realm.pardon).toContain('still yours')
     state.strikes = 1
-    expect(realmRecap(state, realmRates(state)).pardon).toContain('spent')
-    expect(decreesRecap(state).seats).toBeGreaterThan(0)
+    expect(
+      realmRecap(state, DEFAULT_ENGINE_CONFIG, realmRates(state, DEFAULT_ENGINE_CONFIG)).pardon,
+    ).toContain('spent')
+    expect(decreesRecap(state, DEFAULT_ENGINE_CONFIG).seats).toBeGreaterThan(0)
   })
 
   it('settles new land on Realm, beside the provinces', async () => {
@@ -122,11 +125,11 @@ describe('Crown tabs', () => {
     const { pinia, game } = begin()
     const state = game.run!
     state.taxRate = 25
-    expect(crownMarks(state)).toEqual({})
+    expect(crownMarks(state, DEFAULT_ENGINE_CONFIG)).toEqual({})
     state.unrest = UNREST_ALARM
-    expect(crownMarks(state)).toEqual({ decrees: '!' })
+    expect(crownMarks(state, DEFAULT_ENGINE_CONFIG)).toEqual({ decrees: '!' })
     state.taxRate = 40
-    expect(crownMarks(state)).toEqual({ coffer: '!', decrees: '!' })
+    expect(crownMarks(state, DEFAULT_ENGINE_CONFIG)).toEqual({ coffer: '!', decrees: '!' })
     game.advance(0)
     const tabs = mount(CrownTabs, { global: { plugins: [pinia] } })
     expect(tabs.get('[data-crown-tab="coffer"] [data-tab-mark]').text()).toBe('!')
@@ -191,7 +194,7 @@ describe('Crown tabs', () => {
       })
       return Math.min(...gains)
     }
-    expect(cofferRecap(state).clickValue).toBeCloseTo(press(), 2)
+    expect(cofferRecap(state, DEFAULT_ENGINE_CONFIG).clickValue).toBeCloseTo(press(), 2)
 
     const law = LAWS_DATA['law:stamp_duty_monopoly']
     if (!law) throw new Error('expected the stamp duty law')
@@ -199,7 +202,7 @@ describe('Crown tabs', () => {
     for (const effect of law.effects) {
       if (effect.type === 'stat_modifier') state.activeModifiers.push(effect.modifier)
     }
-    expect(cofferRecap(state).clickValue).toBeCloseTo(press(), 2)
+    expect(cofferRecap(state, DEFAULT_ENGINE_CONFIG).clickValue).toBeCloseTo(press(), 2)
   })
 
   it('never shows work below zero when a law cuts the whole income', () => {
@@ -217,7 +220,7 @@ describe('Crown tabs', () => {
         if (effect.type === 'stat_modifier') state.activeModifiers.push(effect.modifier)
       }
     }
-    const recap = cofferRecap(state)
+    const recap = cofferRecap(state, DEFAULT_ENGINE_CONFIG)
     const work = recap.lines.find((item) => item.label === 'Work')
     expect(work?.value).toBeGreaterThanOrEqual(0)
     const sum = recap.lines.reduce((total, item) => total + item.value, 0)
@@ -227,7 +230,11 @@ describe('Crown tabs', () => {
   it('says the pardon is gone once a dilemma has forfeited it', () => {
     const state = createInitialGameState({ seed: 2 })
     state.ruleFlags.push('law_effect:pardon_forfeited')
-    const pardon = realmRecap(state, realmRates(state)).pardon
+    const pardon = realmRecap(
+      state,
+      DEFAULT_ENGINE_CONFIG,
+      realmRates(state, DEFAULT_ENGINE_CONFIG),
+    ).pardon
     expect(pardon).not.toContain('still yours')
     expect(pardon).toContain('No pardon')
   })

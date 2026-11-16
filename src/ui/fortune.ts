@@ -6,6 +6,7 @@
  * @module ui/fortune
  */
 
+import type { EngineConfig } from '@/core/config'
 import { hasFieldArmy } from '@/core/engine'
 import type { Command, GameState, RunPhase } from '@/core/types'
 import type { Screen } from '@/stores/nav'
@@ -32,7 +33,7 @@ export interface FortuneView {
 }
 
 /** Reads the page: live while the reign runs or rests, a tally of provinces otherwise. */
-export function fortuneView(state: GameState): FortuneView {
+export function fortuneView(state: GameState, config: EngineConfig): FortuneView {
   const live = state.phase === 'ACTIVE_CYCLE' || state.phase === 'AWAIT_RESUME'
   const noArmy = hasFieldArmy(state) ? null : 'You have no army'
   const noScout = (state.units.scout ?? 0) <= 0 ? 'No scouts to send' : null
@@ -40,7 +41,7 @@ export function fortuneView(state: GameState): FortuneView {
     provinces: state.provinces,
     goal: IMPERIAL_BARONY_PROVINCES,
     live,
-    forecast: live ? warForecast(state) : null,
+    forecast: live ? warForecast(state, config) : null,
     attack: { command: noArmy ? null : { type: 'LAUNCH_ATTACK' }, blocked: noArmy },
     scout: { command: noScout ? null : { type: 'RECON_PATROL' }, blocked: noScout },
   }

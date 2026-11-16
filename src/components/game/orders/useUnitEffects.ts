@@ -27,12 +27,14 @@ export function useUnitEffects(
   const rates = ref<RealmRates | null>(null)
 
   function read(state: GameState): void {
-    rates.value = realmRates(state)
+    rates.value = realmRates(state, game.config)
     const next: Partial<Record<UnitId, string>> = {}
     for (const def of Object.values(UNITS_DATA)) {
       if (def.order !== order()) continue
       if (def.tier === 1 || state.unlockedPatents[def.order]) {
-        next[def.id] = effectLines(unitEffect(state, def.id, bulkOf(def.id))).join(', ')
+        next[def.id] = effectLines(unitEffect(state, game.config, def.id, bulkOf(def.id))).join(
+          ', ',
+        )
       }
     }
     lines.value = next

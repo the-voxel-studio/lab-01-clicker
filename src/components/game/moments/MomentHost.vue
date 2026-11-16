@@ -18,7 +18,9 @@ const error = ref<string | null>(null)
 
 const view = computed(() => {
   void game.revision
-  return game.run && game.inMoment && nav.screen === 'run' ? momentView(game.run) : null
+  return game.run && game.inMoment && nav.screen === 'run'
+    ? momentView(game.run, game.config)
+    : null
 })
 
 watch(

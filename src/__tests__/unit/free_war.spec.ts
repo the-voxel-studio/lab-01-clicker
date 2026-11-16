@@ -148,15 +148,15 @@ describe('Task 4: casualties on a curve', () => {
       success: false,
       error: 'Cannot launch an attack without an army.',
     })
-    expect(fortuneView(state).attack.blocked).toBe('You have no army')
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).attack.blocked).toBe('You have no army')
   })
 
   it('flags a target already on the page once a spymaster serves', () => {
     const state = reign()
     generateCampaignTarget(state, config)
     state.currentTarget = { ...state.currentTarget!, isAmbush: true, isFalseLedger: true }
-    expect(fortuneView(state).forecast?.warnings).toEqual([])
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast?.warnings).toEqual([])
     state.units.spymaster = 1
-    expect(fortuneView(state).forecast?.warnings).toHaveLength(2)
+    expect(fortuneView(state, DEFAULT_ENGINE_CONFIG).forecast?.warnings).toHaveLength(2)
   })
 })

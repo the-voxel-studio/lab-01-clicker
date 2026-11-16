@@ -11,7 +11,7 @@ import {
   campaignCasualtyRate,
   campaignLossRate,
 } from '@/core/battle'
-import { DEFAULT_ENGINE_CONFIG, quotaForDeadline, type EngineConfig } from '@/core/config'
+import { quotaForDeadline, type EngineConfig } from '@/core/config'
 import {
   calculateMilitaryPower,
   effectiveQuota,
@@ -24,7 +24,6 @@ import { BIOMES_DATA } from '@/data/biomes'
 import { FACTIONS_DATA } from '@/data/threats'
 import { formatCompact } from '@/ui/realmText'
 
-const config = DEFAULT_ENGINE_CONFIG
 const GRID = 9
 const CHANCE_SCALE = 10
 
@@ -143,7 +142,12 @@ function landEffect(state: GameState): string {
   return effects.length > 0 ? `${biome.name}: ${effects.join(', ')}` : `${biome.name}: no bonus`
 }
 
-function lossText(state: GameState, range: [number, number], roll: number): string {
+function lossText(
+  state: GameState,
+  config: EngineConfig,
+  range: [number, number],
+  roll: number,
+): string {
   const soldiers = (state.units.soldier ?? 0) + (state.units.man_at_arms ?? 0)
   const share = (rate: number): number =>
     Math.round(soldiers * campaignLossRate(state, rate, config))
@@ -152,7 +156,7 @@ function lossText(state: GameState, range: [number, number], roll: number): stri
   return low === high ? `−${high} soldiers` : `−${low} to −${high} soldiers`
 }
 
-function lootText(state: GameState): string {
+function lootText(state: GameState, config: EngineConfig): string {
   const base = formatCompact(calculateBaseCampaignLoot(state, config))
   switch (state.currentTarget?.lootType) {
     case 'population':
@@ -166,7 +170,7 @@ function lootText(state: GameState): string {
   }
 }
 
-function auditQuota(state: GameState, steps_: number): EffectiveQuota {
+function auditQuota(state: GameState, config: EngineConfig, steps_: number): EffectiveQuota {
   const deadline = state.phase === 'AWAIT_RESUME' ? state.deadline + 1 : state.deadline
   return effectiveQuota(
     { ...state, crownSurchargeSteps: steps_ },
@@ -177,7 +181,7 @@ function auditQuota(state: GameState, steps_: number): EffectiveQuota {
 }
 
 /** Reads the war panel, or null without a target. */
-export function warForecast(state: GameState): WarForecast | null {
+export function warForecast(state: GameState, config: EngineConfig): WarForecast | null {
   const target = state.currentTarget
   if (!target) return null
   const army = hasFieldArmy(state)
@@ -207,13 +211,13 @@ export function warForecast(state: GameState): WarForecast | null {
     warnings,
     chance: odds.chance,
     outOfTen: Math.round(odds.chance * CHANCE_SCALE),
-    lossOnWin: lossText(state, odds.lossOnWin, roll),
-    lossOnLoss: odds.lossPossible ? lossText(state, odds.lossOnLoss, roll) : 'Not expected',
-    loot: lootText(state),
+    lossOnWin: lossText(state, config, odds.lossOnWin, roll),
+    lossOnLoss: odds.lossPossible ? lossText(state, config, odds.lossOnLoss, roll) : 'Not expected',
+    loot: lootText(state, config),
     blocked: army ? null : 'You have no army',
     conquests: state.conquestsThisAudit,
     step: b.CONQUEST_SURCHARGE_STEP,
-    quotasBefore: auditQuota(state, steps_),
-    quotasAfter: auditQuota(state, state.conquestsThisAudit >= 1 ? steps_ + 1 : steps_),
+    quotasBefore: auditQuota(state, config, steps_),
+    quotasAfter: auditQuota(state, config, state.conquestsThisAudit >= 1 ? steps_ + 1 : steps_),
   }
 }

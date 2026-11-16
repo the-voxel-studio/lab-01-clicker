@@ -126,3 +126,23 @@ test('reads a unit effect, the rules and a war', async ({ page }) => {
   await page.getByRole('button', { name: /How to reign/ }).click()
   await expect(page.locator('[data-how-to-reign]')).toContainText('archive points')
 })
+
+test('begins a tyrannical reign and reads its harder demand on the HUD', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await page.getByRole('radio', { name: /Tyrannical/ }).click()
+  await page.getByRole('button', { name: 'Begin a reign' }).click()
+  // The levels part from the third audit: move the reign to the fifth, where the factor is full.
+  await page.evaluate(() => {
+    const root = document.querySelector<HTMLElement & { __vue_app__: VueRoot }>('#app')
+    const stores = root?.__vue_app__.config.globalProperties.$pinia._s
+    const game = stores?.get('game') as unknown as {
+      run: { deadline: number }
+      act(command: { type: string }): void
+    }
+    game.run.deadline = 5
+    game.act({ type: 'STAMP_DOCUMENT' })
+  })
+  // 1.6 times the ordinary 683 people of the fifth audit: 1,093, shown as 1.1k.
+  await expect(page.locator('[data-quota="pop"]')).toHaveAttribute('aria-label', /of 1\.1k$/)
+})

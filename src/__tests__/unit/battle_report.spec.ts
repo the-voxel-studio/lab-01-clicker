@@ -4,6 +4,7 @@
  * @module __tests__/unit/battle_report.spec
  */
 
+import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -47,7 +48,7 @@ function fought(state: GameState) {
   const before = structuredClone(state)
   const command = { type: 'LAUNCH_ATTACK' } as const
   const result = dispatch(state, command)
-  const report = battleReport(command, before, state)
+  const report = battleReport(command, DEFAULT_ENGINE_CONFIG, before, state)
   if (!report) throw new Error('expected a report')
   return { report, before, result }
 }
@@ -101,7 +102,7 @@ describe('Battle report', () => {
 
   it('writes no report for a command that is no fight', () => {
     const state = atWar(1)
-    expect(battleReport({ type: 'STAMP_DOCUMENT' }, state, state)).toBeNull()
+    expect(battleReport({ type: 'STAMP_DOCUMENT' }, DEFAULT_ENGINE_CONFIG, state, state)).toBeNull()
   })
 
   it('opens by itself after a campaign and stops the clock until it is closed', async () => {

@@ -112,7 +112,7 @@ describe('Task 3: the open resume', () => {
 
   it('closes the edicts in words and keeps the rest of the Crown open', async () => {
     const { game } = await preparing()
-    const rows = edictRows(game.run!)
+    const rows = edictRows(game.run!, DEFAULT_ENGINE_CONFIG)
     expect(rows.every((row) => row.command === null)).toBe(true)
     expect(rows.every((row) => row.blocked === 'Edicts wait for the new audit')).toBe(true)
     expect(game.act({ type: 'SET_TAX_RATE', rate: 30 }).success).toBe(true)
@@ -126,7 +126,13 @@ describe('Task 3: the open resume', () => {
       [50, 100000].flatMap((ap) => {
         const trial = structuredClone(state)
         trial.ap = ap
-        const action = adviseCounsel(trial, game.quotas, band, game.secondsLeft).action
+        const action = adviseCounsel(
+          trial,
+          DEFAULT_ENGINE_CONFIG,
+          game.quotas,
+          band,
+          game.secondsLeft,
+        ).action
         return action ? [dispatch(trial, action.command).success] : []
       }),
     )

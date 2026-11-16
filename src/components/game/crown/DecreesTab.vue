@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGameStore } from '@/stores/game'
 import { computed } from 'vue'
 import LeafPager from '@/components/game/ledger/LeafPager.vue'
 import EdictRow from '@/components/game/orders/EdictRow.vue'
@@ -6,6 +7,8 @@ import type { Command, GameState } from '@/core/types'
 import type { EdictId } from '@/data/edicts'
 import type { EdictRow as EdictView } from '@/ui/crown'
 import { decreesRecap } from '@/ui/crownRecap'
+
+const game = useGameStore()
 
 /**
  * The emergency edicts, then the laws in force and their seats. Nothing scrolls: what does not
@@ -20,7 +23,7 @@ const props = defineProps<{
 const emit = defineEmits<{ enact: [command: Command] }>()
 const recap = computed(() => {
   void props.revision
-  return decreesRecap(props.run)
+  return decreesRecap(props.run, game.config)
 })
 </script>
 

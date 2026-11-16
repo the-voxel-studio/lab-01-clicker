@@ -6,14 +6,12 @@
  * @module ui/fate
  */
 
-import { DEFAULT_ENGINE_CONFIG } from '@/core/config'
+import type { EngineConfig } from '@/core/config'
 import { calculateMilitaryPower } from '@/core/engine'
 import type { GameState } from '@/core/types'
 import { COUNT_WORDS, FATE } from '@/data/fateCopy'
 import { auditOrdinal, formatCompact, formatFigure } from '@/ui/realmText'
 import type { RunOutcome } from '@/ui/runRecord'
-
-const config = DEFAULT_ENGINE_CONFIG
 
 /** What the fate screen says. */
 export interface FateView {
@@ -35,7 +33,7 @@ function reignLength(state: GameState): string {
 }
 
 /** The first unmet quota, AP then people then army, with its amount when the audit kept it. */
-function firstShortfall(state: GameState): string | null {
+function firstShortfall(state: GameState, config: EngineConfig): string | null {
   const outcome = state.lastAuditOutcome
   if (!outcome) return null
   const short = (target: number, held: number): string =>
@@ -52,11 +50,11 @@ function firstShortfall(state: GameState): string | null {
   return required ? `${short(required.military, army)} force` : 'your force'
 }
 
-function fateLine(state: GameState, outcome: FateView['outcome']): string {
+function fateLine(state: GameState, config: EngineConfig, outcome: FateView['outcome']): string {
   const audit = `the ${auditOrdinal(state.deadline)} audit`
   switch (outcome) {
     case 'quota_failure': {
-      const shortfall = firstShortfall(state)
+      const shortfall = firstShortfall(state, config)
       const counted = shortfall
         ? `${shortfall.startsWith('your') ? 'The Crown found' : 'The Crown counted'} ${shortfall} short at ${audit}.`
         : `The Crown found you wanting at ${audit}.`
@@ -94,12 +92,12 @@ function fateFoot(state: GameState, outcome: FateView['outcome']): string {
 }
 
 /** Reads the fate of a concluded reign. */
-export function fateView(state: GameState): FateView {
+export function fateView(state: GameState, config: EngineConfig): FateView {
   const outcome = outcomeOf(state)
   return {
     outcome,
     title: FATE[outcome].title,
-    line: fateLine(state, outcome),
+    line: fateLine(state, config, outcome),
     foot: fateFoot(state, outcome),
   }
 }
